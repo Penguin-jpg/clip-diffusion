@@ -5,7 +5,7 @@ import random
 import numpy as np
 import clip
 import matplotlib.pyplot as plt
-import tqdm
+from tqdm.notebook import tqdm
 import gc
 from PIL import Image
 from ipywidgets import Output
