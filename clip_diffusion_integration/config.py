@@ -39,6 +39,9 @@ diffusion_steps = 1000  # diffusion要跑的step數
 use_checkpoint = True  # 是否要使用model checkpoint
 steps = 250  # 每個iteration要跑的step數
 model_path = "models"  # 模型存放路徑
+diffusion_model_name = (
+    "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model checkpoint
+)
 diffusion_model_path = (
     f"{model_path}/512x512_diffusion_uncond_finetune_008100.pt"  # diffusion model路徑
 )

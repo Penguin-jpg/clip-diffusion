@@ -1,7 +1,11 @@
 import subprocess
 import os
 import hashlib
-from .config import model_path, diffusion_model_path, secondary_model_path
+from .config import (
+    model_path,
+    diffusion_model_path,
+    secondary_model_path,
+)
 
 # 如果直接用!wget都抓不到模型，不知道為什麼
 def wget(url, output_dir):
@@ -15,7 +19,7 @@ def wget(url, output_dir):
 
 
 def download_models(
-    diffusion_model, use_secondary_model, check_model_SHA=True, fallback=False
+    diffusion_model_name, use_secondary_model, check_model_SHA=True, fallback=False
 ):
     """
     下載所需的模型
@@ -38,38 +42,37 @@ def download_models(
         model_secondary_link = model_secondary_link_fb
 
     # 下載diffusion model
-    if diffusion_model == "512x512_diffusion_uncond_finetune_008100":
-        if os.path.exists(diffusion_model_path) and check_model_SHA:
-            print("Checking 512 Diffusion File")
-            with open(diffusion_model_path, "rb") as f:
-                bytes = f.read()
-                hash = hashlib.sha256(bytes).hexdigest()
-            if hash == model_512_SHA:
-                print("512 Model SHA matches")
-                if os.path.exists(diffusion_model_path):
-                    model_512_downloaded = True
-                else:
-                    print("First URL Failed using FallBack")
-                    download_models(diffusion_model, use_secondary_model, True)
+    if os.path.exists(diffusion_model_path) and check_model_SHA:
+        print("Checking 512 Diffusion File")
+        with open(diffusion_model_path, "rb") as f:
+            bytes = f.read()
+            hash = hashlib.sha256(bytes).hexdigest()
+        if hash == model_512_SHA:
+            print("512 Model SHA matches")
+            if os.path.exists(diffusion_model_path):
+                model_512_downloaded = True
             else:
-                print("512 Model SHA doesn't match, redownloading...")
-                wget(model_512_link, diffusion_model_path)
-                if os.path.exists(diffusion_model_path):
-                    model_512_downloaded = True
-                else:
-                    print("First URL Failed using FallBack")
-                    download_models(diffusion_model, use_secondary_model, True)
-        elif (
-            os.path.exists(diffusion_model_path)
-            and not check_model_SHA
-            or model_512_downloaded == True
-        ):
-            print(
-                "512 Model already downloaded, check check_model_SHA if the file is corrupt"
-            )
+                print("First URL Failed using FallBack")
+                download_models(diffusion_model_name, use_secondary_model, True)
         else:
-            wget(model_512_link, model_path)
-            model_512_downloaded = True
+            print("512 Model SHA doesn't match, redownloading...")
+            wget(model_512_link, diffusion_model_path)
+            if os.path.exists(diffusion_model_path):
+                model_512_downloaded = True
+            else:
+                print("First URL Failed using FallBack")
+                download_models(diffusion_model_name, use_secondary_model, True)
+    elif (
+        os.path.exists(diffusion_model_path)
+        and not check_model_SHA
+        or model_512_downloaded == True
+    ):
+        print(
+            "512 Model already downloaded, check check_model_SHA if the file is corrupt"
+        )
+    else:
+        wget(model_512_link, model_path)
+        model_512_downloaded = True
 
     # 下載secondary diffusion model v2
     if use_secondary_model == True:
@@ -88,7 +91,7 @@ def download_models(
                     model_secondary_downloaded = True
                 else:
                     print("First URL Failed using FallBack")
-                    download_models(diffusion_model, use_secondary_model, True)
+                    download_models(diffusion_model_name, use_secondary_model, True)
         elif (
             os.path.exists(secondary_model_path)
             and not check_model_SHA
@@ -103,4 +106,4 @@ def download_models(
                 model_secondary_downloaded = True
             else:
                 print("First URL Failed using FallBack")
-                download_models(diffusion_model, use_secondary_model, True)
+                download_models(diffusion_model_name, use_secondary_model, True)
