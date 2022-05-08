@@ -61,11 +61,16 @@ lpips_model = lpips.LPIPS(net="vgg").to(device)  # LPIPS model
 num_batches = 100  # 希望denoising diffuison生成幾張靜態圖片
 intermediate_saves = [200, 225, 245]  # 分別在哪些step的圖片要存起來
 intermediates_in_subfolder = True  # 是否要將圖片存在"partials"資料夾內
-steps_per_checkpoint = math.floor(
-    (steps - skip_timesteps - 1) // (intermediate_saves + 1)
+steps_per_checkpoint = (
+    math.floor((steps - skip_timesteps - 1) // (intermediate_saves + 1))
+    if not isinstance(intermediate_saves, list)
+    else None
 )  # 每個checkpoint隔多少個step
-steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1  # 確保有大於0
 display_rate = 50  # 多少個step要更新顯示的圖片一次
+
+# 確保有大於0
+if steps_per_checkpoint:
+    steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
 
 
 def save_settings():
