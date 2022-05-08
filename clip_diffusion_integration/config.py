@@ -3,7 +3,6 @@ import random
 import json
 import lpips
 import math
-from .clip_utils import chosen_models
 
 INT_MAX = 2 ** 32
 
@@ -56,7 +55,7 @@ skip_timesteps = 0  # 控制要跳過的step數(從第幾個step開始)
 eta = 1.0  # DDIM用的超參數
 clamp_grad = True  # 是否在cond_fn中要使用adaptive的Clip梯度
 clamp_max = 0.05  # 限制的最大梯度
-diffusion_model = "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model
+# diffusion_model = "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model
 setting_name = "my_setting"  # 設定資料的名稱
 lpips_model = lpips.LPIPS(net="vgg").to(device)  # LPIPS model
 num_batches = 100  # 希望denoising diffuison生成幾張靜態圖片
@@ -98,18 +97,9 @@ def save_settings():
         "eta": eta,
         "width": width,
         "height": height,
-        "diffusion_model": diffusion_model,
         "use_secondary_model": use_secondary_model,
         "steps": steps,
         "diffusion_steps": diffusion_steps,
-        "ViTB32": chosen_models["ViT-B/32"],
-        "ViTB16": chosen_models["ViT-B/16"],
-        "ViTL14": chosen_models["ViT-L/14"],
-        "RN50": chosen_models["RN50"],
-        "RN50x4": chosen_models["RN50x4"],
-        "RN50x16": chosen_models["RN50x16"],
-        "RN50x64": chosen_models["RN50x64"],
-        "RN101": chosen_models["RN101"],
     }
 
     with open(f"{setting_name}.txt", "w+") as file:
