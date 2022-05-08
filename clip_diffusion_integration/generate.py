@@ -16,7 +16,7 @@ from .prompt_utils import fetch, parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import clip_models
 from .secondary_model import *
-from .diffusion_model import load_model_and_diffusion
+from .diffusion_model import model_config, load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
 from .loss import *
 
@@ -206,7 +206,7 @@ def generate(
         return grad
 
     # 使用DDIM
-    if timestep_respacing.startswith("ddim"):
+    if model_config["timestep_respacing"].startswith("ddim"):
         sample_fn = diffusion.ddim_sample_loop_progressive
     else:
         sample_fn = diffusion.p_sample_loop_progressive
@@ -229,7 +229,7 @@ def generate(
         if perlin_init:
             init = regen_perlin()
 
-        if timestep_respacing.startswith("ddim"):
+        if model_config["timestep_respacing"].startswith("ddim"):
             samples = sample_fn(
                 model,
                 (batch_size, 3, side_y, side_x),
