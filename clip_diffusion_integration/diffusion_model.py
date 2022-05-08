@@ -1,8 +1,16 @@
+import torch
+import gc
 from guided_diffusion.script_util import (
     model_and_diffusion_defaults,
     create_model_and_diffusion,
 )
-from .config import timestep_respacing, use_checkpoint, steps
+from .config import (
+    timestep_respacing,
+    use_checkpoint,
+    steps,
+    diffusion_model_path,
+    device,
+)
 
 
 def load_model_and_diffusion():
@@ -28,4 +36,17 @@ def load_model_and_diffusion():
     )
 
     model, diffusion = create_model_and_diffusion(**model_config)
+    model.load_state_dict(torch.load(diffusion_model_path), map_location="cpu")
+    model.requires_grad_(False).eval().to(device)
+
+    for name, param in model.named_parameters():
+        if "qkv" in name or "norm" in name or "proj" in name:
+            param.requires_grad_()
+
+    if model_config["use_fp16"]:
+        model.convert_to_fp16()
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
     return model, diffusion

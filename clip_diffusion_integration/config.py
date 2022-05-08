@@ -39,7 +39,12 @@ diffusion_steps = 1000  # diffusion要跑的step數
 use_checkpoint = True  # 是否要使用model checkpoint
 steps = 250  # 每個iteration要跑的step數
 model_path = "models"  # 模型存放路徑
-secondary_model_path = f"{model_path}/secondary_model_imagenet_2.pth"
+diffusion_model_path = (
+    f"{model_path}/512x512_diffusion_uncond_finetune_008100.pt"  # diffusion model路徑
+)
+secondary_model_path = (
+    f"{model_path}/secondary_model_imagenet_2.pth"  # secondary model路徑
+)
 clip_guidance_scale = 5000  # clip引導的強度(生成圖片要多接近prompt)
 tv_scale = 0  # 控制最後輸出的平滑程度
 range_scale = 150  # 控制允許超出多遠的RGB值
@@ -55,7 +60,6 @@ skip_timesteps = 0  # 控制要跳過的step數(從第幾個step開始)
 eta = 1.0  # DDIM用的超參數
 clamp_grad = True  # 是否在cond_fn中要使用adaptive的Clip梯度
 clamp_max = 0.05  # 限制的最大梯度
-# diffusion_model = "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model
 setting_name = "my_setting"  # 設定資料的名稱
 lpips_model = lpips.LPIPS(net="vgg").to(device)  # LPIPS model
 num_batches = 100  # 希望denoising diffuison生成幾張靜態圖片
