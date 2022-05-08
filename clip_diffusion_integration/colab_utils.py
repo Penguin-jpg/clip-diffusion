@@ -49,30 +49,21 @@ def download_models(
             hash = hashlib.sha256(bytes).hexdigest()
         if hash == model_512_SHA:
             print("512 Model SHA matches")
-            if os.path.exists(diffusion_model_path):
-                model_512_downloaded = True
-            else:
+            if not os.path.exists(diffusion_model_path):
                 print("First URL Failed using FallBack")
                 download_models(diffusion_model_name, use_secondary_model, True)
         else:
             print("512 Model SHA doesn't match, redownloading...")
             wget(model_512_link, diffusion_model_path)
-            if os.path.exists(diffusion_model_path):
-                model_512_downloaded = True
-            else:
+            if not os.path.exists(diffusion_model_path):
                 print("First URL Failed using FallBack")
                 download_models(diffusion_model_name, use_secondary_model, True)
-    elif (
-        os.path.exists(diffusion_model_path)
-        and not check_model_SHA
-        or model_512_downloaded == True
-    ):
+    elif os.path.exists(diffusion_model_path) and not check_model_SHA:
         print(
             "512 Model already downloaded, check check_model_SHA if the file is corrupt"
         )
     else:
         wget(model_512_link, model_path)
-        model_512_downloaded = True
 
     # 下載secondary diffusion model v2
     if use_secondary_model == True:
@@ -83,27 +74,18 @@ def download_models(
                 hash = hashlib.sha256(bytes).hexdigest()
             if hash == model_secondary_SHA:
                 print("Secondary Model SHA matches")
-                model_secondary_downloaded = True
             else:
                 print("Secondary Model SHA doesn't match, redownloading...")
                 wget(model_secondary_link, model_path)
-                if os.path.exists(secondary_model_path):
-                    model_secondary_downloaded = True
-                else:
+                if not os.path.exists(secondary_model_path):
                     print("First URL Failed using FallBack")
                     download_models(diffusion_model_name, use_secondary_model, True)
-        elif (
-            os.path.exists(secondary_model_path)
-            and not check_model_SHA
-            or model_secondary_downloaded == True
-        ):
+        elif os.path.exists(secondary_model_path) and not check_model_SHA:
             print(
                 "Secondary Model already downloaded, check check_model_SHA if the file is corrupt"
             )
         else:
             wget(model_secondary_link, model_path)
-            if os.path.exists(secondary_model_path):
-                model_secondary_downloaded = True
-            else:
+            if not os.path.exists(secondary_model_path):
                 print("First URL Failed using FallBack")
                 download_models(diffusion_model_name, use_secondary_model, True)
