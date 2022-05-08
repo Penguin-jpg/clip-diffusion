@@ -16,7 +16,7 @@ from .prompt_utils import fetch, parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import clip_models
 from .secondary_model import *
-from .diffusion_model import model, diffusion
+from .diffusion_model import load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
 from .loss import *
 
@@ -121,6 +121,7 @@ def generate(
         init = regen_perlin_no_expand()
 
     cur_t = None
+    model, diffusion = load_model_and_diffusion()
 
     # 透過clip引導guided diffusion
     def cond_fn(x, t, y=None):
