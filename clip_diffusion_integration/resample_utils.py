@@ -1,6 +1,6 @@
 import torch
 import math
-from torch import nn
+from torch.nn import functional as F
 
 # 來源：https://colab.research.google.com/drive/1go6YwMFe5MX6XM9tv-cnQiSTU50N9EeT?fbclid=IwAR30ZqxIJG0-2wDukRydFA3jU5OpLHrlC_Sg1iRXqmoTkEhaJtHdRi6H7AI#scrollTo=EXMSuW2EQWsd
 
@@ -50,16 +50,14 @@ def resample(input, size, align_corners=True):
     if dh < h:
         kernel_h = lanczos(ramp(dh / h, 2), 2).to(input.device, input.dtype)
         pad_h = (kernel_h.shape[0] - 1) // 2
-        input = nn.functional.pad(input, (0, 0, pad_h, pad_h), "reflect")
-        input = nn.functional.conv2d(input, kernel_h[None, None, :, None])
+        input = F.pad(input, (0, 0, pad_h, pad_h), "reflect")
+        input = F.conv2d(input, kernel_h[None, None, :, None])
 
     if dw < w:
         kernel_w = lanczos(ramp(dw / w, 2), 2).to(input.device, input.dtype)
         pad_w = (kernel_w.shape[0] - 1) // 2
-        input = nn.functional.pad(input, (pad_w, pad_w, 0, 0), "reflect")
-        input = nn.functional.conv2d(input, kernel_w[None, None, None, :])
+        input = F.pad(input, (pad_w, pad_w, 0, 0), "reflect")
+        input = F.conv2d(input, kernel_w[None, None, None, :])
 
     input = input.reshape([n, c, h, w])
-    return nn.functional.interpolate(
-        input, size, mode="bicubic", align_corners=align_corners
-    )
+    return F.interpolate(input, size, mode="bicubic", align_corners=align_corners)

@@ -1,6 +1,6 @@
 import torch
-from torch import nn
-from torchvision import transforms
+from torchvision import transforms as T
+from torchvision.transforms import functional as TF
 import random
 import numpy as np
 import clip
@@ -11,6 +11,7 @@ from PIL import Image
 from ipywidgets import Output
 from IPython import display
 from datetime import datetime
+from glob import glob
 from .config import *
 from .prompt_utils import fetch, parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
@@ -22,13 +23,13 @@ from .loss import *
 
 # 參考並修改自：disco diffusion
 
-normalize = transforms.Normalize(
+normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )
 
 
 def generate(
-    batch_name="diffusion", partial_foler="images/partial", batch_folder="images/batch"
+    batch_name="diffusion", partialFolder="images/partial", batchFolder="images/batch"
 ):
     """
     生成圖片
@@ -37,6 +38,7 @@ def generate(
     batch_folder: 儲存最後圖片的資料夾
     """
     model, diffusion = load_model_and_diffusion()
+    batchNum = len(glob(batchFolder + "/*.txt"))
 
     loss_values = []
 
@@ -51,6 +53,7 @@ def generate(
 
     model_stats = []
     for clip_model in clip_models:
+
         model_stat = {
             "clip_model": None,
             "target_embeds": [],
@@ -77,8 +80,8 @@ def generate(
         # for prompt in image_prompts:
         #     path, weight = parse_prompt(prompt)
         #     img = Image.open(fetch(path)).convert('RGB')
-        #     img = transforms.functional.resize(img, min(side_x, side_y, *img.size), T.InterpolationMode.LANCZOS)
-        #     batch = model_stat["make_cutouts"](transforms.functional.to_tensor(img).to(device).unsqueeze(0).mul(2).sub(1))
+        #     img = TF.resize(img, min(side_x, side_y, *img.size), T.InterpolationMode.LANCZOS)
+        #     batch = model_stat["make_cutouts"](TF.to_tensor(img).to(device).unsqueeze(0).mul(2).sub(1))
         #     embed = clip_model.encode_image(normalize(batch)).float()
         #     if fuzzy_prompt:
         #         for i in range(25):
@@ -99,9 +102,7 @@ def generate(
     if init_image:
         init = Image.open(fetch(init_image)).convert("RGB")
         init = init.resize((side_x, side_y), Image.LANCZOS)
-        init = (
-            transforms.functional.to_tensor(init).to(device).unsqueeze(0).mul(2).sub(1)
-        )
+        init = TF.to_tensor(init).to(device).unsqueeze(0).mul(2).sub(1)
 
     if perlin_init:
         init = regen_perlin_no_expand()
@@ -114,7 +115,7 @@ def generate(
             x_is_NaN = False
             x = x.detach().requires_grad_()
             n = x.shape[0]
-            if use_secondary_model:
+            if use_secondary_model is True:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
                     device=device,
@@ -178,7 +179,7 @@ def generate(
                         / cutn_batches
                     )
             tv_losses = tv_loss(x_in)
-            if use_secondary_model:
+            if use_secondary_model is True:
                 range_losses = range_loss(out)
             else:
                 range_losses = range_loss(out["pred_xstart"])
@@ -188,11 +189,11 @@ def generate(
                 + range_losses.sum() * range_scale
                 + sat_losses.sum() * sat_scale
             )
-            if init and init_scale:
+            if init is not None and init_scale:
                 init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
-            if not torch.isnan(x_in_grad).any():
+            if torch.isnan(x_in_grad).any() == False:
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
             else:
                 # print("NaN'd")
@@ -258,52 +259,52 @@ def generate(
         for j, sample in enumerate(samples):
             cur_t -= 1
             intermediateStep = False
-            if steps_per_checkpoint:
+            if steps_per_checkpoint is not None:
                 if j % steps_per_checkpoint == 0 and j > 0:
                     intermediateStep = True
             elif j in intermediate_saves:
                 intermediateStep = True
 
             with image_display:
-                if j % display_rate == 0 or cur_t == -1 or intermediateStep:
+                if j % display_rate == 0 or cur_t == -1 or intermediateStep == True:
                     for k, image in enumerate(sample["pred_xstart"]):
                         # tqdm.write(f'Batch {i}, step {j}, output {k}:')
                         current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
                         percent = math.ceil(j / total_steps * 100)
                         if num_batches > 0:
                             # if intermediates are saved to the subfolder, don't append a step or percentage to the name
-                            if cur_t == -1 and intermediates_in_subfolder == True:
-                                filename = f"{batch_name}_{i:04}.png"
+                            if cur_t == -1 and intermediates_in_subfolder is True:
+                                filename = f"{batch_name}({batchNum})_{i:04}.png"
                             else:
                                 # If we're working with percentages, append it
-                                if steps_per_checkpoint:
-                                    filename = f"{batch_name}_{i:04}-{percent:02}%.png"
+                                if steps_per_checkpoint is not None:
+                                    filename = f"{batch_name}({batchNum})_{i:04}-{percent:02}%.png"
                                 # Or else, iIf we're working with specific steps, append those
                                 else:
-                                    filename = f"{batch_name}_{i:04}-{j:03}.png"
-                        image = transforms.functional.to_pil_image(
-                            image.add(1).div(2).clamp(0, 1)
-                        )
+                                    filename = (
+                                        f"{batch_name}({batchNum})_{i:04}-{j:03}.png"
+                                    )
+                        image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
                         if j % display_rate == 0 or cur_t == -1:
                             display.clear_output(wait=True)
                             display.display(display.Image("progress.png"))
                         if steps_per_checkpoint is not None:
                             if j % steps_per_checkpoint == 0 and j > 0:
-                                if intermediates_in_subfolder:
-                                    image.save(f"{partial_foler}/{filename}")
+                                if intermediates_in_subfolder is True:
+                                    image.save(f"{partialFolder}/{filename}")
                                 else:
-                                    image.save(f"{batch_folder}/{filename}")
+                                    image.save(f"{batchFolder}/{filename}")
                         else:
                             if j in intermediate_saves:
-                                if intermediates_in_subfolder:
-                                    image.save(f"{partial_foler}/{filename}")
+                                if intermediates_in_subfolder is True:
+                                    image.save(f"{partialFolder}/{filename}")
                                 else:
-                                    image.save(f"{batch_folder}/{filename}")
+                                    image.save(f"{batchFolder}/{filename}")
                         if cur_t == -1:
                             if i == 0:
                                 save_settings()
-                            image.save(f"{batch_folder}/{filename}")
+                            image.save(f"{batchFolder}/{filename}")
                             display.clear_output()
 
         plt.plot(np.array(loss_values), "r")

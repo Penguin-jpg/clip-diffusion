@@ -1,6 +1,7 @@
 import torch
-from torch import nn
-from torchvision import transforms
+from torch.nn import functional as F
+from torchvision import transforms as T
+from torchvision.transforms import functional as TF
 from ResizeRight.resize_right import resize
 from .resample_utils import resample
 from .config import skip_augs
@@ -13,22 +14,22 @@ class MakeCutouts(nn.Module):
         self.cut_size = cut_size
         self.cutn = cutn
         self.skip_augs = skip_augs
-        self.augs = transforms.Compose(
+        self.augs = T.Compose(
             [
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                transforms.RandomAffine(degrees=15, translate=(0.1, 0.1)),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                transforms.RandomPerspective(distortion_scale=0.4, p=0.7),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                transforms.RandomGrayscale(p=0.15),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                # transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+                T.RandomHorizontalFlip(p=0.5),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.RandomAffine(degrees=15, translate=(0.1, 0.1)),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.RandomPerspective(distortion_scale=0.4, p=0.7),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.RandomGrayscale(p=0.15),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                # T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
             ]
         )
 
     def forward(self, input):
-        input = transforms.Pad(input.shape[2] // 4, fill=0)(input)
+        input = T.Pad(input.shape[2] // 4, fill=0)(input)
         sideY, sideX = input.shape[2:4]
         max_size = min(sideX, sideY)
 
@@ -58,11 +59,11 @@ class MakeCutouts(nn.Module):
         return cutouts
 
 
-# 作者： Dango233
+# for Dango cutouts
 cutout_debug = False
 padargs = {}
 
-
+# 作者： Dango233
 class MakeCutoutsDango(nn.Module):
     def __init__(
         self, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2
@@ -73,34 +74,32 @@ class MakeCutoutsDango(nn.Module):
         self.InnerCrop = InnerCrop
         self.IC_Size_Pow = IC_Size_Pow
         self.IC_Grey_P = IC_Grey_P
-        self.augs = transforms.Compose(
+        self.augs = T.Compose(
             [
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                transforms.RandomAffine(
+                T.RandomHorizontalFlip(p=0.5),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.RandomAffine(
                     degrees=10,
                     translate=(0.05, 0.05),
-                    interpolation=transforms.InterpolationMode.BILINEAR,
+                    interpolation=T.InterpolationMode.BILINEAR,
                 ),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                transforms.RandomGrayscale(p=0.1),
-                transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-                transforms.ColorJitter(
-                    brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1
-                ),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.RandomGrayscale(p=0.1),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
             ]
         )
 
     def forward(self, input):
         cutouts = []
-        gray = transforms.Grayscale(3)
+        gray = T.Grayscale(3)
         sideY, sideX = input.shape[2:4]
         max_size = min(sideX, sideY)
         min_size = min(sideX, sideY, self.cut_size)
         l_size = max(sideX, sideY)
         output_shape = [1, 3, self.cut_size, self.cut_size]
         output_shape_2 = [1, 3, self.cut_size + 2, self.cut_size + 2]
-        pad_input = nn.functional.pad(
+        pad_input = F.pad(
             input,
             (
                 (sideY - max_size) // 2,
@@ -119,18 +118,18 @@ class MakeCutoutsDango(nn.Module):
                 if self.Overview >= 2:
                     cutouts.append(gray(cutout))
                 if self.Overview >= 3:
-                    cutouts.append(transforms.functional.hflip(cutout))
+                    cutouts.append(TF.hflip(cutout))
                 if self.Overview == 4:
-                    cutouts.append(gray(transforms.functional.hflip(cutout)))
+                    cutouts.append(gray(TF.hflip(cutout)))
             else:
                 cutout = resize(pad_input, out_shape=output_shape)
                 for _ in range(self.Overview):
                     cutouts.append(cutout)
 
             if cutout_debug:
-                transforms.functional.to_pil_image(
-                    cutouts[0].add(1).div(2).clamp(0, 1).squeeze(0)
-                ).save("/content/cutout_overview.jpg", quality=99)
+                TF.to_pil_image(cutouts[0].add(1).div(2).clamp(0, 1).squeeze(0)).save(
+                    "/content/cutout_overview.jpg", quality=99
+                )
 
         if self.InnerCrop > 0:
             for i in range(self.InnerCrop):
@@ -146,10 +145,10 @@ class MakeCutoutsDango(nn.Module):
                 cutout = resize(cutout, out_shape=output_shape)
                 cutouts.append(cutout)
             if cutout_debug:
-                transforms.functional.to_pil_image(
-                    cutouts[-1].add(1).div(2).clamp(0, 1).squeeze(0)
-                ).save("/content/cutout_InnerCrop.jpg", quality=99)
+                TF.to_pil_image(cutouts[-1].add(1).div(2).clamp(0, 1).squeeze(0)).save(
+                    "/content/cutout_InnerCrop.jpg", quality=99
+                )
         cutouts = torch.cat(cutouts)
-        if not skip_augs:
+        if skip_augs is not True:
             cutouts = self.augs(cutouts)
         return cutouts

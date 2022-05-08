@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchvision import transforms
+from torchvision.transforms import functional as TF
 from PIL import Image, ImageOps
 from .config import device, side_x, side_y, perlin_mode, batch_size
 
@@ -80,12 +80,12 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     out = perlin_ms(octaves, width, height, grayscale)
 
     if grayscale:  # 灰階
-        out = transforms.functinoal.resize(size=(side_y, side_x), img=out.unsqueeze(0))
-        out = transforms.functinoal.to_pil_image(out.clamp(0, 1)).convert("RGB")
+        out = TF.resize(size=(side_y, side_x), img=out.unsqueeze(0))
+        out = TF.to_pil_image(out.clamp(0, 1)).convert("RGB")
     else:  # 有顏色
         out = out.reshape(-1, 3, out.shape[0] // 3, out.shape[1])
-        out = transforms.functinoal.resize(size=(side_y, side_x), img=out)
-        out = transforms.functinoal.to_pil_image(out.clamp(0, 1).squeeze())
+        out = TF.resize(size=(side_y, side_x), img=out)
+        out = TF.to_pil_image(out.clamp(0, 1).squeeze())
 
     out = ImageOps.autocontrast(out)
     return out
@@ -106,8 +106,8 @@ def regen_perlin():
         init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, True)
 
     init = (
-        transforms.functional.to_tensor(init)
-        .add(transforms.functional.to_tensor(init2))
+        TF.to_tensor(init)
+        .add(TF.to_tensor(init2))
         .div(2)
         .to(device)
         .unsqueeze(0)
@@ -133,8 +133,8 @@ def regen_perlin_no_expand():
         init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, True)
 
     init = (
-        transforms.functional.to_tensor(init)
-        .add(transforms.functional.to_tensor(init2))
+        TF.to_tensor(init)
+        .add(TF.to_tensor(init2))
         .div(2)
         .to(device)
         .unsqueeze(0)
