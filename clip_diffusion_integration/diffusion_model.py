@@ -36,7 +36,7 @@ def load_model_and_diffusion():
     )
 
     model, diffusion = create_model_and_diffusion(**model_config)
-    model.load_state_dict(torch.load(diffusion_model_path), map_location="cpu")
+    model.load_state_dict(torch.load(diffusion_model_path, map_location="cpu"))
     model.requires_grad_(False).eval().to(device)
 
     for name, param in model.named_parameters():
