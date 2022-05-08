@@ -58,11 +58,11 @@ class MakeCutouts(nn.Module):
         return cutouts
 
 
-# for dango cutouts
+# 作者： Dango233
 cutout_debug = False
 padargs = {}
 
-# 作者： Dango233
+
 class MakeCutoutsDango(nn.Module):
     def __init__(
         self, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2
@@ -150,6 +150,6 @@ class MakeCutoutsDango(nn.Module):
                     cutouts[-1].add(1).div(2).clamp(0, 1).squeeze(0)
                 ).save("/content/cutout_InnerCrop.jpg", quality=99)
         cutouts = torch.cat(cutouts)
-        if skip_augs is not True:
+        if not skip_augs:
             cutouts = self.augs(cutouts)
         return cutouts
