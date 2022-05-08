@@ -43,8 +43,8 @@ def perlin(power, width, height, scale=10, device=device):
     # 越接近0影響力越大時就用1-x(或1-y)
     wx = 1 - fade(xs)
     wy = 1 - fade(ys)
-    dots = 0
     # 對4個頂點計算noise(wx,wy計算noise；gx,gy計算高度)
+    dots = 0
     dots += wx * wy * (gx[:-1, :-1] * xs + gy[:-1, :-1] * ys)
     dots += (1 - wx) * wy * (-gx[1:, :-1] * (1 - xs) + gy[1:, :-1] * ys)
     dots += wx * (1 - wy) * (gx[:-1, 1:] * xs - gy[:-1, 1:] * (1 - ys))

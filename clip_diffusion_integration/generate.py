@@ -36,9 +36,11 @@ def generate(
     partial_folder: 儲存過程圖片的資料夾
     batch_folder: 儲存最後圖片的資料夾
     """
+    model, diffusion = load_model_and_diffusion()
+
     loss_values = []
 
-    if seed is not None:
+    if seed:
         np.random.seed(seed)
         random.seed(seed)
         torch.manual_seed(seed)
@@ -86,22 +88,6 @@ def generate(
         #         model_stat["target_embeds"].append(embed)
         #         model_stat["weights"].extend([weight / cutn] * cutn)
 
-        # if image_prompt:
-        #     model_stat["make_cutouts"] = MakeCutouts(clip_model.visual.input_resolution, cutn, skip_augs=skip_augs)
-        #     for prompt in image_prompt:
-        #         path, weight = parse_prompt(prompt)
-        #         img = Image.open(fetch(path)).convert('RGB')
-        #         img = transforms.functional.resize(img, min(side_x, side_y, *img.size), T.InterpolationMode.LANCZOS)
-        #         batch = model_stat["make_cutouts"](transforms.functional.to_tensor(img).to(device).unsqueeze(0).mul(2).sub(1))
-        #         embed = clip_model.encode_image(normalize(batch)).float()
-        #         if fuzzy_prompt:
-        #             for i in range(25):
-        #                 model_stat["target_embeds"].append((embed + torch.randn(embed.shape).cuda() * rand_mag).clamp(0,1))
-        #                 weights.extend([weight / cutn] * cutn)
-        #         else:
-        #             model_stat["target_embeds"].append(embed)
-        #             model_stat["weights"].extend([weight / cutn] * cutn)
-
         model_stat["target_embeds"] = torch.cat(model_stat["target_embeds"])
         model_stat["weights"] = torch.tensor(model_stat["weights"], device=device)
         if model_stat["weights"].sum().abs() < 1e-3:
@@ -110,7 +96,7 @@ def generate(
         model_stats.append(model_stat)
 
     init = None
-    if init_image is not None:
+    if init_image:
         init = Image.open(fetch(init_image)).convert("RGB")
         init = init.resize((side_x, side_y), Image.LANCZOS)
         init = (
@@ -121,7 +107,6 @@ def generate(
         init = regen_perlin_no_expand()
 
     cur_t = None
-    model, diffusion = load_model_and_diffusion()
 
     # 透過clip引導guided diffusion
     def cond_fn(x, t, y=None):
@@ -129,7 +114,7 @@ def generate(
             x_is_NaN = False
             x = x.detach().requires_grad_()
             n = x.shape[0]
-            if use_secondary_model is True:
+            if use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
                     device=device,
@@ -193,7 +178,7 @@ def generate(
                         / cutn_batches
                     )
             tv_losses = tv_loss(x_in)
-            if use_secondary_model is True:
+            if use_secondary_model:
                 range_losses = range_loss(out)
             else:
                 range_losses = range_loss(out["pred_xstart"])
@@ -203,11 +188,11 @@ def generate(
                 + range_losses.sum() * range_scale
                 + sat_losses.sum() * sat_scale
             )
-            if init is not None and init_scale:
+            if init and init_scale:
                 init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
-            if torch.isnan(x_in_grad).any() == False:
+            if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
             else:
                 # print("NaN'd")
@@ -305,13 +290,13 @@ def generate(
                             display.display(display.Image("progress.png"))
                         if steps_per_checkpoint is not None:
                             if j % steps_per_checkpoint == 0 and j > 0:
-                                if intermediates_in_subfolder is True:
+                                if intermediates_in_subfolder:
                                     image.save(f"{partial_foler}/{filename}")
                                 else:
                                     image.save(f"{batch_folder}/{filename}")
                         else:
                             if j in intermediate_saves:
-                                if intermediates_in_subfolder is True:
+                                if intermediates_in_subfolder:
                                     image.save(f"{partial_foler}/{filename}")
                                 else:
                                     image.save(f"{batch_folder}/{filename}")
@@ -322,3 +307,6 @@ def generate(
                             display.clear_output()
 
         plt.plot(np.array(loss_values), "r")
+
+        gc.collect()
+        torch.cuda.empty_cache()

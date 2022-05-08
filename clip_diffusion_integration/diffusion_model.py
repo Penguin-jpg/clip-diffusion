@@ -5,9 +5,9 @@ from guided_diffusion.script_util import (
     create_model_and_diffusion,
 )
 from .config import (
+    diffusion_steps,
     timestep_respacing,
     use_checkpoint,
-    steps,
     diffusion_model_path,
     device,
 )
@@ -19,7 +19,7 @@ def load_model_and_diffusion():
         {
             "attention_resolutions": "32, 16, 8",
             "class_cond": False,
-            "diffusion_steps": (1000 // steps) * steps if steps < 1000 else steps,
+            "diffusion_steps": diffusion_steps,
             "rescale_timesteps": True,
             "timestep_respacing": timestep_respacing,
             "image_size": 512,

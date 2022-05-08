@@ -15,16 +15,15 @@ def get_seed():
 width = 0  # 生成圖片的寬度
 height = 0  # 　生成圖片的高度
 # resize用的x, y(一定要是64的倍數)
-side_x = (width / 64) * 64
-side_y = (height / 64) * 64
+side_x = (width // 64) * 64
+side_y = (height // 64) * 64
 perlin_mode = "mixed"  # 使用的perlin模式
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  # GPU或CPU
 batch_size = 1  # 要生成幾張圖片
 skip_augs = False  # 是否不做圖片的augmentation
 seed = get_seed()  # 亂數種子
 text_prompts = [
-    "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, Trending on artstation.",
-    "yellow color scheme",
+    "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
 ]  # 要生成的東西(可以將不同特徵分開寫)
 image_prompts = []  # 輔助生成的圖片
 randomize_class = True  # imagenet的class是否要每個iteration都隨機改變
@@ -35,9 +34,11 @@ init_image = None  # 初始化圖片(能幫助生成成果)
 perlin_init = False  # 是否要使用隨機的perlin噪音
 use_secondary_model = True  # 是否要使用secondary model輔助生成結果
 timestep_respacing = "ddim100"  # 減少timestep的數量
-diffusion_steps = 1000  # diffusion要跑的step數
 use_checkpoint = True  # 是否要使用model checkpoint
 steps = 250  # 每個iteration要跑的step數
+diffusion_steps = (
+    (1000 // steps) * steps if steps < 1000 else steps
+)  # diffusion要跑的step數
 model_path = "models"  # 模型存放路徑
 diffusion_model_name = (
     "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model checkpoint
