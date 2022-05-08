@@ -100,7 +100,7 @@ class MakeCutoutsDango(nn.Module):
         l_size = max(sideX, sideY)
         output_shape = [1, 3, self.cut_size, self.cut_size]
         output_shape_2 = [1, 3, self.cut_size + 2, self.cut_size + 2]
-        pad_input = F.pad(
+        pad_input = nn.functional.pad(
             input,
             (
                 (sideY - max_size) // 2,

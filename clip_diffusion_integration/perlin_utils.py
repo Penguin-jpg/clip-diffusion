@@ -116,3 +116,30 @@ def regen_perlin():
     )
     del init2
     return init.expand(batch_size, -1, -1, -1)
+
+
+def regen_perlin_no_expand():
+    """
+    重新生成perlin noise，但不做expand
+    """
+    if perlin_mode == "color":
+        init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, False)
+        init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, False)
+    elif perlin_mode == "gray":
+        init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, True)
+        init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, True)
+    else:
+        init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, False)
+        init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, True)
+
+    init = (
+        transforms.functional.to_tensor(init)
+        .add(transforms.functional.to_tensor(init2))
+        .div(2)
+        .to(device)
+        .unsqueeze(0)
+        .mul(2)
+        .sub(1)
+    )
+    del init2
+    return init

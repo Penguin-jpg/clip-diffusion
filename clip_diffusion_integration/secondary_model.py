@@ -3,6 +3,7 @@ from torch import nn
 from dataclasses import dataclass
 import math
 from functools import partial
+from .config import secondary_model_path, device
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
 def append_dims(x, n):
@@ -188,3 +189,8 @@ class SecondaryDiffusionImageNet2(nn.Module):
         pred = input * alphas - v * sigmas
         eps = input * sigmas + v * alphas
         return DiffusionOutput(v, pred, eps)
+
+
+secondary_model = SecondaryDiffusionImageNet2()
+secondary_model.load_state_dict(torch.load(secondary_model_path, map_location="cpu"))
+secondary_model.eval().requires_grad_(False).to(device)
