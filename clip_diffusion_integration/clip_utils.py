@@ -16,4 +16,7 @@ clip_models = []
 
 for model_name, selected in chosen_models.items():
     if selected:
-        clip_models.append(clip.load(model_name, device))
+        # 取[0]代表只取Clip模型(不取後續的compose)
+        clip_models.append(
+            clip.load(model_name, device)[0].eval().requires_grad_(False)
+        )
