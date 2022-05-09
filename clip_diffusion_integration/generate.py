@@ -5,8 +5,9 @@ import random
 import numpy as np
 import clip
 import matplotlib.pyplot as plt
-from tqdm.notebook import tqdm
+import os
 import gc
+from tqdm.notebook import tqdm
 from PIL import Image
 from ipywidgets import Output
 from IPython import display
@@ -20,6 +21,7 @@ from .secondary_model import *
 from .diffusion_model import model_config, load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
 from .loss import *
+from .dir_utils import *
 
 # 參考並修改自：disco diffusion
 
@@ -28,17 +30,22 @@ normalize = T.Normalize(
 )
 
 
-def generate(
-    batch_name="diffusion", partialFolder="images/partial", batchFolder="images/batch"
-):
+def generate(batch_name="diffusion", parial_folder="images/partial"):
     """
     生成圖片
     batch_name: 本次生成的名稱
     partial_folder: 儲存過程圖片的資料夾
-    batch_folder: 儲存最後圖片的資料夾
     """
+
     model, diffusion = load_model_and_diffusion()
-    batchNum = len(glob(batchFolder + "/*.txt"))
+    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
+    make_dir(batch_folder)
+    batch_num = len(glob(batch_folder + "/*.txt"))
+
+    while os.path.isfile(
+        f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
+    ) or os.path.isfile(f"{batch_folder}/{batch_name}-{batch_num}_settings.txt"):
+        batch_num += 1
 
     loss_values = []
 
@@ -115,7 +122,7 @@ def generate(
             x_is_NaN = False
             x = x.detach().requires_grad_()
             n = x.shape[0]
-            if use_secondary_model is True:
+            if use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
                     device=device,
@@ -179,7 +186,7 @@ def generate(
                         / cutn_batches
                     )
             tv_losses = tv_loss(x_in)
-            if use_secondary_model is True:
+            if use_secondary_model:
                 range_losses = range_loss(out)
             else:
                 range_losses = range_loss(out["pred_xstart"])
@@ -189,7 +196,7 @@ def generate(
                 + range_losses.sum() * range_scale
                 + sat_losses.sum() * sat_scale
             )
-            if init is not None and init_scale:
+            if init and init_scale:
                 init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
@@ -199,7 +206,7 @@ def generate(
                 # print("NaN'd")
                 x_is_NaN = True
                 grad = torch.zeros_like(x)
-        if clamp_grad and x_is_NaN == False:
+        if clamp_grad and (not x_is_NaN):
             magnitude = grad.square().mean().sqrt()
             return (
                 grad * magnitude.clamp(min=-clamp_max, max=clamp_max) / magnitude
@@ -258,53 +265,52 @@ def generate(
 
         for j, sample in enumerate(samples):
             cur_t -= 1
-            intermediateStep = False
-            if steps_per_checkpoint is not None:
+            intermediate_step = False
+            if steps_per_checkpoint:
                 if j % steps_per_checkpoint == 0 and j > 0:
-                    intermediateStep = True
+                    intermediate_step = True
             elif j in intermediate_saves:
-                intermediateStep = True
+                intermediate_step = True
 
             with image_display:
-                if j % display_rate == 0 or cur_t == -1 or intermediateStep == True:
+                if j % display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
-                        # tqdm.write(f'Batch {i}, step {j}, output {k}:')
                         current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
                         percent = math.ceil(j / total_steps * 100)
                         if num_batches > 0:
                             # if intermediates are saved to the subfolder, don't append a step or percentage to the name
-                            if cur_t == -1 and intermediates_in_subfolder is True:
-                                filename = f"{batch_name}({batchNum})_{i:04}.png"
+                            if cur_t == -1 and intermediates_in_subfolder:
+                                filename = f"{batch_name}({batch_num})_{i:04}.png"
                             else:
                                 # If we're working with percentages, append it
                                 if steps_per_checkpoint is not None:
-                                    filename = f"{batch_name}({batchNum})_{i:04}-{percent:02}%.png"
+                                    filename = f"{batch_name}({batch_num})_{i:04}-{percent:02}%.png"
                                 # Or else, iIf we're working with specific steps, append those
                                 else:
                                     filename = (
-                                        f"{batch_name}({batchNum})_{i:04}-{j:03}.png"
+                                        f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
                                     )
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
                         if j % display_rate == 0 or cur_t == -1:
                             display.clear_output(wait=True)
                             display.display(display.Image("progress.png"))
-                        if steps_per_checkpoint is not None:
+                        if steps_per_checkpoint:
                             if j % steps_per_checkpoint == 0 and j > 0:
-                                if intermediates_in_subfolder is True:
-                                    image.save(f"{partialFolder}/{filename}")
+                                if intermediates_in_subfolder:
+                                    image.save(f"{parial_folder}/{filename}")
                                 else:
-                                    image.save(f"{batchFolder}/{filename}")
+                                    image.save(f"{batch_folder}/{filename}")
                         else:
                             if j in intermediate_saves:
-                                if intermediates_in_subfolder is True:
-                                    image.save(f"{partialFolder}/{filename}")
+                                if intermediates_in_subfolder:
+                                    image.save(f"{parial_folder}/{filename}")
                                 else:
-                                    image.save(f"{batchFolder}/{filename}")
+                                    image.save(f"{batch_folder}/{filename}")
                         if cur_t == -1:
                             if i == 0:
                                 save_settings()
-                            image.save(f"{batchFolder}/{filename}")
+                            image.save(f"{batch_folder}/{filename}")
                             display.clear_output()
 
         plt.plot(np.array(loss_values), "r")
