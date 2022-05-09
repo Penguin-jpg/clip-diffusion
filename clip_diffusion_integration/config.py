@@ -33,9 +33,9 @@ rand_mag = 0.05  # 控制隨機噪音的強度
 init_image = None  # 初始化圖片(能幫助生成成果)
 perlin_init = False  # 是否要使用隨機的perlin噪音
 use_secondary_model = True  # 是否要使用secondary model輔助生成結果
-timestep_respacing = "ddim100"  # 減少timestep的數量
 use_checkpoint = True  # 是否要使用model checkpoint
 steps = 250  # 每個iteration要跑的step數
+timestep_respacing = f"ddim{steps}"  # 減少timestep的數量
 diffusion_steps = (
     (1000 // steps) * steps if steps < 1000 else steps
 )  # diffusion要跑的step數
