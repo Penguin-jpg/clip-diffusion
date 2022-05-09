@@ -12,8 +12,8 @@ def get_seed():
     return random.randint(0, INT_MAX)
 
 
-width = 0  # 生成圖片的寬度
-height = 0  # 　生成圖片的高度
+width = 1280  # 生成圖片的寬度
+height = 768  # 　生成圖片的高度
 # resize用的x, y(一定要是64的倍數)
 side_x = (width // 64) * 64
 side_y = (height // 64) * 64
