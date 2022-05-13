@@ -83,7 +83,7 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
     make_dir(batch_folder)
     batch_num = len(glob(batch_folder + "/*.txt"))
 
-    if steps_per_checkpoint != 0 and intermediates_in_subfolder:
+    if steps_per_checkpoint != 0:
         partial_folder = f"{batch_folder}/partials"
         make_dir(partial_folder)
 
@@ -215,8 +215,8 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
     # 使用DDIM
     if model_config["timestep_respacing"].startswith("ddim"):
         sample_fn = diffusion.ddim_sample_loop_progressive
-    else:
-        sample_fn = diffusion.p_sample_loop_progressive
+    # else:
+    #     sample_fn = diffusion.p_sample_loop_progressive
 
     image_display = Output()
 
@@ -248,18 +248,18 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
                 randomize_class=randomize_class,
                 eta=eta,
             )
-        else:
-            samples = sample_fn(
-                model,
-                (batch_size, 3, side_y, side_x),
-                clip_denoised=clip_denoised,
-                model_kwargs={},
-                cond_fn=cond_fn,
-                progress=True,
-                skip_timesteps=skip_timesteps,
-                init_image=init,
-                randomize_class=randomize_class,
-            )
+        # else:
+        #     samples = sample_fn(
+        #         model,
+        #         (batch_size, 3, side_y, side_x),
+        #         clip_denoised=clip_denoised,
+        #         model_kwargs={},
+        #         cond_fn=cond_fn,
+        #         progress=True,
+        #         skip_timesteps=skip_timesteps,
+        #         init_image=init,
+        #         randomize_class=randomize_class,
+        #     )
 
         for j, sample in enumerate(samples):
             cur_t -= 1
@@ -277,7 +277,7 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
                         percent = math.ceil(j / total_steps * 100)
                         if num_batches > 0:
                             # if intermediates are saved to the subfolder, don't append a step or percentage to the name
-                            if cur_t == -1 and intermediates_in_subfolder:
+                            if cur_t == -1:
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
                             else:
                                 # If we're working with percentages, append it
@@ -295,16 +295,12 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
                             display.display(display.Image("progress.png"))
                         if steps_per_checkpoint:
                             if j % steps_per_checkpoint == 0 and j > 0:
-                                if intermediates_in_subfolder:
-                                    image.save(f"{partial_folder}/{filename}")
-                                else:
-                                    image.save(f"{batch_folder}/{filename}")
+                                image.save(f"{partial_folder}/{filename}")
+                                # image.save(f"{batch_folder}/{filename}")
                         else:
                             if j in intermediate_saves:
-                                if intermediates_in_subfolder:
-                                    image.save(f"{partial_folder}/{filename}")
-                                else:
-                                    image.save(f"{batch_folder}/{filename}")
+                                image.save(f"{partial_folder}/{filename}")
+                                # image.save(f"{batch_folder}/{filename}")
                         if cur_t == -1:
                             if i == 0:
                                 save_settings()
