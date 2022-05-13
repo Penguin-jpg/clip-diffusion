@@ -54,6 +54,7 @@ use_secondary_model = True  # 是否要使用secondary model輔助生成結果
 diffusion_model_name = (
     "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model checkpoint
 )
+secondary_model_name = "secondary_model_imagenet_2"  # 使用的secondary model checkpoint
 diffusion_model_path = (
     f"{model_path}/512x512_diffusion_uncond_finetune_008100.pt"  # diffusion model路徑
 )

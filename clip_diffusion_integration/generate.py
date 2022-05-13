@@ -21,6 +21,7 @@ from .diffusion_model import model_config, load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
 from .loss import *
 from .dir_utils import *
+from .gif_utils import create_gif
 
 # 參考並修改自：disco diffusion
 
@@ -307,6 +308,7 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
                             image.save(f"{batch_folder}/{filename}")
                             display.clear_output()
 
+        create_gif(partial_folder, batch_name)  # 建立一張gif
         plt.plot(np.array(loss_values), "r")
 
         gc.collect()
