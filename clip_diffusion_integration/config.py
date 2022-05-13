@@ -30,12 +30,11 @@ randomize_class = True  # imagenet的class是否要每個iteration都隨機改�
 clip_denoised = False  # clip是否要區分有噪音和沒有噪音的圖片
 fuzzy_prompt = False  # 是否要加入multiple noisy prompts到prompt losses內
 rand_mag = 0.05  # 控制隨機噪音的強度
-init_image = None  # 初始化圖片(能幫助生成成果)
 perlin_init = False  # 是否要使用隨機的perlin噪音
 use_secondary_model = True  # 是否要使用secondary model輔助生成結果
 use_checkpoint = True  # 是否要使用model checkpoint
 steps = 250  # 每個iteration要跑的step數
-timestep_respacing = f"ddim{steps}"  # 減少timestep的數量
+timestep_respacing = f"ddim{steps}"  # 調整diffusion的timestep數量
 diffusion_steps = (
     (1000 // steps) * steps if steps < 1000 else steps
 )  # diffusion要跑的step數
@@ -66,7 +65,7 @@ clamp_grad = True  # 是否在cond_fn中要使用adaptive的Clip梯度
 clamp_max = 0.05  # 限制的最大梯度
 setting_name = "my_setting"  # 設定資料的名稱
 lpips_model = lpips.LPIPS(net="vgg").to(device)  # LPIPS model
-num_batches = 100  # 希望denoising diffuison生成幾張靜態圖片
+num_batches = 1  # 要生成的圖片數輛
 intermediate_saves = [200, 225, 245]  # 分別在哪些step的圖片要存起來
 intermediates_in_subfolder = True  # 是否要將圖片存在"partials"資料夾內
 steps_per_checkpoint = (
@@ -92,9 +91,7 @@ def save_settings():
         "tv_scale": tv_scale,
         "range_scale": range_scale,
         "sat_scale": sat_scale,
-        # 'cutn': cutn,
         "cutn_batches": cutn_batches,
-        "init_image": init_image,
         "init_scale": init_scale,
         "skip_timesteps": skip_timesteps,
         "perlin_init": perlin_init,

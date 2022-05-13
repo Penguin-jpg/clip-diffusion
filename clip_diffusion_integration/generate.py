@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import os
 import gc
 from tqdm.notebook import tqdm
-from PIL import Image
 from ipywidgets import Output
 from IPython import display
 from datetime import datetime
@@ -28,6 +27,48 @@ from .dir_utils import *
 normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )
+
+
+def get_embedding_and_weights():
+    """
+    取得prompt的embedding及weight
+    """
+
+    model_stats = []
+
+    for clip_model in clip_models:
+        model_stat = {
+            "clip_model": None,
+            "target_embeds": [],
+            "make_cutouts": None,
+            "weights": [],
+        }
+        model_stat["clip_model"] = clip_model
+
+        for prompt in text_prompts:
+            text, weight = parse_prompt(prompt)  # 取得text及weight
+            text = clip_model.encode_text(clip.tokenize(prompt).to(device)).float()
+
+            if fuzzy_prompt:
+                for i in range(25):
+                    model_stat["target_embeds"].append(
+                        (text + torch.randn(text.shape).cuda() * rand_mag).clamp(0, 1)
+                    )
+                    model_stat["weights"].append(weight)
+            else:
+                model_stat["target_embeds"].append(text)
+                model_stat["weights"].append(weight)
+
+        model_stat["target_embeds"] = torch.cat(model_stat["target_embeds"])
+        model_stat["weights"] = torch.tensor(model_stat["weights"], device=device)
+
+        if model_stat["weights"].sum().abs() < 1e-3:
+            raise RuntimeError("The weights must not sum to 0.")
+
+        model_stat["weights"] /= model_stat["weights"].sum().abs()
+        model_stats.append(model_stat)
+
+    return model_stats
 
 
 def generate(batch_name="diffusion", parial_folder="images/partial"):
@@ -56,60 +97,12 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
 
-    target_embeds, weights = [], []
+    # target_embeds, weights = [], []
 
-    model_stats = []
-    for clip_model in clip_models:
-
-        model_stat = {
-            "clip_model": None,
-            "target_embeds": [],
-            "make_cutouts": None,
-            "weights": [],
-        }
-        model_stat["clip_model"] = clip_model
-        # model_stat["make_cutouts"] = MakeCutouts(clip_model.visual.input_resolution, cutn, skip_augs=skip_augs)
-
-        for prompt in text_prompts:
-            txt, weight = parse_prompt(prompt)
-            txt = clip_model.encode_text(clip.tokenize(prompt).to(device)).float()
-
-            if fuzzy_prompt:
-                for i in range(25):
-                    model_stat["target_embeds"].append(
-                        (txt + torch.randn(txt.shape).cuda() * rand_mag).clamp(0, 1)
-                    )
-                    model_stat["weights"].append(weight)
-            else:
-                model_stat["target_embeds"].append(txt)
-                model_stat["weights"].append(weight)
-
-        # for prompt in image_prompts:
-        #     path, weight = parse_prompt(prompt)
-        #     img = Image.open(fetch(path)).convert('RGB')
-        #     img = TF.resize(img, min(side_x, side_y, *img.size), T.InterpolationMode.LANCZOS)
-        #     batch = model_stat["make_cutouts"](TF.to_tensor(img).to(device).unsqueeze(0).mul(2).sub(1))
-        #     embed = clip_model.encode_image(normalize(batch)).float()
-        #     if fuzzy_prompt:
-        #         for i in range(25):
-        #             model_stat["target_embeds"].append((embed + torch.randn(embed.shape).cuda() * rand_mag).clamp(0,1))
-        #             weights.extend([weight / cutn] * cutn)
-        #     else:
-        #         model_stat["target_embeds"].append(embed)
-        #         model_stat["weights"].extend([weight / cutn] * cutn)
-
-        model_stat["target_embeds"] = torch.cat(model_stat["target_embeds"])
-        model_stat["weights"] = torch.tensor(model_stat["weights"], device=device)
-        if model_stat["weights"].sum().abs() < 1e-3:
-            raise RuntimeError("The weights must not sum to 0.")
-        model_stat["weights"] /= model_stat["weights"].sum().abs()
-        model_stats.append(model_stat)
+    # 取得prompt的embedding及weight
+    model_stats = get_embedding_and_weights()
 
     init = None
-    if init_image:
-        init = Image.open(fetch(init_image)).convert("RGB")
-        init = init.resize((side_x, side_y), Image.LANCZOS)
-        init = TF.to_tensor(init).to(device).unsqueeze(0).mul(2).sub(1)
 
     if perlin_init:
         init = regen_perlin_no_expand()
@@ -122,6 +115,7 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
             x_is_NaN = False
             x = x.detach().requires_grad_()
             n = x.shape[0]
+
             if use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
@@ -146,19 +140,13 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
                 fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
                 x_in = out["pred_xstart"] * fac + x * (1 - fac)
                 x_in_grad = torch.zeros_like(x_in)
+
             for model_stat in model_stats:
                 for i in range(cutn_batches):
                     t_int = (
                         int(t.item()) + 1
                     )  # errors on last step without +1, need to find source
-                    # when using SLIP Base model the dimensions need to be hard coded to avoid AttributeError: 'VisionTransformer' object has no attribute 'input_resolution'
-                    try:
-                        input_resolution = model_stat[
-                            "clip_model"
-                        ].visual.input_resolution
-                    except:
-                        input_resolution = 224
-
+                    input_resolution = model_stat["clip_model"].visual.input_resolution
                     cuts = MakeCutoutsDango(
                         input_resolution,
                         Overview=cut_overview[1000 - t_int],
@@ -186,31 +174,38 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
                         / cutn_batches
                     )
             tv_losses = tv_loss(x_in)
+
             if use_secondary_model:
                 range_losses = range_loss(out)
             else:
                 range_losses = range_loss(out["pred_xstart"])
+
             sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
             loss = (
                 tv_losses.sum() * tv_scale
                 + range_losses.sum() * range_scale
                 + sat_losses.sum() * sat_scale
             )
-            if init and init_scale:
+
+            # numpy array, tensor的判斷式需要寫完整
+            if init is not None and init_scale:
                 init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
-            if torch.isnan(x_in_grad).any() == False:
+
+            if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
             else:
                 # print("NaN'd")
                 x_is_NaN = True
                 grad = torch.zeros_like(x)
-        if clamp_grad and (not x_is_NaN):
+
+        if clamp_grad and not x_is_NaN:
             magnitude = grad.square().mean().sqrt()
             return (
                 grad * magnitude.clamp(min=-clamp_max, max=clamp_max) / magnitude
             )  # min=-0.02,
+
         return grad
 
     # 使用DDIM
@@ -221,7 +216,6 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
 
     image_display = Output()
 
-    # with batches_display:
     for i in range(num_batches):
         display.clear_output(wait=True)
         batchBar = tqdm(range(num_batches), desc="Batches")
