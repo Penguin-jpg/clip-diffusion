@@ -71,7 +71,7 @@ def get_embedding_and_weights():
     return model_stats
 
 
-def generate(batch_name="diffusion", parial_folder="images/partial"):
+def generate(batch_name="diffusion", partial_folder="images/partial"):
     """
     生成圖片
     batch_name: 本次生成的名稱
@@ -82,6 +82,10 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
     make_dir(batch_folder)
     batch_num = len(glob(batch_folder + "/*.txt"))
+
+    if steps_per_checkpoint != 0 and intermediates_in_subfolder:
+        partial_folder = f"{batch_folder}/partials"
+        make_dir(partial_folder)
 
     while os.path.isfile(
         f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
@@ -277,7 +281,7 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
                             else:
                                 # If we're working with percentages, append it
-                                if steps_per_checkpoint is not None:
+                                if steps_per_checkpoint:
                                     filename = f"{batch_name}({batch_num})_{i:04}-{percent:02}%.png"
                                 # Or else, iIf we're working with specific steps, append those
                                 else:
@@ -292,13 +296,13 @@ def generate(batch_name="diffusion", parial_folder="images/partial"):
                         if steps_per_checkpoint:
                             if j % steps_per_checkpoint == 0 and j > 0:
                                 if intermediates_in_subfolder:
-                                    image.save(f"{parial_folder}/{filename}")
+                                    image.save(f"{partial_folder}/{filename}")
                                 else:
                                     image.save(f"{batch_folder}/{filename}")
                         else:
                             if j in intermediate_saves:
                                 if intermediates_in_subfolder:
-                                    image.save(f"{parial_folder}/{filename}")
+                                    image.save(f"{partial_folder}/{filename}")
                                 else:
                                     image.save(f"{batch_folder}/{filename}")
                         if cur_t == -1:

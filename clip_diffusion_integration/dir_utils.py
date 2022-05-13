@@ -1,4 +1,5 @@
 import os
+from .config import steps_per_checkpoint, intermediates_in_subfolder
 
 
 def make_dir(dir_path):
