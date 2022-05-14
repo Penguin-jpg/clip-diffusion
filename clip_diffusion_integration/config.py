@@ -43,7 +43,6 @@ text_prompts = [
 ]  # 要生成的東西(可以將不同特徵分開寫)
 
 # model相關
-model_path = "./models"  # 模型存放路徑
 steps = 250  # 每個iteration要跑的step數
 timestep_respacing = f"ddim{steps}"  # 調整diffusion的timestep數量
 diffusion_steps = (
