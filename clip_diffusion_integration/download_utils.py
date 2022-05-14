@@ -38,10 +38,10 @@ def does_SHA_match(model_name):
         hash = hashlib.sha256(bytes).hexdigest()
 
     if hash == model_SHA:
-        print("SHA matches")
+        print(f"{model_name} SHA matches")
         return True
     else:
-        print(f"{model_name} SHA mismatches")
+        print("SHA mismatches")
         return False
 
 
