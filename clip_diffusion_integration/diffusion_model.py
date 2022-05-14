@@ -8,9 +8,10 @@ from .config import (
     diffusion_steps,
     timestep_respacing,
     use_checkpoint,
-    diffusion_model_path,
+    diffusion_model_name,
     device,
 )
+from .download_utils import model_512_link, download
 
 model_config = model_and_diffusion_defaults()
 model_config.update(
@@ -35,8 +36,14 @@ model_config.update(
 
 
 def load_model_and_diffusion():
+    """
+    載入diffusion和model
+    """
+
     model, diffusion = create_model_and_diffusion(**model_config)
-    model.load_state_dict(torch.load(diffusion_model_path, map_location="cpu"))
+    model.load_state_dict(
+        torch.load(download(model_512_link, diffusion_model_name), map_location="cpu")
+    )
     model.requires_grad_(False).eval().to(device)
 
     for name, param in model.named_parameters():

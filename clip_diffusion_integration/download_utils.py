@@ -6,7 +6,6 @@ from tqdm import tqdm
 from .config import (
     diffusion_model_name,
     diffusion_model_path,
-    secondary_model_name,
     secondary_model_path,
     model_path,
 )
@@ -14,6 +13,12 @@ from .config import (
 # 參考並修改自：
 # 1. https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
 # 2. https://colab.research.google.com/github/alembics/disco-diffusion/blob/main/Disco_Diffusion.ipynb
+
+# 下載網址
+model_512_link = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
+secondary_model_link = (
+    "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
+)
 
 # 檢查用的SHA
 model_512_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"

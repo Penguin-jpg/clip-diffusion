@@ -55,12 +55,12 @@ diffusion_model_name = (
     "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model checkpoint
 )
 secondary_model_name = "secondary_model_imagenet_2"  # 使用的secondary model checkpoint
-diffusion_model_path = (
-    f"{model_path}/512x512_diffusion_uncond_finetune_008100.pt"  # diffusion model路徑
-)
-secondary_model_path = (
-    f"{model_path}/secondary_model_imagenet_2.pth"  # secondary model路徑
-)
+# diffusion_model_path = (
+#     f"{model_path}/512x512_diffusion_uncond_finetune_008100.pt"  # diffusion model路徑
+# )
+# secondary_model_path = (
+#     f"{model_path}/secondary_model_imagenet_2.pth"  # secondary model路徑
+# )
 
 # Clip相關
 clip_guidance_scale = 5000  # clip引導的強度(生成圖片要多接近prompt)
