@@ -3,12 +3,8 @@ import hashlib
 from urllib import request
 from pathlib import Path
 from tqdm import tqdm
-from .config import (
-    diffusion_model_name,
-    diffusion_model_path,
-    secondary_model_path,
-)
-from .dir_utils import model_path
+from .config import diffusion_model_name
+from .dir_utils import model_path, diffusion_model_path, secondary_model_path
 
 # 參考並修改自：
 # 1. https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
