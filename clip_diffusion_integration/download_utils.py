@@ -41,7 +41,7 @@ def does_SHA_match(model_name):
         print(f"{model_name} SHA matches")
         return True
     else:
-        print("SHA mismatches")
+        print(f"{model_name} SHA mismatches")
         return False
 
 
