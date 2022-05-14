@@ -51,9 +51,9 @@ diffusion_steps = (
 use_checkpoint = True  # 是否要使用model checkpoint
 use_secondary_model = True  # 是否要使用secondary model輔助生成結果
 diffusion_model_name = (
-    "512x512_diffusion_uncond_finetune_008100"  # 使用的diffusion model checkpoint
+    "512x512_diffusion_uncond_finetune_008100.pt"  # 使用的diffusion model checkpoint
 )
-secondary_model_name = "secondary_model_imagenet_2"  # 使用的secondary model checkpoint
+secondary_model_name = "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
 
 # Clip相關
 clip_guidance_scale = 5000  # clip引導的強度(生成圖片要多接近prompt)
