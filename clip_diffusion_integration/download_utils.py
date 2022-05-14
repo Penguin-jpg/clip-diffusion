@@ -50,7 +50,7 @@ def download(url, model_name):
     下載模型並儲存，回傳儲存位置
     """
 
-    download_target = Path(os.path.join(model_path, f"{model_name}.pt"))
+    download_target = Path(os.path.join(model_path, model_name))
     download_target_tmp = download_target.with_suffix(".tmp")
 
     if os.path.exists(download_target):
