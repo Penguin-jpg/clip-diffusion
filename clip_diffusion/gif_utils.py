@@ -1,12 +1,11 @@
 import os
 import glob
 from PIL import Image
-from .config import text_prompts
 
 # 參考並修改自：https://github.com/afiaka87/clip-guided-diffusion/blob/a631a06b51ac5c6636136fab27833c68862eaa24/cgd/script_util.py
 
 
-def create_gif(image_path, batch_name):
+def create_gif(text_prompts, image_path, batch_name):
     """
     用生成過程的圖片建成gif
     """

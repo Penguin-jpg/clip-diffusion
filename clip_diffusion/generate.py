@@ -13,11 +13,11 @@ from IPython import display
 from datetime import datetime
 from glob import glob
 from .config import *
-from .prompt_utils import fetch, parse_prompt
+from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import clip_models
 from .secondary_model import *
-from .diffusion_model import model_config, load_model_and_diffusion
+from .diffusion_model import load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
 from .loss import *
 from .dir_utils import *
@@ -30,7 +30,7 @@ normalize = T.Normalize(
 )
 
 
-def get_embedding_and_weights():
+def get_embedding_and_weights(text_prompts):
     """
     取得prompt的embedding及weight
     """
@@ -73,6 +73,9 @@ def get_embedding_and_weights():
 
 
 def generate(
+    text_prompts=[
+        "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
+    ],
     perlin_init=False,
     perlin_mode="mixed",
     batch_name="diffusion",
@@ -80,6 +83,7 @@ def generate(
 ):
     """
     生成圖片
+    text_prompts: 要生成的東西(可以將不同特徵分開寫)
     perlin_init: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
@@ -114,7 +118,7 @@ def generate(
     # target_embeds, weights = [], []
 
     # 取得prompt的embedding及weight
-    model_stats = get_embedding_and_weights()
+    model_stats = get_embedding_and_weights(text_prompts)
 
     init = None
 
@@ -329,7 +333,7 @@ def generate(
                             image.save(f"{batch_folder}/{filename}")
                             display.clear_output()
 
-        create_gif(partial_folder, batch_name)  # 建立一張gif
+        create_gif(text_prompts, partial_folder, batch_name)  # 建立一張gif
         plt.plot(np.array(loss_values), "r")
 
         gc.collect()

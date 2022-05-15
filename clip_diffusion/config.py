@@ -34,9 +34,9 @@ cut_ic_pow = 1
 cut_icgray_p = [0.2] * 400 + [0] * 900
 
 # prompt
-text_prompts = [
-    "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
-]  # 要生成的東西(可以將不同特徵分開寫)
+# text_prompts = [
+#     "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
+# ]  # 要生成的東西(可以將不同特徵分開寫)
 
 # model相關
 steps = 250  # 每個iteration要跑的step數
@@ -96,7 +96,7 @@ def save_settings():
     儲存設定資訊
     """
     setting_list = {
-        "text_prompts": text_prompts,
+        # "text_prompts": text_prompts,
         "clip_guidance_scale": clip_guidance_scale,
         "tv_scale": tv_scale,
         "range_scale": range_scale,
