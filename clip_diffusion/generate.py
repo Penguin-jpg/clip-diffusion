@@ -72,9 +72,16 @@ def get_embedding_and_weights():
     return model_stats
 
 
-def generate(batch_name="diffusion", partial_folder="images/partial"):
+def generate(
+    perlin_init=False,
+    perlin_mode="mixed",
+    batch_name="diffusion",
+    partial_folder="images/partial",
+):
     """
     生成圖片
+    perlin_init: 是否要使用perlin noise
+    perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
     partial_folder: 儲存過程圖片的資料夾
     """
@@ -84,9 +91,11 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
     make_dir(batch_folder)
     batch_num = len(glob(batch_folder + "/*.txt"))
 
-    if steps_per_checkpoint != 0:
-        partial_folder = f"{batch_folder}/partials"
-        make_dir(partial_folder)
+    # if steps_per_checkpoint != 0:
+    # partial_folder = f"{batch_folder}/partials"
+    # make_dir(partial_folder)
+    partial_folder = f"{batch_folder}/partials"
+    make_dir(partial_folder)
 
     while os.path.isfile(
         f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
@@ -110,7 +119,7 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
     init = None
 
     if perlin_init:
-        init = regen_perlin_no_expand()
+        init = regen_perlin_no_expand(perlin_mode)
 
     cur_t = None
 
@@ -192,7 +201,7 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
                 + sat_losses.sum() * sat_scale
             )
 
-            # numpy array, tensor的判斷式需要寫完整
+            # numpy array, tensor的判斷式使用is not None
             if init is not None and init_scale:
                 init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
@@ -201,7 +210,6 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
             if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
             else:
-                # print("NaN'd")
                 x_is_NaN = True
                 grad = torch.zeros_like(x)
 
@@ -214,8 +222,9 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
         return grad
 
     # 使用DDIM
-    if model_config["timestep_respacing"].startswith("ddim"):
-        sample_fn = diffusion.ddim_sample_loop_progressive
+    sample_fn = diffusion.ddim_sample_loop_progressive
+    # if model_config["timestep_respacing"].startswith("ddim"):
+    #     sample_fn = diffusion.ddim_sample_loop_progressive
     # else:
     #     sample_fn = diffusion.p_sample_loop_progressive
 
@@ -234,21 +243,21 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
         total_steps = cur_t
 
         if perlin_init:
-            init = regen_perlin()
+            init = regen_perlin(perlin_mode)
 
-        if model_config["timestep_respacing"].startswith("ddim"):
-            samples = sample_fn(
-                model,
-                (batch_size, 3, side_y, side_x),
-                clip_denoised=clip_denoised,
-                model_kwargs={},
-                cond_fn=cond_fn,
-                progress=True,
-                skip_timesteps=skip_timesteps,
-                init_image=init,
-                randomize_class=randomize_class,
-                eta=eta,
-            )
+        # if model_config["timestep_respacing"].startswith("ddim"):
+        samples = sample_fn(
+            model,
+            (batch_size, 3, side_y, side_x),
+            clip_denoised=clip_denoised,
+            model_kwargs={},
+            cond_fn=cond_fn,
+            progress=True,
+            skip_timesteps=skip_timesteps,
+            init_image=init,
+            randomize_class=randomize_class,
+            eta=eta,
+        )
         # else:
         #     samples = sample_fn(
         #         model,
@@ -265,10 +274,12 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
         for j, sample in enumerate(samples):
             cur_t -= 1
             intermediate_step = False
-            if steps_per_checkpoint:
-                if j % steps_per_checkpoint == 0 and j > 0:
-                    intermediate_step = True
-            elif j in intermediate_saves:
+            # if steps_per_checkpoint:
+            #     if j % steps_per_checkpoint == 0 and j > 0:
+            #         intermediate_step = True
+            # elif j in intermediate_saves:
+            #     intermediate_step = True
+            if j in intermediate_saves:
                 intermediate_step = True
 
             with image_display:
@@ -280,28 +291,38 @@ def generate(batch_name="diffusion", partial_folder="images/partial"):
                             # if intermediates are saved to the subfolder, don't append a step or percentage to the name
                             if cur_t == -1:
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
+                            # else:
+                            #     # If we're working with percentages, append it
+                            #     if steps_per_checkpoint:
+                            #         filename = f"{batch_name}({batch_num})_{i:04}-{percent:02}%.png"
+                            #     # Or else, iIf we're working with specific steps, append those
+                            #     else:
+                            #         filename = (
+                            #             f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
+                            #         )
                             else:
-                                # If we're working with percentages, append it
-                                if steps_per_checkpoint:
-                                    filename = f"{batch_name}({batch_num})_{i:04}-{percent:02}%.png"
-                                # Or else, iIf we're working with specific steps, append those
-                                else:
-                                    filename = (
-                                        f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
-                                    )
+                                filename = (
+                                    f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
+                                )
+
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
+
                         if j % display_rate == 0 or cur_t == -1:
                             display.clear_output(wait=True)
                             display.display(display.Image("progress.png"))
-                        if steps_per_checkpoint:
-                            if j % steps_per_checkpoint == 0 and j > 0:
-                                image.save(f"{partial_folder}/{filename}")
-                                # image.save(f"{batch_folder}/{filename}")
-                        else:
-                            if j in intermediate_saves:
-                                image.save(f"{partial_folder}/{filename}")
-                                # image.save(f"{batch_folder}/{filename}")
+
+                        # if steps_per_checkpoint:
+                        #     if j % steps_per_checkpoint == 0 and j > 0:
+                        #         image.save(f"{partial_folder}/{filename}")
+                        #         # image.save(f"{batch_folder}/{filename}")
+                        # else:
+                        #     if j in intermediate_saves:
+                        #         image.save(f"{partial_folder}/{filename}")
+                        #         # image.save(f"{batch_folder}/{filename}")
+                        if j in intermediate_saves:
+                            image.save(f"{partial_folder}/{filename}")
+
                         if cur_t == -1:
                             if i == 0:
                                 save_settings()

@@ -22,10 +22,6 @@ height = 768  # 　生成圖片的高度
 side_x = (width // 64) * 64
 side_y = (height // 64) * 64
 
-# perlin相關
-perlin_init = False  # 是否要使用perlin噪音
-perlin_mode = "mixed"  # 使用的perlin模式
-
 # device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  # GPU或CPU
 
@@ -84,15 +80,15 @@ intermediate_saves = [
     display_rate * i for i in range(steps // display_rate)
 ]  # 分別在哪些step的圖片要存起來
 # intermediates_in_subfolder = True  # 是否要將圖片存在"partials"資料夾內
-steps_per_checkpoint = (
-    math.floor((steps - skip_timesteps - 1) // (intermediate_saves + 1))
-    if not isinstance(intermediate_saves, list)
-    else None
-)  # 每個checkpoint隔多少個step
+# steps_per_checkpoint = (
+#     math.floor((steps - skip_timesteps - 1) // (intermediate_saves + 1))
+#     if not isinstance(intermediate_saves, list)
+#     else None
+# )  # 每個checkpoint隔多少個step
 
 # 確保有大於0
-if steps_per_checkpoint:
-    steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
+# if steps_per_checkpoint:
+#     steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
 
 
 def save_settings():

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchvision.transforms import functional as TF
 from PIL import Image, ImageOps
-from .config import device, side_x, side_y, perlin_mode, batch_size
+from .config import device, side_x, side_y, batch_size
 
 # 維持disco diffusion所採用的二維perlin noise
 # 參考並修改自
@@ -91,7 +91,7 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     return out
 
 
-def regen_perlin():
+def regen_perlin(perlin_mode):
     """
     重新生成perlin noise
     """
@@ -118,7 +118,7 @@ def regen_perlin():
     return init.expand(batch_size, -1, -1, -1)
 
 
-def regen_perlin_no_expand():
+def regen_perlin_no_expand(perlin_mode):
     """
     重新生成perlin noise，但不做expand
     """
