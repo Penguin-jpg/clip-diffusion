@@ -77,8 +77,8 @@ eta = 1.0  # DDIM用的超參數
 setting_name = "my_setting"  # 設定資料的名稱
 display_rate = 25  # 多少個step要更新顯示的圖片一次
 intermediate_saves = [
-    display_rate * i for i in range(steps // display_rate)
-]  # 分別在哪些step的圖片要存起來
+    display_rate * i for i in range(steps // display_rate + 1)
+]  # 分別在哪些step的圖片要存起來(要+1才能包含最後一個step)
 # intermediates_in_subfolder = True  # 是否要將圖片存在"partials"資料夾內
 # steps_per_checkpoint = (
 #     math.floor((steps - skip_timesteps - 1) // (intermediate_saves + 1))
