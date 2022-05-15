@@ -104,8 +104,6 @@ def save_settings():
         "cutn_batches": cutn_batches,
         "init_scale": init_scale,
         "skip_timesteps": skip_timesteps,
-        "perlin_init": perlin_init,
-        "perlin_mode": perlin_mode,
         "skip_augs": skip_augs,
         "randomize_class": randomize_class,
         "clip_denoised": clip_denoised,
