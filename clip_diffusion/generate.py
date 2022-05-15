@@ -291,9 +291,8 @@ def generate(
                             image.save(f"{batch_folder}/{filename}")
                             display.clear_output()
 
-        # create_gif(text_prompts, partial_folder, batch_name)  # 建立一張gif
-        create_gif(text_prompts, batch_folder, batch_name)  # 建立一張gif
         plt.plot(np.array(loss_values), "r")
 
         gc.collect()
         torch.cuda.empty_cache()
+        return create_gif(text_prompts, batch_folder, batch_name)  # 建立一張gif
