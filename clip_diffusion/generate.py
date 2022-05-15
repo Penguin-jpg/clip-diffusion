@@ -79,7 +79,7 @@ def generate(
     perlin_init=False,
     perlin_mode="mixed",
     batch_name="diffusion",
-    partial_folder="images/partial",
+    # partial_folder="images/partial",
 ):
     """
     生成圖片
@@ -95,11 +95,8 @@ def generate(
     make_dir(batch_folder)
     batch_num = len(glob(batch_folder + "/*.txt"))
 
-    # if steps_per_checkpoint != 0:
     # partial_folder = f"{batch_folder}/partials"
     # make_dir(partial_folder)
-    partial_folder = f"{batch_folder}/partials"
-    make_dir(partial_folder)
 
     while os.path.isfile(
         f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
@@ -227,10 +224,6 @@ def generate(
 
     # 使用DDIM
     sample_fn = diffusion.ddim_sample_loop_progressive
-    # if model_config["timestep_respacing"].startswith("ddim"):
-    #     sample_fn = diffusion.ddim_sample_loop_progressive
-    # else:
-    #     sample_fn = diffusion.p_sample_loop_progressive
 
     image_display = Output()
 
@@ -249,7 +242,6 @@ def generate(
         if perlin_init:
             init = regen_perlin(perlin_mode)
 
-        # if model_config["timestep_respacing"].startswith("ddim"):
         samples = sample_fn(
             model,
             (batch_size, 3, side_y, side_x),
@@ -262,27 +254,10 @@ def generate(
             randomize_class=randomize_class,
             eta=eta,
         )
-        # else:
-        #     samples = sample_fn(
-        #         model,
-        #         (batch_size, 3, side_y, side_x),
-        #         clip_denoised=clip_denoised,
-        #         model_kwargs={},
-        #         cond_fn=cond_fn,
-        #         progress=True,
-        #         skip_timesteps=skip_timesteps,
-        #         init_image=init,
-        #         randomize_class=randomize_class,
-        #     )
 
         for j, sample in enumerate(samples):
             cur_t -= 1
             intermediate_step = False
-            # if steps_per_checkpoint:
-            #     if j % steps_per_checkpoint == 0 and j > 0:
-            #         intermediate_step = True
-            # elif j in intermediate_saves:
-            #     intermediate_step = True
             if j in intermediate_saves:
                 intermediate_step = True
 
@@ -292,18 +267,8 @@ def generate(
                         current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
                         percent = math.ceil(j / total_steps * 100)
                         if num_batches > 0:
-                            # if intermediates are saved to the subfolder, don't append a step or percentage to the name
                             if cur_t == -1:
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
-                            # else:
-                            #     # If we're working with percentages, append it
-                            #     if steps_per_checkpoint:
-                            #         filename = f"{batch_name}({batch_num})_{i:04}-{percent:02}%.png"
-                            #     # Or else, iIf we're working with specific steps, append those
-                            #     else:
-                            #         filename = (
-                            #             f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
-                            #         )
                             else:
                                 filename = (
                                     f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
@@ -316,16 +281,9 @@ def generate(
                             display.clear_output(wait=True)
                             display.display(display.Image("progress.png"))
 
-                        # if steps_per_checkpoint:
-                        #     if j % steps_per_checkpoint == 0 and j > 0:
-                        #         image.save(f"{partial_folder}/{filename}")
-                        #         # image.save(f"{batch_folder}/{filename}")
-                        # else:
-                        #     if j in intermediate_saves:
-                        #         image.save(f"{partial_folder}/{filename}")
-                        #         # image.save(f"{batch_folder}/{filename}")
                         if j in intermediate_saves:
-                            image.save(f"{partial_folder}/{filename}")
+                            # image.save(f"{partial_folder}/{filename}")
+                            image.save(f"{batch_folder}/{filename}")
 
                         if cur_t == -1:
                             if i == 0:
@@ -333,7 +291,8 @@ def generate(
                             image.save(f"{batch_folder}/{filename}")
                             display.clear_output()
 
-        create_gif(text_prompts, partial_folder, batch_name)  # 建立一張gif
+        # create_gif(text_prompts, partial_folder, batch_name)  # 建立一張gif
+        create_gif(text_prompts, batch_folder, batch_name)  # 建立一張gif
         plt.plot(np.array(loss_values), "r")
 
         gc.collect()
