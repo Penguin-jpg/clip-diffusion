@@ -1,8 +1,13 @@
+from multiprocessing.connection import Client
 import os
 import glob
 from PIL import Image
+import pyimgur
 
 # 參考並修改自：https://github.com/afiaka87/clip-guided-diffusion/blob/a631a06b51ac5c6636136fab27833c68862eaa24/cgd/script_util.py
+
+CLIENT_ID = "9bc11312c2c8b9a"
+imgur = pyimgur.Imgur(CLIENT_ID)
 
 
 def create_gif(text_prompts, image_path, batch_name):
@@ -27,3 +32,8 @@ def create_gif(text_prompts, image_path, batch_name):
         duration=200,
         loop=0,
     )
+
+    image = imgur.upload_image(
+        gif_name, title=f"{batch_name}_{file_name}"
+    )  # 將gif上傳至Imgur
+    return image.link  # 回傳url

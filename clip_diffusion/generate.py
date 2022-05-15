@@ -83,7 +83,7 @@ def generate(
 ):
     """
     生成圖片
-    text_prompts: 要生成的東西(可以將不同特徵分開寫)
+    text_prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
     perlin_init: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱

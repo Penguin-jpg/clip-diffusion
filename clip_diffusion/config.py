@@ -2,7 +2,6 @@ import torch
 import random
 import json
 import lpips
-import math
 
 INT_MAX = 2 ** 32
 
@@ -32,11 +31,6 @@ cut_overview = [35] * 400 + [5] * 600  # 前400/1000個steps會做40個cut；後
 cut_innercut = [5] * 400 + [35] * 600
 cut_ic_pow = 1
 cut_icgray_p = [0.2] * 400 + [0] * 900
-
-# prompt
-# text_prompts = [
-#     "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
-# ]  # 要生成的東西(可以將不同特徵分開寫)
 
 # model相關
 steps = 250  # 每個iteration要跑的step數
@@ -79,16 +73,6 @@ display_rate = 25  # 多少個step要更新顯示的圖片一次
 intermediate_saves = [
     display_rate * i for i in range(steps // display_rate + 1)
 ]  # 分別在哪些step的圖片要存起來(要+1才能包含最後一個step)
-# intermediates_in_subfolder = True  # 是否要將圖片存在"partials"資料夾內
-# steps_per_checkpoint = (
-#     math.floor((steps - skip_timesteps - 1) // (intermediate_saves + 1))
-#     if not isinstance(intermediate_saves, list)
-#     else None
-# )  # 每個checkpoint隔多少個step
-
-# 確保有大於0
-# if steps_per_checkpoint:
-#     steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
 
 
 def save_settings():
@@ -96,7 +80,6 @@ def save_settings():
     儲存設定資訊
     """
     setting_list = {
-        # "text_prompts": text_prompts,
         "clip_guidance_scale": clip_guidance_scale,
         "tv_scale": tv_scale,
         "range_scale": range_scale,
