@@ -16,14 +16,14 @@ def create_gif(text_prompts, image_path, batch_name):
     # 開啟所有的圖片
     images = [Image.open(image) for image in sorted(glob.glob(images_glob))]
     # 檔名
-    gif_name = f"{batch_name}_{file_name}.gif"
+    gif_name = f"{image_path}/{batch_name}_{file_name}.gif"
 
     # 儲存gif
     images[0].save(
         fp=gif_name,
         format="GIF",
-        append_images=images,
         save_all=True,
+        append_images=images[1:],
         duration=200,
         loop=0,
     )
