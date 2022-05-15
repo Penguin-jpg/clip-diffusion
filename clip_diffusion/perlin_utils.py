@@ -64,7 +64,7 @@ def perlin_ms(octaves, width, height, grayscale, device=device):
         # 對每個生成的square都要做
         for oct in octaves:
             # 0~1之間的值，決定東西會多快減小
-            p = perlin(oct_width, oct_height, scale, device)
+            p = perlin(5, oct_width, oct_height, scale, device)
             out_array[i] += p * oct
             scale //= 2
             # 以每次兩倍的頻率上升
