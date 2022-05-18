@@ -1,7 +1,6 @@
 import torch
 import random
 import json
-import lpips
 
 INT_MAX = 2 ** 32
 
@@ -55,7 +54,6 @@ clamp_max = 0.05  # 限制的最大梯度
 tv_scale = 0  # 控制最後輸出的平滑程度
 range_scale = 150  # 控制允許超出多遠的RGB值
 sat_scale = 0  # 控制允許多少飽和
-lpips_model = lpips.LPIPS(net="vgg").to(device)  # LPIPS model
 
 # 生成相關
 seed = get_seed()  # 亂數種子
