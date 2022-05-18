@@ -78,15 +78,14 @@ def generate(
     text_prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
     ],
-    perlin_init=False,
+    use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
-    # partial_folder="images/partial",
 ):
     """
     生成圖片
     text_prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
-    perlin_init: 是否要使用perlin noise
+    use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
     partial_folder: 儲存過程圖片的資料夾
@@ -121,7 +120,7 @@ def generate(
 
     init = None
 
-    if perlin_init:
+    if use_perlin:
         init = regen_perlin_no_expand(perlin_mode)
 
     cur_t = None
@@ -241,7 +240,7 @@ def generate(
         cur_t = diffusion.num_timesteps - skip_timesteps - 1
         total_steps = cur_t
 
-        if perlin_init:
+        if use_perlin:
             init = regen_perlin(perlin_mode)
 
         samples = sample_fn(
