@@ -10,18 +10,17 @@ CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(CLIENT_ID)
 
 
-def create_gif(text_prompts, image_path, batch_name):
+def create_gif(image_path, batch_name):
     """
     用生成過程的圖片建成gif
     """
 
-    file_name = "_".join(text_prompts)
     # 找出image_path下所有的png
     images_glob = os.path.join(image_path, "*.png")
     # 開啟所有的圖片
     images = [Image.open(image) for image in sorted(glob.glob(images_glob))]
     # 檔名
-    gif_name = f"{image_path}/{batch_name}_{file_name}.gif"
+    gif_name = f"{image_path}/{batch_name}.gif"
 
     # 儲存gif
     images[0].save(
@@ -33,7 +32,7 @@ def create_gif(text_prompts, image_path, batch_name):
         loop=0,
     )
 
-    image = imgur.upload_image(
-        gif_name, title=f"{batch_name}_{file_name}"
-    )  # 將gif上傳至Imgur
-    return image.link  # 回傳url
+    # image = imgur.upload_image(
+    #     gif_name, title=f"{batch_name}"
+    # )  # 將gif上傳至Imgur
+    # return image.link  # 回傳url

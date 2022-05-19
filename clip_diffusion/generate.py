@@ -296,4 +296,5 @@ def generate(
 
         gc.collect()
         torch.cuda.empty_cache()
-        return create_gif(text_prompts, batch_folder, batch_name)  # 建立一張gif
+        # return create_gif(batch_folder, batch_name)  # 建立一張gif
+        create_gif(batch_folder, batch_name)
