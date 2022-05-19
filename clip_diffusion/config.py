@@ -60,13 +60,13 @@ seed = get_seed()  # 亂數種子
 batch_size = 1  # 一次要sample的數量
 num_batches = 1  # 要生成的圖片數量
 skip_augs = False  # 是否不做圖片的augmentation
-randomize_class = True  # imagenet的class是否要每個iteration都隨機改變
+randomize_class = True  # imagenet的class是否要每個iteration都隨機改變(製造unconditional的效果)
 fuzzy_prompt = False  # 是否要加入multiple noisy prompts到prompt losses內
 rand_mag = 0.05  # 控制隨機噪音的強度
 init_scale = 0  # 增強init_image的效果
 skip_timesteps = 0  # 控制要跳過的step數(從第幾個step開始)
 eta = 1.0  # DDIM用的超參數
-setting_name = "my_setting"  # 設定資料的名稱
+settings_name = "default_settings"  # 設定資料的名稱
 display_rate = 25  # 多少個step要更新顯示的圖片一次
 intermediate_saves = [
     display_rate * i for i in range(steps // display_rate + 1)
@@ -101,5 +101,54 @@ def save_settings():
         "diffusion_steps": diffusion_steps,
     }
 
-    with open(f"{setting_name}.txt", "w+") as file:
+    with open(f"{settings_name}.txt", "w+") as file:
         json.dump(setting_list, file, ensure_ascii=False, indent=4)
+
+
+def adjust_config(
+    adjust_width=1280,
+    adjust_height=768,
+    adjust_steps=250,
+    adjust_clip_guidance_scale=5000,
+    adjust_clip_denoised=False,
+    adjust_clamp_grad=True,
+    adjust_clamp_max=0.05,
+    adjust_tv_scale=0,
+    adjust_range_scale=150,
+    adjust_sat_scale=0,
+    adjust_batch_size=1,
+    adjust_num_batches=1,
+    adjust_fuzzy_prompt=False,
+    adjust_rand_mag=0.05,
+    adjust_skip_timesteps=0,
+    adjust_eta=1.0,
+    adjust_settings_name="default_settings",
+    adjust_display_rate=25,
+):
+    """
+    調整設定
+    """
+
+    width = adjust_width
+    height = adjust_height
+    side_x = (width // 64) * 64
+    side_y = (height // 64) * 64
+    steps = adjust_steps
+    timestep_respacing = f"ddim{steps}"
+    diffusion_steps = (1000 // steps) * steps if steps < 1000 else steps
+    clip_guidance_scale = adjust_clip_guidance_scale
+    clip_denoised = adjust_clip_denoised
+    clamp_grad = adjust_clamp_grad
+    clamp_max = adjust_clamp_max
+    tv_scale = adjust_tv_scale
+    range_scale = adjust_range_scale
+    sat_scale = adjust_sat_scale
+    batch_size = adjust_batch_size
+    num_batches = adjust_num_batches
+    fuzzy_prompt = adjust_fuzzy_prompt
+    rand_mag = adjust_rand_mag
+    skip_timesteps = adjust_skip_timesteps
+    eta = adjust_eta
+    settings_name = adjust_settings_name
+    display_rate = adjust_display_rate
+    intermediate_saves = [display_rate * i for i in range(steps // display_rate + 1)]
