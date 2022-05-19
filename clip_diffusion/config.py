@@ -88,7 +88,7 @@ class Config:
             self.display_rate * i for i in range(self.steps // self.display_rate + 1)
         ]  # 分別在哪些step的圖片要存起來(要+1才能包含最後一個step)
 
-    def adjust_config(
+    def adjust_settings(
         self,
         width=1280,
         height=768,
