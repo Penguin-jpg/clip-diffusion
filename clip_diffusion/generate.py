@@ -141,12 +141,12 @@ def generate(
             if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
-                    device=device,
+                    device=config.device,
                     dtype=torch.float32,
                 )
                 sigma = torch.tensor(
                     diffusion.sqrt_one_minus_alphas_cumprod[cur_t],
-                    device=device,
+                    device=config.device,
                     dtype=torch.float32,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
@@ -155,7 +155,7 @@ def generate(
                 x_in = out * fac + x * (1 - fac)
                 x_in_grad = torch.zeros_like(x_in)
             else:
-                my_t = torch.ones([n], device=device, dtype=torch.long) * cur_t
+                my_t = torch.ones([n], device=config.device, dtype=torch.long) * cur_t
                 out = diffusion.p_mean_variance(
                     model, x, my_t, clip_denoised=False, model_kwargs={"y": y}
                 )
