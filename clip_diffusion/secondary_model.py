@@ -3,7 +3,7 @@ from torch import nn
 from dataclasses import dataclass
 import math
 from functools import partial
-from .config import secondary_model_name, device
+from .config import config
 from .download_utils import secondary_model_link, download
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
@@ -194,6 +194,8 @@ class SecondaryDiffusionImageNet2(nn.Module):
 
 secondary_model = SecondaryDiffusionImageNet2()
 secondary_model.load_state_dict(
-    torch.load(download(secondary_model_link, secondary_model_name), map_location="cpu")
+    torch.load(
+        download(secondary_model_link, config.secondary_model_name), map_location="cpu"
+    )
 )
-secondary_model.eval().requires_grad_(False).to(device)
+secondary_model.eval().requires_grad_(False).to(config.device)

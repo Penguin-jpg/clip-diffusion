@@ -3,7 +3,7 @@ import hashlib
 from urllib import request
 from pathlib import Path
 from tqdm import tqdm
-from .config import diffusion_model_name
+from .config import config
 from .dir_utils import model_path, diffusion_model_path, secondary_model_path
 
 # 參考並修改自：
@@ -26,7 +26,7 @@ def does_SHA_match(model_name):
     檢查SHA是否吻合
     """
 
-    if model_name == diffusion_model_name:
+    if model_name == config.diffusion_model_name:
         check_path = diffusion_model_path
         model_SHA = model_512_SHA
     else:

@@ -5,7 +5,7 @@ from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
 from .resample_utils import resample
-from .config import skip_augs
+from .config import config
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
 class MakeCutouts(nn.Module):
@@ -149,6 +149,6 @@ class MakeCutoutsDango(nn.Module):
                     "/content/cutout_InnerCrop.jpg", quality=99
                 )
         cutouts = torch.cat(cutouts)
-        if skip_augs is not True:
+        if config.skip_augs is not True:
             cutouts = self.augs(cutouts)
         return cutouts

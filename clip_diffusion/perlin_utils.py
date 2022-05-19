@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torchvision.transforms import functional as TF
 from PIL import Image, ImageOps
-from .config import device, side_x, side_y, batch_size
+from .config import config
 
 # 維持disco diffusion所採用的二維perlin noise
 # 參考並修改自
@@ -24,7 +24,7 @@ def fade_power_5(t):
     return 6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3
 
 
-def perlin(power, width, height, scale=10, device=device):
+def perlin(power, width, height, scale=10, device=config.device):
     """
     計算二維的perlin noise
     """
@@ -52,7 +52,7 @@ def perlin(power, width, height, scale=10, device=device):
     return dots.permute(0, 2, 1, 3).contiguous().view(width * scale, height * scale)
 
 
-def perlin_ms(octaves, width, height, grayscale, device=device):
+def perlin_ms(octaves, width, height, grayscale, device=config.device):
     """
     真正的perlin noise(透過疊加增進隨機性)
     """
@@ -80,11 +80,11 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     out = perlin_ms(octaves, width, height, grayscale)
 
     if grayscale:  # 灰階
-        out = TF.resize(size=(side_y, side_x), img=out.unsqueeze(0))
+        out = TF.resize(size=(config.side_y, config.side_x), img=out.unsqueeze(0))
         out = TF.to_pil_image(out.clamp(0, 1)).convert("RGB")
     else:  # 有顏色
         out = out.reshape(-1, 3, out.shape[0] // 3, out.shape[1])
-        out = TF.resize(size=(side_y, side_x), img=out)
+        out = TF.resize(size=(config.side_y, config.side_x), img=out)
         out = TF.to_pil_image(out.clamp(0, 1).squeeze())
 
     out = ImageOps.autocontrast(out)
@@ -109,13 +109,13 @@ def regen_perlin(perlin_mode):
         TF.to_tensor(init)
         .add(TF.to_tensor(init2))
         .div(2)
-        .to(device)
+        .to(config.device)
         .unsqueeze(0)
         .mul(2)
         .sub(1)
     )
     del init2
-    return init.expand(batch_size, -1, -1, -1)
+    return init.expand(config.batch_size, -1, -1, -1)
 
 
 def regen_perlin_no_expand(perlin_mode):
@@ -136,7 +136,7 @@ def regen_perlin_no_expand(perlin_mode):
         TF.to_tensor(init)
         .add(TF.to_tensor(init2))
         .div(2)
-        .to(device)
+        .to(config.device)
         .unsqueeze(0)
         .mul(2)
         .sub(1)

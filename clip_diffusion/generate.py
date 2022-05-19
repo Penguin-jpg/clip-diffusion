@@ -13,7 +13,7 @@ from ipywidgets import Output
 from IPython import display
 from datetime import datetime
 from glob import glob
-from .config import *
+from .config import config
 from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import clip_models
@@ -50,12 +50,16 @@ def get_embedding_and_weights(text_prompts):
 
         for prompt in text_prompts:
             text, weight = parse_prompt(prompt)  # 取得text及weight
-            text = clip_model.encode_text(clip.tokenize(prompt).to(device)).float()
+            text = clip_model.encode_text(
+                clip.tokenize(prompt).to(config.device)
+            ).float()
 
-            if fuzzy_prompt:
+            if config.fuzzy_prompt:
                 for i in range(25):
                     model_stat["target_embeds"].append(
-                        (text + torch.randn(text.shape).cuda() * rand_mag).clamp(0, 1)
+                        (text + torch.randn(text.shape).cuda() * config.rand_mag).clamp(
+                            0, 1
+                        )
                     )
                     model_stat["weights"].append(weight)
             else:
@@ -63,7 +67,9 @@ def get_embedding_and_weights(text_prompts):
                 model_stat["weights"].append(weight)
 
         model_stat["target_embeds"] = torch.cat(model_stat["target_embeds"])
-        model_stat["weights"] = torch.tensor(model_stat["weights"], device=device)
+        model_stat["weights"] = torch.tensor(
+            model_stat["weights"], device=config.device
+        )
 
         if model_stat["weights"].sum().abs() < 1e-3:
             raise RuntimeError("The weights must not sum to 0.")
@@ -106,11 +112,11 @@ def generate(
 
     loss_values = []
 
-    if seed:
-        np.random.seed(seed)
-        random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
+    if config.seed:
+        np.random.seed(config.seed)
+        random.seed(config.seed)
+        torch.manual_seed(config.seed)
+        torch.cuda.manual_seed_all(config.seed)
         torch.backends.cudnn.deterministic = True
 
     # target_embeds, weights = [], []
@@ -132,7 +138,7 @@ def generate(
             x = x.detach().requires_grad_()
             n = x.shape[0]
 
-            if use_secondary_model:
+            if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
                     device=device,
@@ -158,17 +164,17 @@ def generate(
                 x_in_grad = torch.zeros_like(x_in)
 
             for model_stat in model_stats:
-                for i in range(cutn_batches):
+                for i in range(config.cutn_batches):
                     t_int = (
                         int(t.item()) + 1
                     )  # errors on last step without +1, need to find source
                     input_resolution = model_stat["clip_model"].visual.input_resolution
                     cuts = MakeCutoutsDango(
                         input_resolution,
-                        Overview=cut_overview[1000 - t_int],
-                        InnerCrop=cut_innercut[1000 - t_int],
-                        IC_Size_Pow=cut_ic_pow,
-                        IC_Grey_P=cut_icgray_p[1000 - t_int],
+                        Overview=config.cut_overview[1000 - t_int],
+                        InnerCrop=config.cut_innercut[1000 - t_int],
+                        IC_Size_Pow=config.cut_ic_pow,
+                        IC_Grey_P=config.cut_icgray_p[1000 - t_int],
                     )
                     clip_in = normalize(cuts(x_in.add(1).div(2)))
                     image_embeds = (
@@ -179,34 +185,41 @@ def generate(
                         model_stat["target_embeds"].unsqueeze(0),
                     )
                     dists = dists.view(
-                        [cut_overview[1000 - t_int] + cut_innercut[1000 - t_int], n, -1]
+                        [
+                            config.cut_overview[1000 - t_int]
+                            + config.cut_innercut[1000 - t_int],
+                            n,
+                            -1,
+                        ]
                     )
                     losses = dists.mul(model_stat["weights"]).sum(2).mean(0)
                     loss_values.append(
                         losses.sum().item()
                     )  # log loss, probably shouldn't do per cutn_batch
                     x_in_grad += (
-                        torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0]
-                        / cutn_batches
+                        torch.autograd.grad(
+                            losses.sum() * config.clip_guidance_scale, x_in
+                        )[0]
+                        / config.cutn_batches
                     )
             tv_losses = tv_loss(x_in)
 
-            if use_secondary_model:
+            if config.use_secondary_model:
                 range_losses = range_loss(out)
             else:
                 range_losses = range_loss(out["pred_xstart"])
 
             sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
             loss = (
-                tv_losses.sum() * tv_scale
-                + range_losses.sum() * range_scale
-                + sat_losses.sum() * sat_scale
+                tv_losses.sum() * config.tv_scale
+                + range_losses.sum() * config.range_scale
+                + sat_losses.sum() * config.sat_scale
             )
 
             # numpy array, tensor的判斷式使用is not None
-            if init is not None and init_scale:
+            if init is not None and config.init_scale:
                 init_losses = lpips_model(x_in, init)
-                loss = loss + init_losses.sum() * init_scale
+                loss = loss + init_losses.sum() * config.init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
 
             if not torch.isnan(x_in_grad).any():
@@ -215,10 +228,12 @@ def generate(
                 x_is_NaN = True
                 grad = torch.zeros_like(x)
 
-        if clamp_grad and not x_is_NaN:
+        if config.clamp_grad and not x_is_NaN:
             magnitude = grad.square().mean().sqrt()
             return (
-                grad * magnitude.clamp(min=-clamp_max, max=clamp_max) / magnitude
+                grad
+                * magnitude.clamp(min=-config.clamp_max, max=config.clamp_max)
+                / magnitude
             )  # min=-0.02,
 
         return grad
@@ -228,16 +243,16 @@ def generate(
 
     image_display = Output()
 
-    for i in range(num_batches):
+    for i in range(config.num_batches):
         display.clear_output(wait=True)
-        batchBar = tqdm(range(num_batches), desc="Batches")
+        batchBar = tqdm(range(config.num_batches), desc="Batches")
         batchBar.n = i
         batchBar.refresh()
         print("")
         display.display(image_display)
         gc.collect()
         torch.cuda.empty_cache()
-        cur_t = diffusion.num_timesteps - skip_timesteps - 1
+        cur_t = diffusion.num_timesteps - config.skip_timesteps - 1
         total_steps = cur_t
 
         if use_perlin:
@@ -245,29 +260,29 @@ def generate(
 
         samples = sample_fn(
             model,
-            (batch_size, 3, side_y, side_x),
-            clip_denoised=clip_denoised,
+            (config.batch_size, 3, config.side_y, config.side_x),
+            clip_denoised=config.clip_denoised,
             model_kwargs={},
             cond_fn=cond_fn,
             progress=True,
-            skip_timesteps=skip_timesteps,
+            skip_timesteps=config.skip_timesteps,
             init_image=init,
-            randomize_class=randomize_class,
-            eta=eta,
+            randomize_class=config.randomize_class,
+            eta=config.eta,
         )
 
         for j, sample in enumerate(samples):
             cur_t -= 1
             intermediate_step = False
-            if j in intermediate_saves:
+            if j in config.intermediate_saves:
                 intermediate_step = True
 
             with image_display:
-                if j % display_rate == 0 or cur_t == -1 or intermediate_step:
+                if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
                         current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
                         percent = math.ceil(j / total_steps * 100)
-                        if num_batches > 0:
+                        if config.num_batches > 0:
                             if cur_t == -1:
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
                             else:
@@ -278,17 +293,17 @@ def generate(
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
 
-                        if j % display_rate == 0 or cur_t == -1:
+                        if j % config.display_rate == 0 or cur_t == -1:
                             display.clear_output(wait=True)
                             display.display(display.Image("progress.png"))
 
-                        if j in intermediate_saves:
+                        if j in config.intermediate_saves:
                             # image.save(f"{partial_folder}/{filename}")
                             image.save(f"{batch_folder}/{filename}")
 
                         if cur_t == -1:
                             if i == 0:
-                                save_settings()
+                                config.save_settings()
                             image.save(f"{batch_folder}/{filename}")
                             display.clear_output()
 
