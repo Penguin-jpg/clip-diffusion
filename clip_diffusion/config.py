@@ -24,7 +24,7 @@ class Config:
         """
 
         # 圖片長寬相關
-        self.width = 1280  # 生成圖片的寬度
+        self.width = 1024  # 生成圖片的寬度
         self.height = 768  # 　生成圖片的高度
         # resize用的x, y(一定要是64的倍數)
         self.side_x = (self.width // 64) * 64
