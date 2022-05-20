@@ -6,7 +6,7 @@ chosen_models = {
     "ViT-B/16": True,
     "ViT-L/14": False,
     "RN50": True,
-    "RN50x4": False,
+    "RN50x4": True,
     "RN50x16": False,
     "RN50x64": False,
     "RN101": False,
