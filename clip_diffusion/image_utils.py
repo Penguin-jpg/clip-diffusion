@@ -44,10 +44,10 @@ def upload_gif(image_path, batch_name):
     )
 
     # 將最後一個timestep的png上傳至Imgur
-    png_image = imgur.upload_image(images_glob[-1], title=f"{batch_name}.png")
+    # png_image = imgur.upload_image(images_glob[-1], title=f"{batch_name}.png")
     # 將生成過程的gif上傳至Imgur
     gif_image = imgur.upload_image(
         f"{image_path}/{batch_name}.gif", title=f"{batch_name}.gif"
     )
 
-    return png_image.link, gif_image.link  # 回傳url
+    return gif_image.link  # 回傳url
