@@ -89,7 +89,6 @@ def generate(
     perlin_mode="mixed",
     batch_name="diffusion",
     media_source=None,
-    anvil_components=None,
 ):
     """
     生成圖片
@@ -98,7 +97,6 @@ def generate(
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
     media_source: anvil client端的media source
-    anvil_components: 需要透過generate更新的anvil components
     """
 
     model, diffusion = load_model_and_diffusion()
@@ -281,8 +279,6 @@ def generate(
                     for k, image in enumerate(sample["pred_xstart"]):
                         # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
                         # percent = math.ceil(j / total_steps * 100)
-                        if anvil_components:
-                            anvil_components["progress_bar"].value = j
 
                         if config.num_batches > 0:
                             if cur_t == -1:
