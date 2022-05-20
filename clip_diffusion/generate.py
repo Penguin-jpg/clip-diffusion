@@ -295,10 +295,10 @@ def generate(
                         if j in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
 
-                            # if media_source is not None:
-                            #     media_source.url = upload_png(
-                            #         batch_folder, batch_name
-                            #     )  # 將url替換成最新的timestep圖片
+                            if media_source is not None:
+                                media_source.url = upload_png(
+                                    batch_folder, batch_name
+                                )  # 將url替換成最新的timestep圖片
 
                         if cur_t == -1:
                             if i == 0:
