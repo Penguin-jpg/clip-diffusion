@@ -15,9 +15,9 @@ def create_gif(image_path, batch_name):
     """
 
     # 找出image_path下所有的png
-    images_glob = os.path.join(image_path, "*.png")
+    images_glob = sorted(glob.glob(os.path.join(image_path, "*.png")))
     # 開啟所有的圖片
-    images = [Image.open(image) for image in sorted(glob.glob(images_glob))]
+    images = [Image.open(image) for image in images_glob]
 
     # 儲存gif
     images[0].save(
@@ -29,11 +29,11 @@ def create_gif(image_path, batch_name):
         loop=0,
     )
 
-    # png_image = imgur.upload_image(
-    #     f"{image_path}/{batch_name}.png", title=f"{batch_name}.png"
-    # )  # 將最後一個timestep的png上傳至Imgur
-    # gif_image = imgur.upload_image(
-    #     f"{image_path}/{batch_name}.gif", title=f"{batch_name}.gif"
-    # )  # 將gif上傳至Imgur
+    png_image = imgur.upload_image(
+        images_glob[-1], title=f"{batch_name}.png"
+    )  # 將最後一個timestep的png上傳至Imgur
+    gif_image = imgur.upload_image(
+        f"{image_path}/{batch_name}.gif", title=f"{batch_name}.gif"
+    )  # 將gif上傳至Imgur
 
-    # return png_image.link, gif_image.link  # 回傳url
+    return png_image.link, gif_image.link  # 回傳url

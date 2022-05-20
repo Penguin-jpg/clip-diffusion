@@ -279,9 +279,7 @@ def generate(
                         # percent = math.ceil(j / total_steps * 100)
                         if config.num_batches > 0:
                             if cur_t == -1:
-                                filename = (
-                                    f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
-                                )
+                                filename = f"{batch_name}({batch_num})_{i:04}.png"
                             else:
                                 filename = (
                                     f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
