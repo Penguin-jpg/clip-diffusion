@@ -22,7 +22,7 @@ from .diffusion_model import load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
 from .loss import *
 from .dir_utils import *
-from .gif_utils import create_gif
+from .image_utils import upload_png, upload_gif
 
 # 參考並修改自：disco diffusion
 
@@ -87,6 +87,7 @@ def generate(
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
+    media_source=None,
 ):
     """
     生成圖片
@@ -94,7 +95,7 @@ def generate(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
-    partial_folder: 儲存過程圖片的資料夾
+    media_source: anvil client端的media source
     """
 
     model, diffusion = load_model_and_diffusion()
@@ -284,9 +285,12 @@ def generate(
                                 filename = (
                                     f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
                                 )
-
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
+
+                        media_source = upload_png(
+                            batch_folder, batch_name
+                        )  # 將url替換成最新的timestep圖片
 
                         if j % config.display_rate == 0 or cur_t == -1:
                             display.clear_output(wait=True)
@@ -305,4 +309,4 @@ def generate(
 
         gc.collect()
         torch.cuda.empty_cache()
-        return create_gif(batch_folder, batch_name)  # 建立一張gif
+        return upload_gif(batch_folder, batch_name)  # 回傳最後一個timestep的png及生成過程的gif
