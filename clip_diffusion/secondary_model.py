@@ -1,7 +1,7 @@
 import torch
+import math
 from torch import nn
 from dataclasses import dataclass
-import math
 from functools import partial
 from .config import config
 from .download_utils import secondary_model_link, download
