@@ -88,7 +88,6 @@ def generate(
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
-    media_source=None,
 ):
     """
     生成圖片
@@ -96,7 +95,6 @@ def generate(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
-    media_source: anvil client端的media source
     """
 
     model, diffusion = load_model_and_diffusion()
@@ -297,11 +295,6 @@ def generate(
                         if j in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
 
-                            if media_source is not None:
-                                media_source = URLMedia(
-                                    upload_png(batch_folder, batch_name)
-                                )  # 將url替換成最新的timestep圖片
-
                         if cur_t == -1:
                             if i == 0:
                                 config.save_settings()
@@ -312,4 +305,7 @@ def generate(
 
         gc.collect()
         torch.cuda.empty_cache()
-        return upload_gif(batch_folder, batch_name)  # 回傳最後一個timestep的png及生成過程的gif
+        return [
+            upload_png(os.path.join(batch_folder, filename)),
+            upload_gif(batch_folder, batch_name),
+        ]  # 回傳最後一個timestep的png及生成過程的gif

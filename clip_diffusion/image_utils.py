@@ -9,17 +9,14 @@ CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(CLIENT_ID)
 
 
-def upload_png(image_path, batch_name):
+def upload_png(image_path):
     """
     將生成過程的png上傳至imgur並回傳該png的url
     """
 
-    # 找出image_path下所有的png
-    images_glob = sorted(glob(os.path.join(image_path, "*.png")))
-    # 上傳至imgur
     image = imgur.upload_image(
-        images_glob[-1], title=f"{batch_name}_{len(images_glob)}.png"
-    )
+        image_path, title=f"{os.path.basename(image_path)}"
+    )  # 上傳至imgur
     return image.link  # 回傳url
 
 
