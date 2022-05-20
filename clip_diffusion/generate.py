@@ -13,6 +13,7 @@ from ipywidgets import Output
 from IPython import display
 from datetime import datetime
 from glob import glob
+from anvil import URLMedia
 from .config import config
 from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
@@ -88,6 +89,7 @@ def generate(
     perlin_mode="mixed",
     batch_name="diffusion",
     media_source=None,
+    anvil_components=None,
 ):
     """
     生成圖片
@@ -96,6 +98,7 @@ def generate(
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
     media_source: anvil client端的media source
+    anvil_components: 需要透過generate更新的anvil components
     """
 
     model, diffusion = load_model_and_diffusion()
@@ -278,6 +281,9 @@ def generate(
                     for k, image in enumerate(sample["pred_xstart"]):
                         # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
                         # percent = math.ceil(j / total_steps * 100)
+                        if anvil_components:
+                            anvil_components["progress_bar"].value = j
+
                         if config.num_batches > 0:
                             if cur_t == -1:
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
@@ -296,8 +302,8 @@ def generate(
                             image.save(f"{batch_folder}/{filename}")
 
                             if media_source is not None:
-                                media_source.url = upload_png(
-                                    batch_folder, batch_name
+                                media_source = URLMedia(
+                                    upload_png(batch_folder, batch_name)
                                 )  # 將url替換成最新的timestep圖片
 
                         if cur_t == -1:
