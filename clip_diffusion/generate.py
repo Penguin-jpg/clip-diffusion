@@ -288,7 +288,7 @@ def generate(
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
 
-                        media_source = upload_png(
+                        media_source.url = upload_png(
                             batch_folder, batch_name
                         )  # 將url替換成最新的timestep圖片
 
