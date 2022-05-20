@@ -102,9 +102,6 @@ def generate(
     make_dir(batch_folder)
     batch_num = len(glob(batch_folder + "/*.txt"))
 
-    # partial_folder = f"{batch_folder}/partials"
-    # make_dir(partial_folder)
-
     while os.path.isfile(
         f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
     ) or os.path.isfile(f"{batch_folder}/{batch_name}-{batch_num}_settings.txt"):
@@ -238,9 +235,6 @@ def generate(
 
         return grad
 
-    # 使用DDIM
-    sample_fn = diffusion.ddim_sample_loop_progressive
-
     image_display = Output()
 
     for i in range(config.num_batches):
@@ -258,7 +252,8 @@ def generate(
         if use_perlin:
             init = regen_perlin(perlin_mode)
 
-        samples = sample_fn(
+        # 使用DDIM進行sample
+        samples = diffusion.ddim_sample_loop_progressive(
             model,
             (config.batch_size, 3, config.side_y, config.side_x),
             clip_denoised=config.clip_denoised,
@@ -280,11 +275,13 @@ def generate(
             with image_display:
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
-                        current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
-                        percent = math.ceil(j / total_steps * 100)
+                        # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
+                        # percent = math.ceil(j / total_steps * 100)
                         if config.num_batches > 0:
                             if cur_t == -1:
-                                filename = f"{batch_name}({batch_num})_{i:04}.png"
+                                filename = (
+                                    f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
+                                )
                             else:
                                 filename = (
                                     f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
@@ -298,7 +295,6 @@ def generate(
                             display.display(display.Image("progress.png"))
 
                         if j in config.intermediate_saves:
-                            # image.save(f"{partial_folder}/{filename}")
                             image.save(f"{batch_folder}/{filename}")
 
                         if cur_t == -1:
@@ -311,5 +307,4 @@ def generate(
 
         gc.collect()
         torch.cuda.empty_cache()
-        # return create_gif(batch_folder, batch_name)  # 建立一張gif
-        create_gif(batch_folder, batch_name)
+        return create_gif(batch_folder, batch_name)  # 建立一張gif
