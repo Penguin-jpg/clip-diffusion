@@ -288,17 +288,17 @@ def generate(
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
 
-                        if media_source is not None:
-                            media_source.url = upload_png(
-                                batch_folder, batch_name
-                            )  # 將url替換成最新的timestep圖片
-
                         if j % config.display_rate == 0 or cur_t == -1:
                             display.clear_output(wait=True)
                             display.display(display.Image("progress.png"))
 
                         if j in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
+
+                            if media_source is not None:
+                                media_source.url = upload_png(
+                                    batch_folder, batch_name
+                                )  # 將url替換成最新的timestep圖片
 
                         if cur_t == -1:
                             if i == 0:
