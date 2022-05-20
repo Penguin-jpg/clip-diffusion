@@ -13,11 +13,10 @@ from ipywidgets import Output
 from IPython import display
 from datetime import datetime
 from glob import glob
-from anvil import URLMedia
 from .config import config
 from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
-from .clip_utils import clip_models
+from .clip_utils import *
 from .secondary_model import *
 from .diffusion_model import load_model_and_diffusion
 from .cutouts import MakeCutoutsDango
@@ -88,6 +87,7 @@ def generate(
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
+    chosen_clip_models=chosen_models,
 ):
     """
     生成圖片
@@ -95,6 +95,7 @@ def generate(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
+    chosen_clip_models: 選擇要使用的Clip模型
     """
 
     model, diffusion = load_model_and_diffusion()
@@ -106,6 +107,9 @@ def generate(
         f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
     ) or os.path.isfile(f"{batch_folder}/{batch_name}-{batch_num}_settings.txt"):
         batch_num += 1
+
+    # 載入選擇的Clip模型
+    choose_clip_models(chosen_clip_models)
 
     loss_values = []
 
