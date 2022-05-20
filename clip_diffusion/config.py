@@ -90,7 +90,7 @@ class Config:
 
     def adjust_settings(
         self,
-        width=1280,
+        width=1024,
         height=768,
         steps=250,
         clip_guidance_scale=5000,
@@ -102,6 +102,8 @@ class Config:
         sat_scale=0,
         batch_size=1,
         num_batches=1,
+        skip_augs=False,
+        randomize_class=True,
         fuzzy_prompt=False,
         rand_mag=0.05,
         skip_timesteps=0,
@@ -131,6 +133,8 @@ class Config:
         self.sat_scale = sat_scale
         self.batch_size = batch_size
         self.num_batches = num_batches
+        self.skip_augs = skip_augs
+        self.randomize_class = randomize_class
         self.fuzzy_prompt = fuzzy_prompt
         self.rand_mag = rand_mag
         self.skip_timesteps = skip_timesteps
