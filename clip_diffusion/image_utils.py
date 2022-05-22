@@ -1,12 +1,21 @@
 import os
+import io
 import pyimgur
 from glob import glob
 from PIL import Image
+from .dir_utils import init_dir_path
 
 # 參考並修改自：https://github.com/afiaka87/clip-guided-diffusion/blob/a631a06b51ac5c6636136fab27833c68862eaa24/cgd/script_util.py
 
 CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(CLIENT_ID)
+
+
+def get_image_from_bytes(image_bytes):
+    """
+    透過io.BytesIO讀取圖片的bytes再轉成Image
+    """
+    return Image.open(io.BytesIO(image_bytes))
 
 
 def upload_png(image_path):
@@ -40,8 +49,6 @@ def upload_gif(image_path, batch_name):
         loop=0,
     )
 
-    # 將最後一個timestep的png上傳至Imgur
-    # png_image = imgur.upload_image(images_glob[-1], title=f"{batch_name}.png")
     # 將生成過程的gif上傳至Imgur
     gif_image = imgur.upload_image(
         f"{image_path}/{batch_name}.gif", title=f"{batch_name}.gif"

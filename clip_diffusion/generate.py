@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import os
 import gc
 import lpips
+from PIL import Image
 from tqdm.notebook import tqdm
 from ipywidgets import Output
 from IPython import display
@@ -19,10 +20,10 @@ from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import *
 from .secondary_model import *
 from .diffusion_model import load_model_and_diffusion
-from .cutouts import MakeCutoutsDango
+from .cutouts import MakeCutouts, MakeCutoutsDango
 from .loss import *
 from .dir_utils import *
-from .image_utils import upload_png, upload_gif
+from .image_utils import *
 
 # 參考並修改自：disco diffusion
 
@@ -32,10 +33,25 @@ normalize = T.Normalize(
 )
 
 
+def set_seed(seed):
+    """
+    設定種子
+    """
+
+    if seed:
+        np.random.seed(config.seed)
+        random.seed(config.seed)
+        torch.manual_seed(config.seed)
+        torch.cuda.manual_seed_all(config.seed)
+        torch.backends.cudnn.deterministic = True
+
+
 def get_embedding_and_weights(text_prompts):
     """
     取得prompt的embedding及weight
     """
+
+    # target_embeds, weights = [], []
 
     model_stats = []
 
@@ -84,6 +100,7 @@ def generate(
     text_prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
     ],
+    init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
@@ -92,6 +109,7 @@ def generate(
     """
     生成圖片
     text_prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
+    init_image: 模型會參考該圖片生成初始噪聲
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
@@ -113,20 +131,22 @@ def generate(
 
     loss_values = []
 
-    if config.seed:
-        np.random.seed(config.seed)
-        random.seed(config.seed)
-        torch.manual_seed(config.seed)
-        torch.cuda.manual_seed_all(config.seed)
-        torch.backends.cudnn.deterministic = True
-
-    # target_embeds, weights = [], []
+    # 設定種子
+    set_seed(config.seed)
 
     # 取得prompt的embedding及weight
     model_stats = get_embedding_and_weights(text_prompts)
 
-    init = None
+    init = None  # init_image或perlin noise只能擇一
 
+    # 如果初始圖片不為空
+    if init_image:
+        # 透過anvil傳來的image_file的bytes開啟圖片
+        init = get_image_from_bytes(init_image.get_bytes()).convert("RGB")
+        init = init.resize((config.side_x, config.side_y), Image.LANCZOS)
+        init = TF.to_tensor(init).to(config.device).unsqueeze(0).mul(2).sub(1)
+
+    # 使用perlin noise
     if use_perlin:
         init = regen_perlin_no_expand(perlin_mode)
 

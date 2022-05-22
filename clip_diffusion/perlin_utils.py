@@ -56,6 +56,7 @@ def perlin_ms(octaves, width, height, grayscale, device=config.device):
     """
     真正的perlin noise(透過疊加增進隨機性)
     """
+
     out_array = [0.5] if grayscale else [0.5, 0.5, 0.5]
     for i in range(1 if grayscale else 3):
         scale = 2 ** len(octaves)
@@ -77,6 +78,7 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     """
     整合上方的function
     """
+
     out = perlin_ms(octaves, width, height, grayscale)
 
     if grayscale:  # 灰階
@@ -95,6 +97,7 @@ def regen_perlin(perlin_mode):
     """
     重新生成perlin noise
     """
+
     if perlin_mode == "color":
         init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, False)
@@ -122,6 +125,7 @@ def regen_perlin_no_expand(perlin_mode):
     """
     重新生成perlin noise，但不做expand
     """
+
     if perlin_mode == "color":
         init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, False)

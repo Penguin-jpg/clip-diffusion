@@ -24,7 +24,7 @@ class Config:
         """
 
         # 圖片長寬相關
-        self.width = 1024  # 生成圖片的寬度
+        self.width = 896  # 生成圖片的寬度
         self.height = 768  # 　生成圖片的高度
         # resize用的x, y(一定要是64的倍數)
         self.side_x = (self.width // 64) * 64
@@ -37,7 +37,7 @@ class Config:
 
         # cutout相關
         self.cutn = 16  # 要從圖片中做幾次crop
-        self.cutn_batches = 1  # 從cut的batch中累加Clip的梯度
+        self.cutn_batches = 4  # 從cut的batch中累加Clip的梯度
         self.cut_overview = [35] * 400 + [
             5
         ] * 600  # 前400/1000個steps會做40個cut；後600/1000個steps會做20個cut
@@ -79,9 +79,11 @@ class Config:
         )
         self.fuzzy_prompt = False  # 是否要加入multiple noisy prompts到prompt losses內
         self.rand_mag = 0.05  # 控制隨機噪音的強度
-        self.init_scale = 0  # 增強init_image的效果
-        self.skip_timesteps = 0  # 控制要跳過的step數(從第幾個step開始)
-        self.eta = 1.0  # DDIM用的超參數
+        self.init_scale = 1000  # 增強init_image的效果
+        self.skip_timesteps = (
+            10  # 控制要跳過的step數(從第幾個step開始)，當使用init_image時時最好調整為原先 Step 的 0~50%
+        )
+        self.eta = 0.8  # 調整每個timestep混入的噪音量(0：無噪音；1.0：最多噪音)
         self.settings_name = "default_settings"  # 設定資料的名稱
         self.display_rate = 25  # 多少個step要更新顯示的圖片一次
         self.intermediate_saves = [
@@ -106,8 +108,9 @@ class Config:
         randomize_class=True,
         fuzzy_prompt=False,
         rand_mag=0.05,
-        skip_timesteps=0,
-        eta=1.0,
+        init_scale=1000,
+        skip_timesteps=10,
+        eta=0.8,
         settings_name="default_settings",
         display_rate=25,
     ):
@@ -137,6 +140,7 @@ class Config:
         self.randomize_class = randomize_class
         self.fuzzy_prompt = fuzzy_prompt
         self.rand_mag = rand_mag
+        self.init_scale = init_scale
         self.skip_timesteps = skip_timesteps
         self.eta = eta
         self.settings_name = settings_name
@@ -166,6 +170,7 @@ class Config:
             "seed": self.seed,
             "fuzzy_prompt": self.fuzzy_prompt,
             "rand_mag": self.rand_mag,
+            "init_scale": self.init_scale,
             "eta": self.eta,
             "width": self.width,
             "height": self.height,
