@@ -140,7 +140,7 @@ def generate(
     init = None  # init_image或perlin noise只能擇一
 
     # 如果初始圖片不為空
-    if init_image:
+    if init_image is not None:
         # 透過anvil傳來的image_file的bytes開啟圖片
         init = get_image_from_bytes(init_image.get_bytes()).convert("RGB")
         init = init.resize((config.side_x, config.side_y), Image.LANCZOS)
