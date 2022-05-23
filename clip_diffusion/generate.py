@@ -533,8 +533,9 @@ def generate_for_anvil(
             if j in config.intermediate_saves:
                 intermediate_step = True
 
+            # 計算目前進度
             anvil.server.task_state["progress"] = int(
-                (j + 1) / float(config.steps) * 100
+                (j + 1) / float(config.steps - config.skip_timesteps) * 100
             )
 
             with image_display:
@@ -559,8 +560,9 @@ def generate_for_anvil(
 
                         if j in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
+                            # 將目前圖片結果的url存到current_result
                             anvil.server.task_state["current_result"] = upload_png(
-                                os.path.join(batch_folder, filename)
+                                f"{batch_folder}/{filename}"
                             )
 
                         if cur_t == -1:
@@ -574,7 +576,7 @@ def generate_for_anvil(
         gc.collect()
         torch.cuda.empty_cache()
         anvil.server.task_state["current_result"] = upload_png(
-            os.path.join(batch_folder, filename)
+            f"{batch_folder}/{filename}"
         )
         anvil.server.task_state["generation_process"] = upload_gif(
             batch_folder, batch_name
