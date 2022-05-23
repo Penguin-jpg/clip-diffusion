@@ -87,7 +87,8 @@ class Config:
         self.settings_name = "default_settings"  # 設定資料的名稱
         self.display_rate = 25  # 多少個step要更新顯示的圖片一次
         self.intermediate_saves = [
-            self.display_rate * i for i in range(self.steps // self.display_rate + 1)
+            self.display_rate * i
+            for i in range((self.steps - self.skip_timesteps) // self.display_rate + 1)
         ]  # 分別在哪些step的圖片要存起來(要+1才能包含最後一個step)
 
     def adjust_settings(

@@ -539,6 +539,7 @@ def generate_for_anvil(
             )
 
             with image_display:
+
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
                         # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
@@ -561,10 +562,8 @@ def generate_for_anvil(
                         if j in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
                             # 將目前圖片結果的url存到current_result
-                            anvil.server.task_state["current_result"] = upload_png(
-                                f"{batch_folder}/{filename}"
-                            )
-
+                            url = upload_png(f"{batch_folder}/{filename}")
+                            anvil.server.task_state["current_result"] = url
                         if cur_t == -1:
                             if i == 0:
                                 config.save_settings()
