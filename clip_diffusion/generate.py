@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import os
 import gc
 import lpips
+import anvil
 from PIL import Image
 from tqdm.notebook import tqdm
 from ipywidgets import Output
@@ -331,6 +332,7 @@ def generate(
         upload_gif(batch_folder, batch_name)  # 建立生成過程的gif
 
 
+@anvil.server.background_task
 def generate_for_anvil(
     text_prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
@@ -531,6 +533,10 @@ def generate_for_anvil(
             if j in config.intermediate_saves:
                 intermediate_step = True
 
+            anvil.server.task_state["progress"] = int(
+                (j + 1) / float(config.steps) * 100
+            )
+
             with image_display:
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
@@ -553,6 +559,9 @@ def generate_for_anvil(
 
                         if j in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
+                            anvil.server.task_state["current_result"] = upload_png(
+                                os.path.join(batch_folder, filename)
+                            )
 
                         if cur_t == -1:
                             if i == 0:
@@ -564,7 +573,9 @@ def generate_for_anvil(
 
         gc.collect()
         torch.cuda.empty_cache()
-        return [
-            upload_png(os.path.join(batch_folder, filename)),
-            upload_gif(batch_folder, batch_name),
-        ]  # 回傳最後一個timestep的png及生成過程的gif
+        anvil.server.task_state["current_result"] = upload_png(
+            os.path.join(batch_folder, filename)
+        )
+        anvil.server.task_state["generation_process"] = upload_gif(
+            batch_folder, batch_name
+        )
