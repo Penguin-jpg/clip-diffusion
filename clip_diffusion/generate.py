@@ -339,9 +339,6 @@ def generate_for_anvil(
     ],
     init_image=None,
     use_perlin=False,
-    perlin_mode="mixed",
-    batch_name="diffusion",
-    chosen_clip_models=chosen_models,
 ):
     """
     生成圖片(和anvil client互動)
@@ -353,6 +350,9 @@ def generate_for_anvil(
     chosen_clip_models: 選擇要使用的Clip模型
     """
 
+    perlin_mode = "mixed"
+    batch_name = "diffusion"
+    chosen_clip_models = chosen_models
     model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
     make_dir(batch_folder)
@@ -539,7 +539,6 @@ def generate_for_anvil(
             )
 
             with image_display:
-
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
                         # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
