@@ -96,6 +96,7 @@ class Config:
         width=1024,
         height=768,
         steps=250,
+        use_secondary_model=True,
         clip_guidance_scale=5000,
         clip_denoised=False,
         clamp_grad=True,
@@ -128,6 +129,7 @@ class Config:
         self.diffusion_steps = (
             (1000 // self.steps) * self.steps if self.steps < 1000 else self.steps
         )
+        self.use_secondary_model = use_secondary_model
         self.clip_guidance_scale = clip_guidance_scale
         self.clip_denoised = clip_denoised
         self.clamp_grad = clamp_grad
