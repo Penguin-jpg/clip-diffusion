@@ -60,6 +60,10 @@ class FourierFeatures(nn.Module):
 
 
 class SecondaryDiffusionImageNet(nn.Module):
+    """
+    用來為Clip清除中繼的diffusion image
+    """
+
     def __init__(self):
         super().__init__()
         c = 64  # The base channel count

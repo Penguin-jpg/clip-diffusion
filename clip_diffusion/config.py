@@ -52,7 +52,9 @@ class Config:
             (1000 // self.steps) * self.steps if self.steps < 1000 else self.steps
         )  # diffusion要跑的step數
         self.use_checkpoint = True  # 是否要使用model checkpoint
-        self.use_secondary_model = True  # 是否要使用secondary model輔助生成結果
+        self.use_secondary_model = (
+            True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
+        )
         self.diffusion_model_name = "512x512_diffusion_uncond_finetune_008100.pt"  # 使用的diffusion model checkpoint
         self.secondary_model_name = (
             "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
