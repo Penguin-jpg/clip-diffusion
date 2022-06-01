@@ -15,6 +15,9 @@ model_512_link = "https://huggingface.co/lowlevelware/512x512_diffusion_uncondit
 secondary_model_link = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
+denoise_model_url = (
+    "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth"
+)
 
 # 檢查用的SHA
 model_512_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"
@@ -45,7 +48,7 @@ def does_SHA_match(model_name):
         return False
 
 
-def download(url, model_name):
+def download(url, model_name, check_SHA=True):
     """
     下載模型並儲存，回傳儲存位置
     """
@@ -70,5 +73,5 @@ def download(url, model_name):
 
     os.rename(download_target_tmp, download_target)
 
-    if does_SHA_match(model_name):
+    if check_SHA and does_SHA_match(model_name):
         return str(download_target)
