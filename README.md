@@ -6,12 +6,10 @@
 git clone https://github.com/openai/CLIP
 git clone https://github.com/crowsonkb/guided-diffusion
 git clone https://github.com/assafshocher/ResizeRight.git
-git clone https://github.com/cszn/SCUNet.git
 pip install -e ./CLIP
 pip install -e ./guided-diffusion
 pip install lpips datetime timm
 pip install anvil-uplink
-pip install thop
 ```
 
 ### 簡介

@@ -2,7 +2,7 @@ import torch
 import random
 import json
 
-INT_MAX = 2**32
+INT_MAX = 2 ** 32
 
 
 def get_seed():
@@ -58,9 +58,6 @@ class Config:
         self.diffusion_model_name = "512x512_diffusion_uncond_finetune_008100.pt"  # 使用的diffusion model checkpoint
         self.secondary_model_name = (
             "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
-        )
-        self.denoise_model_name = (
-            "scunet_color_real_psnr.pth"  # 使用的denoise model checkpoint
         )
 
         # Clip相關

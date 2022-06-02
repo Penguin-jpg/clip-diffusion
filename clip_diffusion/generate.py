@@ -122,11 +122,6 @@ def generate(
     make_dir(batch_folder)
     batch_num = len(glob(batch_folder + "/*.txt"))
 
-    # 如果名稱相同的batch_name資料夾已經存在，就刪除內部的所有圖片，避免後續製作gif時導致判斷錯誤
-    if os.path.exists(batch_folder):
-        for filename in os.listdir(batch_folder):
-            os.remove(os.path.join(batch_folder, filename))
-
     while os.path.isfile(
         f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
     ) or os.path.isfile(f"{batch_folder}/{batch_name}-{batch_num}_settings.txt"):
