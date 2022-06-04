@@ -46,7 +46,7 @@ class Config:
         self.cut_icgray_p = [0.2] * 400 + [0] * 900
 
         # model相關
-        self.steps = 250  # 每個iteration要跑的step數
+        self.steps = 200  # 每個iteration要跑的step數
         self.timestep_respacing = f"ddim{self.steps}"  # 調整diffusion的timestep數量
         self.diffusion_steps = (
             (1000 // self.steps) * self.steps if self.steps < 1000 else self.steps
@@ -97,7 +97,7 @@ class Config:
         self,
         width=1024,
         height=768,
-        steps=250,
+        steps=200,
         use_secondary_model=True,
         clip_guidance_scale=5000,
         clip_denoised=False,

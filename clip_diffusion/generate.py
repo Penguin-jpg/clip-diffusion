@@ -533,10 +533,8 @@ def generate_for_anvil(
             if j in config.intermediate_saves:
                 intermediate_step = True
 
-            # 計算目前進度
-            anvil.server.task_state["progress"] = int(
-                (j + 1) / float(config.steps - config.skip_timesteps) * 100
-            )
+            # 紀錄目前的step
+            anvil.server.task_state["current_step"] = j + 1
 
             with image_display:
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
