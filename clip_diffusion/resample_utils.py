@@ -2,7 +2,7 @@ import torch
 import math
 from torch.nn import functional as F
 
-# 來源：https://colab.research.google.com/drive/1go6YwMFe5MX6XM9tv-cnQiSTU50N9EeT?fbclid=IwAR30ZqxIJG0-2wDukRydFA3jU5OpLHrlC_Sg1iRXqmoTkEhaJtHdRi6H7AI#scrollTo=EXMSuW2EQWsd
+# 參考並修改自：https://gist.github.com/crowsonkb/a905773ba4d7aa5cd7671315e464369c
 
 
 def conditional_sin(x):
@@ -26,9 +26,6 @@ def lanczos(x, a):
 
 
 def ramp(ratio, width):
-    """
-    不確定這是什麼
-    """
     n = math.ceil(width / ratio + 1)
     out = torch.empty([n])
     cur = 0

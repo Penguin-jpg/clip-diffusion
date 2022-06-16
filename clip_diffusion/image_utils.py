@@ -3,7 +3,6 @@ import io
 import pyimgur
 from glob import glob
 from PIL import Image
-from .dir_utils import init_dir_path
 
 # 參考並修改自：https://github.com/afiaka87/clip-guided-diffusion/blob/a631a06b51ac5c6636136fab27833c68862eaa24/cgd/script_util.py
 

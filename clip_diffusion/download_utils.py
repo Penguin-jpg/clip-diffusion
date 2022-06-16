@@ -11,14 +11,14 @@ from .dir_utils import model_path, diffusion_model_path, secondary_model_path
 # 2. https://colab.research.google.com/github/alembics/disco-diffusion/blob/main/Disco_Diffusion.ipynb
 
 # 下載網址
-model_512_link = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
-secondary_model_link = (
+DIFFUSION_MODEL_LINK = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
+SECONDARY_MODEL_LINK = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
 
 # 檢查用的SHA
-model_512_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"
-secondary_model_SHA = "983e3de6f95c88c81b2ca7ebb2c217933be1973b1ff058776b970f901584613a"
+DIFFUSION_MODEL_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"
+SECONDARY_MODEL_SHA = "983e3de6f95c88c81b2ca7ebb2c217933be1973b1ff058776b970f901584613a"
 
 
 def does_SHA_match(model_name):
@@ -28,10 +28,10 @@ def does_SHA_match(model_name):
 
     if model_name == config.diffusion_model_name:
         check_path = diffusion_model_path
-        model_SHA = model_512_SHA
+        model_SHA = DIFFUSION_MODEL_SHA
     else:
         check_path = secondary_model_path
-        model_SHA = secondary_model_SHA
+        model_SHA = SECONDARY_MODEL_SHA
 
     with open(check_path, "rb") as f:
         bytes = f.read()

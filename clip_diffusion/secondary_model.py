@@ -4,7 +4,7 @@ from torch import nn
 from dataclasses import dataclass
 from functools import partial
 from .config import config
-from .download_utils import secondary_model_link, download
+from .download_utils import SECONDARY_MODEL_LINK, download
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
 def append_dims(x, n):
@@ -199,7 +199,7 @@ class SecondaryDiffusionImageNet2(nn.Module):
 secondary_model = SecondaryDiffusionImageNet2()
 secondary_model.load_state_dict(
     torch.load(
-        download(secondary_model_link, config.secondary_model_name), map_location="cpu"
+        download(SECONDARY_MODEL_LINK, config.secondary_model_name), map_location="cpu"
     )
 )
 secondary_model.eval().requires_grad_(False).to(config.device)
