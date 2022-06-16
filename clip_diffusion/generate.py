@@ -118,19 +118,12 @@ def generate(
     """
 
     model, diffusion = load_model_and_diffusion()
-    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
+    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存生成圖片的資料夾
     make_dir(batch_folder)
-    batch_num = len(glob(batch_folder + "/*.txt"))
-
-    while os.path.isfile(
-        f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
-    ) or os.path.isfile(f"{batch_folder}/{batch_name}-{batch_num}_settings.txt"):
-        batch_num += 1
+    remove_dirs_and_files(batch_folder)  # 移除舊的圖片
 
     # 載入選擇的Clip模型
     choose_clip_models(chosen_clip_models)
-
-    loss_values = []
 
     # 設定種子
     set_seed(config.seed)
@@ -151,14 +144,16 @@ def generate(
         init = regen_perlin_no_expand(perlin_mode)
 
     cur_t = None
+    loss_values = []
 
-    # 透過clip引導guided diffusion
+    # 透過clip引導guided diffusion(參考自disco diffusion)
     def cond_fn(x, t, y=None):
         with torch.enable_grad():
             x_is_NaN = False
             x = x.detach().requires_grad_()
             n = x.shape[0]
 
+            # 使用secondary_model加速生成
             if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
@@ -271,7 +266,6 @@ def generate(
         gc.collect()
         torch.cuda.empty_cache()
         cur_t = diffusion.num_timesteps - config.skip_timesteps - 1
-        total_steps = cur_t
 
         if use_perlin:
             init = regen_perlin(perlin_mode)
@@ -299,9 +293,6 @@ def generate(
             with image_display:
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
-                        # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
-                        # percent = math.ceil(j / total_steps * 100)
-
                         if config.num_batches > 0:
                             if cur_t == -1:
                                 filename = f"{batch_name}({batch_num})_{i:04}.png"
@@ -339,6 +330,8 @@ def generate_for_anvil(
     ],
     init_image=None,
     use_perlin=False,
+    perlin_mode="mixed",
+    batch_name="diffusion",
 ):
     """
     生成圖片(和anvil client互動)
@@ -350,23 +343,14 @@ def generate_for_anvil(
     chosen_clip_models: 選擇要使用的Clip模型
     """
 
-    perlin_mode = "mixed"
-    batch_name = "diffusion"
     chosen_clip_models = chosen_models
     model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
     make_dir(batch_folder)
-    batch_num = len(glob(batch_folder + "/*.txt"))
-
-    while os.path.isfile(
-        f"{batch_folder}/{batch_name}({batch_num})_settings.txt"
-    ) or os.path.isfile(f"{batch_folder}/{batch_name}-{batch_num}_settings.txt"):
-        batch_num += 1
+    remove_dirs_and_files(batch_folder)  # 移除舊的圖片
 
     # 載入選擇的Clip模型
     choose_clip_models(chosen_clip_models)
-
-    loss_values = []
 
     # 設定種子
     set_seed(config.seed)
@@ -375,6 +359,7 @@ def generate_for_anvil(
     model_stats = get_embedding_and_weights(text_prompts)
 
     init = None  # init_image或perlin noise只能擇一
+    loss_values = []
 
     # 如果初始圖片不為空
     if init_image is not None:
@@ -389,13 +374,14 @@ def generate_for_anvil(
 
     cur_t = None
 
-    # 透過clip引導guided diffusion
+    # 透過clip引導guided diffusion(參考自disco diffusion)
     def cond_fn(x, t, y=None):
         with torch.enable_grad():
             x_is_NaN = False
             x = x.detach().requires_grad_()
             n = x.shape[0]
 
+            # 使用secondary_model加速生成
             if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[cur_t],
@@ -508,7 +494,6 @@ def generate_for_anvil(
         gc.collect()
         torch.cuda.empty_cache()
         cur_t = diffusion.num_timesteps - config.skip_timesteps - 1
-        total_steps = cur_t
 
         if use_perlin:
             init = regen_perlin(perlin_mode)
@@ -539,16 +524,11 @@ def generate_for_anvil(
             with image_display:
                 if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
                     for k, image in enumerate(sample["pred_xstart"]):
-                        # current_time = datetime.now().strftime("%y%m%d-%H%M%S_%f")
-                        # percent = math.ceil(j / total_steps * 100)
-
                         if config.num_batches > 0:
                             if cur_t == -1:
-                                filename = f"{batch_name}({batch_num})_{i:04}.png"
+                                filename = f"{batch_name}_{i:04}.png"
                             else:
-                                filename = (
-                                    f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
-                                )
+                                filename = f"{batch_name}_{i:04}-{j:03}.png"
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
 
