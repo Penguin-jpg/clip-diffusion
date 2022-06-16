@@ -295,11 +295,9 @@ def generate(
                     for k, image in enumerate(sample["pred_xstart"]):
                         if config.num_batches > 0:
                             if cur_t == -1:
-                                filename = f"{batch_name}({batch_num})_{i:04}.png"
+                                filename = f"{batch_name}_{i:04}.png"
                             else:
-                                filename = (
-                                    f"{batch_name}({batch_num})_{i:04}-{j:03}.png"
-                                )
+                                filename = f"{batch_name}_{i:04}-{j:03}.png"
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         image.save("progress.png")
 
