@@ -4,8 +4,6 @@ from torchvision.transforms import functional as TF
 import random
 import numpy as np
 import clip
-import matplotlib.pyplot as plt
-import os
 import gc
 import lpips
 import anvil
@@ -13,10 +11,8 @@ from PIL import Image
 from tqdm.notebook import tqdm
 from ipywidgets import Output
 from IPython import display
-from datetime import datetime
-from glob import glob
 from .config import config
-from .prompt_utils import parse_prompt, fetch
+from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import *
 from .secondary_model import *
@@ -119,7 +115,7 @@ def generate(
 
     chosen_clip_models = chosen_models
     model, diffusion = load_model_and_diffusion()
-    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
+    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder)
     remove_old_files(batch_folder)  # 移除舊的圖片
 
@@ -185,7 +181,7 @@ def generate(
                 x_in_grad = torch.zeros_like(x_in)
 
             for model_stat in model_stats:
-                for i in range(config.cutn_batches):
+                for _ in range(config.cutn_batches):
                     t_int = (
                         int(t.item()) + 1
                     )  # errors on last step without +1, need to find source
@@ -306,7 +302,6 @@ def generate(
                         image = TF.to_pil_image(
                             image.add(1).div(2).clamp(0, 1)
                         )  # 轉換為Pillow Image
-                        # image.save("progress.png")
 
                         # 需要更新和儲存圖片
                         if step_index in config.intermediate_saves:
@@ -319,13 +314,9 @@ def generate(
 
                         # 生成結束
                         if current_timestep == -1:
-                            # if i == 0:
-                            #     config.save_settings()
                             image.save(f"{batch_folder}/{filename}")
                             display.display(display.Image(f"{batch_folder}/{filename}"))
                             display.clear_output()
-
-        # plt.plot(np.array(loss_values), "r")
 
         gc.collect()
         torch.cuda.empty_cache()

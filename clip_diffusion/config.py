@@ -154,38 +154,38 @@ class Config:
             self.display_rate * i for i in range(self.steps // self.display_rate + 1)
         ]
 
-    def save_settings(self):
-        """
-        儲存設定資訊
-        """
+    # def save_settings(self):
+    #     """
+    #     儲存設定資訊
+    #     """
 
-        setting_list = {
-            "clip_guidance_scale": self.clip_guidance_scale,
-            "tv_scale": self.tv_scale,
-            "range_scale": self.range_scale,
-            "sat_scale": self.sat_scale,
-            "cutn_batches": self.cutn_batches,
-            "init_scale": self.init_scale,
-            "skip_timesteps": self.skip_timesteps,
-            "skip_augs": self.skip_augs,
-            "randomize_class": self.randomize_class,
-            "clip_denoised": self.clip_denoised,
-            "clamp_grad": self.clamp_grad,
-            "clamp_max": self.clamp_max,
-            "seed": self.seed,
-            "fuzzy_prompt": self.fuzzy_prompt,
-            "rand_mag": self.rand_mag,
-            "init_scale": self.init_scale,
-            "eta": self.eta,
-            "width": self.width,
-            "height": self.height,
-            "use_secondary_model": self.use_secondary_model,
-            "steps": self.steps,
-            "diffusion_steps": self.diffusion_steps,
-        }
+    #     setting_list = {
+    #         "clip_guidance_scale": self.clip_guidance_scale,
+    #         "tv_scale": self.tv_scale,
+    #         "range_scale": self.range_scale,
+    #         "sat_scale": self.sat_scale,
+    #         "cutn_batches": self.cutn_batches,
+    #         "init_scale": self.init_scale,
+    #         "skip_timesteps": self.skip_timesteps,
+    #         "skip_augs": self.skip_augs,
+    #         "randomize_class": self.randomize_class,
+    #         "clip_denoised": self.clip_denoised,
+    #         "clamp_grad": self.clamp_grad,
+    #         "clamp_max": self.clamp_max,
+    #         "seed": self.seed,
+    #         "fuzzy_prompt": self.fuzzy_prompt,
+    #         "rand_mag": self.rand_mag,
+    #         "init_scale": self.init_scale,
+    #         "eta": self.eta,
+    #         "width": self.width,
+    #         "height": self.height,
+    #         "use_secondary_model": self.use_secondary_model,
+    #         "steps": self.steps,
+    #         "diffusion_steps": self.diffusion_steps,
+    #     }
 
-        with open(f"{self.settings_name}.txt", "w+") as file:
-            json.dump(setting_list, file, ensure_ascii=False, indent=4)
+    #     with open(f"{self.settings_name}.txt", "w+") as file:
+    #         json.dump(setting_list, file, ensure_ascii=False, indent=4)
 
 
 config = Config()
