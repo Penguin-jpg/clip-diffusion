@@ -97,232 +97,8 @@ def get_embedding_and_weights(text_prompts):
     return model_stats
 
 
-def generate(
-    text_prompts=[
-        "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
-    ],
-    init_image=None,
-    use_perlin=False,
-    perlin_mode="mixed",
-    batch_name="diffusion",
-    chosen_clip_models=chosen_models,
-):
-    """
-    生成圖片(直接呼叫)
-    text_prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
-    init_image: 模型會參考該圖片生成初始噪聲(路徑或網址)
-    use_perlin: 是否要使用perlin noise
-    perlin_mode: 使用的perlin noise模式
-    batch_name: 本次生成的名稱
-    chosen_clip_models: 選擇要使用的Clip模型
-    """
-
-    model, diffusion = load_model_and_diffusion()
-    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存生成圖片的資料夾
-    make_dir(batch_folder)
-    remove_old_files(batch_folder)  # 移除舊的圖片
-
-    # 載入選擇的Clip模型
-    choose_clip_models(chosen_clip_models)
-
-    # 設定種子
-    set_seed(config.seed)
-
-    # 取得prompt的embedding及weight
-    model_stats = get_embedding_and_weights(text_prompts)
-
-    init = None  # init_image或perlin noise只能擇一
-
-    # 如果有初始圖片
-    if init_image is not None:
-        init = Image.open(fetch(init_image)).convert("RGB")
-        init = init.resize((config.side_x, config.side_y), Image.LANCZOS)
-        init = TF.to_tensor(init).to(config.device).unsqueeze(0).mul(2).sub(1)
-
-    # 使用perlin noise
-    if use_perlin:
-        init = regen_perlin_no_expand(perlin_mode)
-
-    cur_t = None
-    loss_values = []
-
-    # 透過clip引導guided diffusion(參考自disco diffusion)
-    def cond_fn(x, t, y=None):
-        with torch.enable_grad():
-            x_is_NaN = False
-            x = x.detach().requires_grad_()
-            n = x.shape[0]
-
-            # 使用secondary_model加速生成
-            if config.use_secondary_model:
-                alpha = torch.tensor(
-                    diffusion.sqrt_alphas_cumprod[cur_t],
-                    device=config.device,
-                    dtype=torch.float32,
-                )
-                sigma = torch.tensor(
-                    diffusion.sqrt_one_minus_alphas_cumprod[cur_t],
-                    device=config.device,
-                    dtype=torch.float32,
-                )
-                cosine_t = alpha_sigma_to_t(alpha, sigma)
-                out = secondary_model(x, cosine_t[None].repeat([n])).pred
-                fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
-                x_in = out * fac + x * (1 - fac)
-                x_in_grad = torch.zeros_like(x_in)
-            else:
-                my_t = torch.ones([n], device=config.device, dtype=torch.long) * cur_t
-                out = diffusion.p_mean_variance(
-                    model, x, my_t, clip_denoised=False, model_kwargs={"y": y}
-                )
-                fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
-                x_in = out["pred_xstart"] * fac + x * (1 - fac)
-                x_in_grad = torch.zeros_like(x_in)
-
-            for model_stat in model_stats:
-                for i in range(config.cutn_batches):
-                    t_int = (
-                        int(t.item()) + 1
-                    )  # errors on last step without +1, need to find source
-                    input_resolution = model_stat["clip_model"].visual.input_resolution
-                    cuts = MakeCutoutsDango(
-                        input_resolution,
-                        Overview=config.cut_overview[1000 - t_int],
-                        InnerCrop=config.cut_innercut[1000 - t_int],
-                        IC_Size_Pow=config.cut_ic_pow,
-                        IC_Grey_P=config.cut_icgray_p[1000 - t_int],
-                    )
-                    clip_in = normalize(cuts(x_in.add(1).div(2)))
-                    image_embeds = (
-                        model_stat["clip_model"].encode_image(clip_in).float()
-                    )
-                    dists = spherical_dist_loss(
-                        image_embeds.unsqueeze(1),
-                        model_stat["target_embeds"].unsqueeze(0),
-                    )
-                    dists = dists.view(
-                        [
-                            config.cut_overview[1000 - t_int]
-                            + config.cut_innercut[1000 - t_int],
-                            n,
-                            -1,
-                        ]
-                    )
-                    losses = dists.mul(model_stat["weights"]).sum(2).mean(0)
-                    loss_values.append(
-                        losses.sum().item()
-                    )  # log loss, probably shouldn't do per cutn_batch
-                    x_in_grad += (
-                        torch.autograd.grad(
-                            losses.sum() * config.clip_guidance_scale, x_in
-                        )[0]
-                        / config.cutn_batches
-                    )
-            tv_losses = tv_loss(x_in)
-
-            if config.use_secondary_model:
-                range_losses = range_loss(out)
-            else:
-                range_losses = range_loss(out["pred_xstart"])
-
-            sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = (
-                tv_losses.sum() * config.tv_scale
-                + range_losses.sum() * config.range_scale
-                + sat_losses.sum() * config.sat_scale
-            )
-
-            # numpy array, tensor的判斷式使用is not None
-            if init is not None and config.init_scale:
-                init_losses = lpips_model(x_in, init)
-                loss = loss + init_losses.sum() * config.init_scale
-            x_in_grad += torch.autograd.grad(loss, x_in)[0]
-
-            if not torch.isnan(x_in_grad).any():
-                grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
-            else:
-                x_is_NaN = True
-                grad = torch.zeros_like(x)
-
-        if config.clamp_grad and not x_is_NaN:
-            magnitude = grad.square().mean().sqrt()
-            return (
-                grad
-                * magnitude.clamp(min=-config.clamp_max, max=config.clamp_max)
-                / magnitude
-            )  # min=-0.02,
-
-        return grad
-
-    image_display = Output()
-
-    for i in range(config.num_batches):
-        display.clear_output(wait=True)
-        batchBar = tqdm(range(config.num_batches), desc="Batches")
-        batchBar.n = i
-        batchBar.refresh()
-        print("")
-        display.display(image_display)
-        gc.collect()
-        torch.cuda.empty_cache()
-        cur_t = diffusion.num_timesteps - config.skip_timesteps - 1
-
-        if use_perlin:
-            init = regen_perlin(perlin_mode)
-
-        # 使用DDIM進行sample
-        samples = diffusion.ddim_sample_loop_progressive(
-            model,
-            (config.batch_size, 3, config.side_y, config.side_x),
-            clip_denoised=config.clip_denoised,
-            model_kwargs={},
-            cond_fn=cond_fn,
-            progress=True,
-            skip_timesteps=config.skip_timesteps,
-            init_image=init,
-            randomize_class=config.randomize_class,
-            eta=config.eta,
-        )
-
-        for j, sample in enumerate(samples):
-            cur_t -= 1
-            intermediate_step = False
-            if j in config.intermediate_saves:
-                intermediate_step = True
-
-            with image_display:
-                if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
-                    for k, image in enumerate(sample["pred_xstart"]):
-                        if config.num_batches > 0:
-                            if cur_t == -1:
-                                filename = f"{batch_name}_{i:04}.png"
-                            else:
-                                filename = f"{batch_name}_{i:04}-{j:03}.png"
-                        image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
-                        image.save("progress.png")
-
-                        if j % config.display_rate == 0 or cur_t == -1:
-                            display.clear_output(wait=True)
-                            display.display(display.Image("progress.png"))
-
-                        if j in config.intermediate_saves:
-                            image.save(f"{batch_folder}/{filename}")
-
-                        if cur_t == -1:
-                            if i == 0:
-                                config.save_settings()
-                            image.save(f"{batch_folder}/{filename}")
-                            display.clear_output()
-
-        plt.plot(np.array(loss_values), "r")
-
-        gc.collect()
-        torch.cuda.empty_cache()
-        upload_gif(batch_folder, batch_name)  # 建立生成過程的gif
-
-
 @anvil.server.background_task
-def generate_for_anvil(
+def generate(
     text_prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
     ],
@@ -370,7 +146,7 @@ def generate_for_anvil(
     if use_perlin:
         init = regen_perlin_no_expand(perlin_mode)
 
-    cur_t = None
+    current_timestep = None  # 目前的timestep
 
     # 透過clip引導guided diffusion(參考自disco diffusion)
     def cond_fn(x, t, y=None):
@@ -382,26 +158,29 @@ def generate_for_anvil(
             # 使用secondary_model加速生成
             if config.use_secondary_model:
                 alpha = torch.tensor(
-                    diffusion.sqrt_alphas_cumprod[cur_t],
+                    diffusion.sqrt_alphas_cumprod[current_timestep],
                     device=config.device,
                     dtype=torch.float32,
                 )
                 sigma = torch.tensor(
-                    diffusion.sqrt_one_minus_alphas_cumprod[cur_t],
+                    diffusion.sqrt_one_minus_alphas_cumprod[current_timestep],
                     device=config.device,
                     dtype=torch.float32,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
                 out = secondary_model(x, cosine_t[None].repeat([n])).pred
-                fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
+                fac = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
                 x_in = out * fac + x * (1 - fac)
                 x_in_grad = torch.zeros_like(x_in)
             else:
-                my_t = torch.ones([n], device=config.device, dtype=torch.long) * cur_t
+                my_t = (
+                    torch.ones([n], device=config.device, dtype=torch.long)
+                    * current_timestep
+                )
                 out = diffusion.p_mean_variance(
                     model, x, my_t, clip_denoised=False, model_kwargs={"y": y}
                 )
-                fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
+                fac = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
                 x_in = out["pred_xstart"] * fac + x * (1 - fac)
                 x_in_grad = torch.zeros_like(x_in)
 
@@ -482,16 +261,18 @@ def generate_for_anvil(
 
     image_display = Output()
 
-    for i in range(config.num_batches):
+    for current_batch in range(config.num_batches):
         display.clear_output(wait=True)
-        batchBar = tqdm(range(config.num_batches), desc="Batches")
-        batchBar.n = i
-        batchBar.refresh()
+        progress_bar = tqdm(range(config.num_batches), desc="Batches")
+        progress_bar.n = current_batch
+        progress_bar.refresh()
         print("")
         display.display(image_display)
         gc.collect()
         torch.cuda.empty_cache()
-        cur_t = diffusion.num_timesteps - config.skip_timesteps - 1
+        current_timestep = (
+            diffusion.num_timesteps - config.skip_timesteps - 1
+        )  # 將目前timestep的值初始化為總timestep數-1
 
         if use_perlin:
             init = regen_perlin(perlin_mode)
@@ -510,42 +291,41 @@ def generate_for_anvil(
             eta=config.eta,
         )
 
-        for j, sample in enumerate(samples):
-            cur_t -= 1
-            intermediate_step = False
-            if j in config.intermediate_saves:
-                intermediate_step = True
+        # current_timestep從總timestep數開始；step_index從0開始
+        for step_index, sample in enumerate(samples):
+            current_timestep -= 1  # 每次都將目前的timestep減1
 
             # 紀錄目前的step
-            anvil.server.task_state["current_step"] = j + 1
+            anvil.server.task_state["current_step"] = step_index + 1
 
             with image_display:
-                if j % config.display_rate == 0 or cur_t == -1 or intermediate_step:
-                    for k, image in enumerate(sample["pred_xstart"]):
-                        if config.num_batches > 0:
-                            if cur_t == -1:
-                                filename = f"{batch_name}_{i:04}.png"
-                            else:
-                                filename = f"{batch_name}_{i:04}-{j:03}.png"
-                        image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
-                        image.save("progress.png")
+                # 如果需要更新、儲存圖片或生成結束時進入
+                if step_index in config.intermediate_saves or current_timestep == -1:
+                    for _, image in enumerate(sample["pred_xstart"]):
+                        filename = f"{batch_name}_{current_batch:04}-{step_index:03}.png"  # 圖片名稱
+                        image = TF.to_pil_image(
+                            image.add(1).div(2).clamp(0, 1)
+                        )  # 轉換為Pillow Image
+                        # image.save("progress.png")
 
-                        if j % config.display_rate == 0 or cur_t == -1:
-                            display.clear_output(wait=True)
-                            display.display(display.Image("progress.png"))
-
-                        if j in config.intermediate_saves:
+                        # 需要更新和儲存圖片
+                        if step_index in config.intermediate_saves:
                             image.save(f"{batch_folder}/{filename}")
                             # 將目前圖片結果的url存到current_result
                             url = upload_png(f"{batch_folder}/{filename}")
                             anvil.server.task_state["current_result"] = url
-                        if cur_t == -1:
-                            if i == 0:
-                                config.save_settings()
+                            display.clear_output(wait=True)
+                            display.display(display.Image(f"{batch_folder}/{filename}"))
+
+                        # 生成結束
+                        if current_timestep == -1:
+                            # if i == 0:
+                            #     config.save_settings()
                             image.save(f"{batch_folder}/{filename}")
+                            display.display(display.Image(f"{batch_folder}/{filename}"))
                             display.clear_output()
 
-        plt.plot(np.array(loss_values), "r")
+        # plt.plot(np.array(loss_values), "r")
 
         gc.collect()
         torch.cuda.empty_cache()
