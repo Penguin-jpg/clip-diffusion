@@ -5,7 +5,7 @@ from guided_diffusion.script_util import (
     create_model_and_diffusion,
 )
 from .config import config
-from .download_utils import DIFFUSION_MODEL_LINK, download
+from .download_utils import DIFFUSION_MODEL_URL, download
 
 
 def load_model_and_diffusion():
@@ -36,7 +36,7 @@ def load_model_and_diffusion():
     model, diffusion = create_model_and_diffusion(**model_config)
     model.load_state_dict(
         torch.load(
-            download(DIFFUSION_MODEL_LINK, config.diffusion_model_name),
+            download(DIFFUSION_MODEL_URL, config.diffusion_model_name),
             map_location="cpu",
         )
     )
