@@ -83,7 +83,7 @@ class Config:
         self.rand_mag = 0.05  # 控制隨機噪音的強度
         self.init_scale = 1000  # 增強init_image的效果
         self.skip_timesteps = (
-            10  # 控制要跳過的step數(從第幾個step開始)，當使用init_image時時最好調整為原先 Step 的 0~50%
+            0  # 控制要跳過的step數(從第幾個step開始)，當使用init_image時時最好調整為原先 Step 的 0~50%
         )
         self.eta = 0.8  # 調整每個timestep混入的噪音量(0：無噪音；1.0：最多噪音)
         self.settings_name = "default_settings"  # 設定資料的名稱
@@ -113,7 +113,7 @@ class Config:
         fuzzy_prompt=False,
         rand_mag=0.05,
         init_scale=1000,
-        skip_timesteps=10,
+        skip_timesteps=0,
         eta=0.8,
         settings_name="default_settings",
         display_rate=25,

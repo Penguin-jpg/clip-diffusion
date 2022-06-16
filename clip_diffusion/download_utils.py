@@ -11,8 +11,8 @@ from .dir_utils import model_path, diffusion_model_path, secondary_model_path
 # 2. https://colab.research.google.com/github/alembics/disco-diffusion/blob/main/Disco_Diffusion.ipynb
 
 # 下載網址
-DIFFUSION_MODEL_LINK = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
-SECONDARY_MODEL_LINK = (
+DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
+SECONDARY_MODEL_URL = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
 
