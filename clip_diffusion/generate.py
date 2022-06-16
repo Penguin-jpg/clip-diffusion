@@ -120,7 +120,7 @@ def generate(
     model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存生成圖片的資料夾
     make_dir(batch_folder)
-    remove_dirs_and_files(batch_folder)  # 移除舊的圖片
+    remove_old_files(batch_folder)  # 移除舊的圖片
 
     # 載入選擇的Clip模型
     choose_clip_models(chosen_clip_models)
@@ -345,7 +345,7 @@ def generate_for_anvil(
     model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存設定的資料夾
     make_dir(batch_folder)
-    remove_dirs_and_files(batch_folder)  # 移除舊的圖片
+    remove_old_files(batch_folder)  # 移除舊的圖片
 
     # 載入選擇的Clip模型
     choose_clip_models(chosen_clip_models)

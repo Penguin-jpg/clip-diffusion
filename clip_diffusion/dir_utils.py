@@ -1,5 +1,4 @@
 import os
-import shutil
 
 
 def make_dir(dir_path):
@@ -13,13 +12,15 @@ def make_dir(dir_path):
         print(f"{dir_path} already exists")
 
 
-def remove_dirs_and_files(dir_path):
+def remove_old_files(dir_path):
     """
     移除指定路徑下的所有資料夾及檔案
     """
 
     if os.path.exists(dir_path):
-        shutil.rmtree(dir_path)
+        # 刪除所有檔案
+        for filename in os.listdir(dir_path):
+            os.remove(os.path.join(dir_path, filename))
     else:
         print(f"{dir_path} does not exist")
 
