@@ -59,16 +59,14 @@ class MakeCutouts(nn.Module):
         return cutouts
 
 
-# for Dango cutouts
-cutout_debug = False
-padargs = {}
-
 # 作者： Dango233
 class MakeCutoutsDango(nn.Module):
     def __init__(
         self, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2
     ):
         super().__init__()
+        self.cutout_debug = False
+        self.padargs = {}
         self.cut_size = cut_size
         self.Overview = Overview
         self.InnerCrop = InnerCrop
@@ -107,7 +105,7 @@ class MakeCutoutsDango(nn.Module):
                 (sideX - max_size) // 2,
                 (sideX - max_size) // 2,
             ),
-            **padargs
+            **self.padargs
         )
         cutout = resize(pad_input, out_shape=output_shape)
 
@@ -126,7 +124,7 @@ class MakeCutoutsDango(nn.Module):
                 for _ in range(self.Overview):
                     cutouts.append(cutout)
 
-            if cutout_debug:
+            if self.cutout_debug:
                 TF.to_pil_image(cutouts[0].add(1).div(2).clamp(0, 1).squeeze(0)).save(
                     "/content/cutout_overview.jpg", quality=99
                 )
@@ -144,7 +142,7 @@ class MakeCutoutsDango(nn.Module):
                     cutout = gray(cutout)
                 cutout = resize(cutout, out_shape=output_shape)
                 cutouts.append(cutout)
-            if cutout_debug:
+            if self.cutout_debug:
                 TF.to_pil_image(cutouts[-1].add(1).div(2).clamp(0, 1).squeeze(0)).save(
                     "/content/cutout_InnerCrop.jpg", quality=99
                 )

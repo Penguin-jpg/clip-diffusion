@@ -40,7 +40,7 @@ def load_model_and_diffusion():
             map_location="cpu",
         )
     )
-    model.requires_grad_(False).eval().to(config.device)
+    model.eval().requires_grad_(False).to(config.device)
 
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:

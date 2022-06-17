@@ -14,11 +14,11 @@ from IPython import display
 from .config import config
 from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
-from .clip_utils import *
+from .clip_utils import clip_models, chosen_models, choose_clip_models
 from .secondary_model import *
 from .diffusion_model import load_model_and_diffusion
 from .cutouts import MakeCutouts, MakeCutoutsDango
-from .loss import *
+from .loss import spherical_dist_loss, tv_loss, range_loss
 from .dir_utils import *
 from .image_utils import *
 
