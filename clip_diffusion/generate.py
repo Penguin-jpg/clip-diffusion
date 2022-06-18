@@ -1,9 +1,6 @@
 import torch
 from torchvision import transforms as T
 from torchvision.transforms import functional as TF
-import random
-import numpy as np
-import clip
 import gc
 import lpips
 import anvil
@@ -12,13 +9,12 @@ from tqdm.notebook import tqdm
 from ipywidgets import Output
 from IPython import display
 from .config import config
-from .preprocess_utils import preprocess_pipeline
-from .prompt_utils import parse_prompt
+from .preprocess_utils import translate_zh_to_en, set_seed, get_embedding_and_weights
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
-from .clip_utils import clip_models, chosen_models, choose_clip_models
+from .clip_utils import load_clip_models
 from .secondary_model import *
 from .diffusion_model import load_model_and_diffusion
-from .cutouts import MakeCutouts, MakeCutoutsDango
+from .cutouts import MakeCutoutsDango
 from .loss import spherical_dist_loss, tv_loss, range_loss
 from .dir_utils import *
 from .image_utils import *
@@ -31,67 +27,6 @@ normalize = T.Normalize(
 )
 
 
-def set_seed(seed):
-    """
-    設定種子
-    """
-
-    if seed:
-        np.random.seed(config.seed)
-        random.seed(config.seed)
-        torch.manual_seed(config.seed)
-        torch.cuda.manual_seed_all(config.seed)
-        torch.backends.cudnn.deterministic = True
-
-
-def get_embedding_and_weights(text_prompts):
-    """
-    取得prompt的embedding及weight
-    """
-
-    model_stats = []
-
-    for clip_model in clip_models:
-        model_stat = {
-            "clip_model": None,
-            "target_embeds": [],
-            "make_cutouts": None,
-            "weights": [],
-        }
-        model_stat["clip_model"] = clip_model
-
-        for prompt in text_prompts:
-            text, weight = parse_prompt(prompt)  # 取得text及weight
-            text = clip_model.encode_text(
-                clip.tokenize(prompt).to(config.device)
-            ).float()
-
-            if config.fuzzy_prompt:
-                for i in range(25):
-                    model_stat["target_embeds"].append(
-                        (text + torch.randn(text.shape).cuda() * config.rand_mag).clamp(
-                            0, 1
-                        )
-                    )
-                    model_stat["weights"].append(weight)
-            else:
-                model_stat["target_embeds"].append(text)
-                model_stat["weights"].append(weight)
-
-        model_stat["target_embeds"] = torch.cat(model_stat["target_embeds"])
-        model_stat["weights"] = torch.tensor(
-            model_stat["weights"], device=config.device
-        )
-
-        if model_stat["weights"].sum().abs() < 1e-3:
-            raise RuntimeError("The weights must not sum to 0.")
-
-        model_stat["weights"] /= model_stat["weights"].sum().abs()
-        model_stats.append(model_stat)
-
-    return model_stats
-
-
 @anvil.server.background_task
 def generate(
     text_prompts=[
@@ -101,6 +36,16 @@ def generate(
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
+    chosen_clip_models={
+        "ViT-B/32": True,
+        "ViT-B/16": True,
+        "ViT-L/14": False,
+        "RN50": True,
+        "RN50x4": True,
+        "RN50x16": False,
+        "RN50x64": False,
+        "RN101": False,
+    },
 ):
     """
     生成圖片(和anvil client互動)
@@ -109,18 +54,17 @@ def generate(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
-    chosen_clip_models: 選擇要使用的Clip模型
+    chosen_clip_models: 選擇的Clip模型
     """
 
-    text_prompts = preprocess_pipeline(text_prompts)  # 對prompt做預處理
-    chosen_clip_models = chosen_models
+    text_prompts = translate_zh_to_en(text_prompts)  # 將prompts翻成英文
     model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder)
     remove_old_files(batch_folder)  # 移除舊的圖片
 
     # 載入選擇的Clip模型
-    choose_clip_models(chosen_clip_models)
+    load_clip_models(chosen_clip_models)
 
     # 設定種子
     set_seed(config.seed)
@@ -255,6 +199,7 @@ def generate(
 
         return grad
 
+    # 在server端顯示
     image_display = Output()
 
     for current_batch in range(config.num_batches):
