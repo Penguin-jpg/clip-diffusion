@@ -59,7 +59,7 @@ class MakeCutouts(nn.Module):
         return cutouts
 
 
-# 作者： Dango233
+# 作者： Dango233(https://github.com/Dango233)
 class MakeCutoutsDango(nn.Module):
     def __init__(
         self, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2
