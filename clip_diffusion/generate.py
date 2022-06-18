@@ -12,6 +12,7 @@ from tqdm.notebook import tqdm
 from ipywidgets import Output
 from IPython import display
 from .config import config
+from .preprocess_utils import preprocess_pipeline
 from .prompt_utils import parse_prompt
 from .perlin_utils import regen_perlin, regen_perlin_no_expand
 from .clip_utils import clip_models, chosen_models, choose_clip_models
@@ -47,8 +48,6 @@ def get_embedding_and_weights(text_prompts):
     """
     取得prompt的embedding及weight
     """
-
-    # target_embeds, weights = [], []
 
     model_stats = []
 
@@ -113,6 +112,7 @@ def generate(
     chosen_clip_models: 選擇要使用的Clip模型
     """
 
+    text_prompts = preprocess_pipeline(text_prompts)  # 對prompt做預處理
     chosen_clip_models = chosen_models
     model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
