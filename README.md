@@ -5,14 +5,19 @@
 git clone https://github.com/openai/CLIP
 git clone https://github.com/crowsonkb/guided-diffusion
 git clone https://github.com/assafshocher/ResizeRight.git
+git clone https://github.com/CompVis/latent-diffusion.git
+git clone https://github.com/CompVis/taming-transformers
 pip install -e ./CLIP
 pip install -e ./guided-diffusion
+pip install -e ./latent-diffusion
+pip install -e ./taming-transformers
 pip install lpips datetime timm
 pip install anvil-uplink
 pip install transformers
 pip install sentencepiece
 pip install sacremoses
 pip install opencc
+pip install omegaconf
 ```
 
 ### 簡介

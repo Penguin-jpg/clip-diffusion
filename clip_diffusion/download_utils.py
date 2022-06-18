@@ -15,6 +15,9 @@ DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unc
 SECONDARY_MODEL_URL = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
+LATENT_DIFFUSION_MODEL_URL = (
+    "https://ommer-lab.com/files/latent-diffusion/nitro/txt2img-f8-large/model.ckpt"
+)
 
 # 檢查用的SHA
 DIFFUSION_MODEL_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"
@@ -29,9 +32,12 @@ def does_SHA_match(model_name):
     if model_name == config.diffusion_model_name:
         check_path = diffusion_model_path
         model_SHA = DIFFUSION_MODEL_SHA
-    else:
+    elif model_name == config.secondary_model_name:
         check_path = secondary_model_path
         model_SHA = SECONDARY_MODEL_SHA
+    else:
+        print("SHA not provided")
+        return True
 
     with open(check_path, "rb") as f:
         bytes = f.read()
