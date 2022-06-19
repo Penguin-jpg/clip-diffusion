@@ -4,10 +4,14 @@ from torchvision.transforms import functional as TF
 import gc
 import lpips
 import anvil
+import numpy as np
 from PIL import Image
 from tqdm.notebook import tqdm
 from ipywidgets import Output
 from IPython import display
+from ldm.models.diffusion.ddim import DDIMSampler
+from einops import rearrange
+from torchvision.utils import make_grid
 from clip_diffusion.config import config
 from clip_diffusion.preprocess_utils import (
     translate_zh_to_en,
@@ -18,6 +22,7 @@ from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
 from clip_diffusion.model_utils import (
     alpha_sigma_to_t,
     load_clip_models,
+    load_latent_diffusion_model,
     load_model_and_diffusion,
     load_secondary_model,
 )
@@ -26,7 +31,6 @@ from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import *
 from clip_diffusion.image_utils import *
 
-# 參考並修改自：disco diffusion
 
 chosen_clip_models = {
     "ViT-B/32": True,
@@ -44,8 +48,9 @@ normalize = T.Normalize(
 lpips_model = lpips.LPIPS(net="vgg").to(config.device)
 clip_models = load_clip_models(chosen_clip_models)
 secondary_model = load_secondary_model()
+latent_diffusion_model = load_latent_diffusion_model()
 
-
+# 參考並修改自：disco diffusion
 @anvil.server.background_task
 def generate(
     prompts=[
@@ -58,7 +63,7 @@ def generate(
 ):
     """
     生成圖片(和anvil client互動)
-    prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
+    prompts: 要生成的東西
     init_image: 模型會參考該圖片生成初始噪聲(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
@@ -276,3 +281,99 @@ def generate(
         anvil.server.task_state["generation_process"] = upload_gif(
             batch_folder, batch_name
         )
+
+
+# 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
+def latent_diffusion_generate(
+    prompts=[
+        "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
+    ],
+    batch_name="diffusion",
+):
+    """
+    使用latent diffusion生成圖片
+    prompts: 要生成的東西
+    batch_name: 本次生成的名稱
+    """
+
+    prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
+    sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
+    batch_folder = f"{out_dir_path}/latent/{batch_name}"  # 儲存圖片的資料夾
+    make_dir(batch_folder)
+    remove_old_files(batch_folder)  # 移除舊的圖片
+
+    # 設定種子
+    set_seed(config.seed)
+
+    samples = []  # 儲存所有sample
+    count = 0  # 圖片編號
+
+    with torch.no_grad():
+        with torch.cuda.amp.autocast():
+            with latent_diffusion_model.ema_scope():
+
+                uncoditional_conditioning = None
+                if config.latent_diffusion_guidance_scale > 0:
+                    uncoditional_conditioning = (
+                        latent_diffusion_model.get_learned_conditioning(
+                            config.num_batches * [""]  # ""代表不考慮的prompt
+                        )
+                    )
+
+                for _ in range(config.num_iterations):
+                    gc.collect()
+                    torch.cuda.empty_cache()
+
+                    conditioning = latent_diffusion_model.get_learned_conditioning(
+                        config.num_batches * [prompts[0]]
+                    )
+                    shape = [4, config.sample_height // 8, config.sample_width // 8]
+
+                    # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
+                    samples_ddim, _ = sampler.sample(
+                        S=config.latent_diffusion_steps,
+                        conditioning=conditioning,
+                        batch_size=config.num_batches,
+                        shape=shape,
+                        verbose=False,
+                        unconditional_guidance_scale=config.latent_diffusion_guidance_scale,
+                        unconditional_conditioning=uncoditional_conditioning,
+                        eta=config.latent_diffusion_eta,
+                    )
+
+                    x_samples_ddim = latent_diffusion_model.decode_first_stage(
+                        samples_ddim
+                    )  # decode samples
+                    x_samples_ddim = torch.clamp(
+                        (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0
+                    )
+
+                    for x_sample in x_samples_ddim:
+                        x_sample = 255.0 * rearrange(
+                            x_sample.cpu().numpy(), "c h w -> h w c"
+                        )
+                        image_embedding = Image.fromarray(x_sample.astype(np.uint8))
+
+                        with torch.no_grad():
+                            image_features = clip_models[0].encode_image(
+                                image_embedding
+                            )
+
+                        image_features /= image_features.norm(dim=-1, keepdim=True)
+                        image_embedding.save(
+                            os.path.join(batch_folder, f"{count:04}.png")
+                        )
+                        count += 1
+                    samples.append(x_samples_ddim)
+
+    # 轉成grid形式
+    grid = torch.stack(samples, 0)
+    grid = rearrange(grid, "n b c h w -> (n b) c h w")
+    grid = make_grid(grid, nrow=2)
+    grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
+    Image.fromarray(grid.astype(np.uint8)).save(
+        os.path.join(batch_folder, f"latent_diffusion.png")
+    )  # 儲存grid圖片
+
+    gc.collect()
+    torch.cuda.empty_cache()
