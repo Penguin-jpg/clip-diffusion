@@ -317,10 +317,7 @@ def load_latent_diffusion_model():
     )  # pytorch-lightning的state_dict
     model = instantiate_from_config(model_config.model)
     model.load_state_dict(pl_state_dict["state_dict"], strict=False)
-
-    # 轉fp16
-    model.half().to(config.device)
-    model.eval()
+    model.half().eval().requires_grad_(False).to(config.device)
 
     gc.collect()
     torch.cuda.empty_cache()
