@@ -73,16 +73,6 @@ class Config:
         self.range_scale = 150  # 控制允許超出多遠的RGB值
         self.sat_scale = 0  # 控制允許多少飽和
 
-        # latent diffusion相關
-        self.latent_diffusion_guidance_scale = (
-            5  # latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
-        )
-        self.num_iterations = 3  # 做幾次latent diffusion生成
-        self.sample_width = 256  # sample圖片的寬，latent diffusion sample的圖片不能太大，後續再用sr提高解析度
-        self.sample_height = 256  # sample圖片的高
-        self.latent_diffusion_steps = 50  # latent diffusion要跑的step數
-        self.latent_diffusion_eta = 0  # latent diffusion的eta
-
         # 生成相關
         self.seed = get_seed()  # 亂數種子
         self.batch_size = 1  # 一次要sample的數量

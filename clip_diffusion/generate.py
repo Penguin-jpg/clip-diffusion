@@ -6,7 +6,7 @@ import lpips
 import anvil
 import numpy as np
 from PIL import Image
-from tqdm.notebook import tqdm
+from tqdm.notebook import tqdm, trange
 from ipywidgets import Output
 from IPython import display
 from ldm.models.diffusion.ddim import DDIMSampler
@@ -54,7 +54,7 @@ latent_diffusion_model = load_latent_diffusion_model()
 @anvil.server.background_task
 def generate(
     prompts=[
-        "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
+        "A cute golden retriever.",
     ],
     init_image=None,
     use_perlin=False,
@@ -286,19 +286,33 @@ def generate(
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
 def latent_diffusion_generate(
     prompts=[
-        "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
+        "A cute golden retriever.",
     ],
-    batch_name="diffusion",
+    latent_diffusion_guidance_scale=5,
+    num_iterations=3,
+    num_samples=3,
+    latent_diffusion_steps=50,
+    latent_diffusion_eta=0,
+    sample_width=256,
+    sample_height=256,
+    batch_name="latent",
 ):
     """
     使用latent diffusion生成圖片
     prompts: 要生成的東西
+    latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
+    num_iterations: 做幾次latent diffusion生成
+    num_samples: 要生成的圖片數
+    latent_diffusion_steps: latent diffusion要跑的step數
+    latent_diffusion_eta: latent diffusion的eta
+    sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
+    sample_height: sample圖片的高
     batch_name: 本次生成的名稱
     """
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
-    batch_folder = f"{out_dir_path}/latent"  # 儲存圖片的資料夾
+    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder)
     remove_old_files(batch_folder)  # 移除舊的圖片
 
@@ -313,37 +327,37 @@ def latent_diffusion_generate(
             with latent_diffusion_model.ema_scope():
 
                 uncoditional_conditioning = None
-                if config.latent_diffusion_guidance_scale > 0:
+                if latent_diffusion_guidance_scale > 0:
                     uncoditional_conditioning = (
                         latent_diffusion_model.get_learned_conditioning(
-                            config.num_batches * [""]  # ""代表不考慮的prompt
+                            num_samples * [""]  # ""代表不考慮的prompt
                         )
                     )
 
-                for _ in tqdm(range(config.num_iterations)):
+                for _ in trange(num_iterations, desc="Sampling"):
                     gc.collect()
                     torch.cuda.empty_cache()
 
                     conditioning = latent_diffusion_model.get_learned_conditioning(
-                        config.num_batches * [prompts[0]]
+                        num_samples * [prompts[0]]
                     )
-                    shape = [4, config.sample_height // 8, config.sample_width // 8]
+                    shape = [4, sample_height // 8, sample_width // 8]
 
                     # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                     samples_ddim, _ = sampler.sample(
-                        S=config.latent_diffusion_steps,
+                        S=latent_diffusion_steps,
                         conditioning=conditioning,
-                        batch_size=config.num_batches,
+                        batch_size=num_samples,
                         shape=shape,
                         verbose=False,
-                        unconditional_guidance_scale=config.latent_diffusion_guidance_scale,
+                        unconditional_guidance_scale=latent_diffusion_guidance_scale,
                         unconditional_conditioning=uncoditional_conditioning,
-                        eta=config.latent_diffusion_eta,
+                        eta=latent_diffusion_eta,
                     )
 
                     x_samples_ddim = latent_diffusion_model.decode_first_stage(
                         samples_ddim
-                    )  # decode samples
+                    )
                     x_samples_ddim = torch.clamp(
                         (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0
                     )
@@ -354,7 +368,11 @@ def latent_diffusion_generate(
                         )
                         filename = os.path.join(batch_folder, f"{count:04}.png")
                         image_vector = Image.fromarray(x_sample.astype(np.uint8))
-                        image_preprocess = preprocessings[0](image_vector).unsqueeze(0)
+                        image_preprocess = (
+                            preprocessings[0](image_vector)
+                            .unsqueeze(0)
+                            .to(config.device)
+                        )
 
                         with torch.no_grad():
                             image_features = clip_models[0].encode_image(
