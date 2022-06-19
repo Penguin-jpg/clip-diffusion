@@ -1,10 +1,91 @@
 import torch
+import clip
 import math
+import gc
 from torch import nn
 from dataclasses import dataclass
 from functools import partial
+from ldm.util import instantiate_from_config
+from omegaconf import OmegaConf
+from guided_diffusion.script_util import (
+    model_and_diffusion_defaults,
+    create_model_and_diffusion,
+)
 from clip_diffusion.config import config
-from clip_diffusion.download_utils import SECONDARY_MODEL_URL, download
+from clip_diffusion.download_utils import (
+    DIFFUSION_MODEL_URL,
+    SECONDARY_MODEL_URL,
+    LATENT_DIFFUSION_MODEL_REPO,
+    download,
+)
+
+
+def load_clip_models(chosen_models):
+    """
+    選擇並載入要使用的Clip模型
+    """
+
+    clip_models = []
+
+    for model_name, selected in chosen_models.items():
+        if selected:
+            # 取[0]代表只取Clip模型(不取後續的compose)
+            clip_models.append(
+                clip.load(model_name, config.device)[0].eval().requires_grad_(False)
+            )
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    return clip_models
+
+
+def load_model_and_diffusion():
+    """
+    載入diffusion和model
+    """
+
+    model_config = model_and_diffusion_defaults()
+    model_config.update(
+        {
+            "attention_resolutions": "32, 16, 8",
+            "class_cond": False,
+            "diffusion_steps": config.diffusion_steps,
+            "rescale_timesteps": True,
+            "timestep_respacing": config.timestep_respacing,
+            "image_size": 512,
+            "learn_sigma": True,
+            "noise_schedule": "linear",
+            "num_channels": 256,
+            "num_head_channels": 64,
+            "num_res_blocks": 2,
+            "resblock_updown": True,
+            "use_checkpoint": config.use_checkpoint,
+            "use_fp16": True,
+            "use_scale_shift_norm": True,
+        }
+    )
+    model, diffusion = create_model_and_diffusion(**model_config)
+    model.load_state_dict(
+        torch.load(
+            download(DIFFUSION_MODEL_URL, config.diffusion_model_name),
+            map_location="cpu",
+        )
+    )
+    model.eval().requires_grad_(False).to(config.device)
+
+    for name, param in model.named_parameters():
+        if "qkv" in name or "norm" in name or "proj" in name:
+            param.requires_grad_()
+
+    if model_config["use_fp16"]:
+        model.convert_to_fp16()
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    return model, diffusion
+
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
 def append_dims(x, n):
@@ -196,10 +277,52 @@ class SecondaryDiffusionImageNet2(nn.Module):
         return DiffusionOutput(v, pred, eps)
 
 
-secondary_model = SecondaryDiffusionImageNet2()
-secondary_model.load_state_dict(
-    torch.load(
-        download(SECONDARY_MODEL_URL, config.secondary_model_name), map_location="cpu"
+def load_secondary_model():
+    """
+    載入secondary model
+    """
+
+    model = SecondaryDiffusionImageNet2()
+    model.load_state_dict(
+        torch.load(
+            download(SECONDARY_MODEL_URL, config.secondary_model_name),
+            map_location="cpu",
+        )
     )
-)
-secondary_model.eval().requires_grad_(False).to(config.device)
+    model.eval().requires_grad_(False).to(config.device)
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    return model
+
+
+# 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
+def load_latent_diffusion_model():
+    """
+    載入latent diffusion模型
+    """
+
+    model_config = OmegaConf.load(
+        "./latent-diffusion/configs/latent-diffusion/txt2img-1p4B-eval.yaml"
+    )
+    pl_state_dict = torch.load(
+        download(
+            "",
+            config.latent_diffusion_model_name,
+            download_from_huggingface=True,
+            repo=LATENT_DIFFUSION_MODEL_REPO,
+        ),
+        map_location="cpu",
+    )  # pytorch-lightning的state_dict
+    model = instantiate_from_config(model_config.model)
+    model.load_state_dict(pl_state_dict["state_dict"], strict=False)
+
+    # 轉fp16
+    model.half().to(config.device)
+    model.eval()
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    return model

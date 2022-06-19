@@ -15,9 +15,7 @@ from clip_diffusion.preprocess_utils import (
     get_embedding_and_weights,
 )
 from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
-from clip_diffusion.clip_utils import load_clip_models
-from clip_diffusion.secondary_model import *
-from clip_diffusion.diffusion_model import load_model_and_diffusion
+from clip_diffusion.model_utils import alpha_sigma_to_t
 from clip_diffusion.cutouts import MakeCutoutsDango
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import *
@@ -33,6 +31,10 @@ normalize = T.Normalize(
 
 @anvil.server.background_task
 def generate(
+    clip_models,
+    model,
+    diffusion,
+    secondary_model,
     text_prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
     ],
@@ -40,16 +42,6 @@ def generate(
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
-    chosen_clip_models={
-        "ViT-B/32": True,
-        "ViT-B/16": True,
-        "ViT-L/14": False,
-        "RN50": True,
-        "RN50x4": True,
-        "RN50x16": False,
-        "RN50x64": False,
-        "RN101": False,
-    },
 ):
     """
     生成圖片(和anvil client互動)
@@ -58,23 +50,18 @@ def generate(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
-    chosen_clip_models: 選擇的Clip模型
     """
 
     text_prompts = translate_zh_to_en(text_prompts)  # 將prompts翻成英文
-    model, diffusion = load_model_and_diffusion()
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder)
     remove_old_files(batch_folder)  # 移除舊的圖片
-
-    # 載入選擇的Clip模型
-    load_clip_models(chosen_clip_models)
 
     # 設定種子
     set_seed(config.seed)
 
     # 取得prompt的embedding及weight
-    model_stats = get_embedding_and_weights(text_prompts)
+    model_stats = get_embedding_and_weights(text_prompts, clip_models)
 
     init = None  # init_image或perlin noise只能擇一
     loss_values = []

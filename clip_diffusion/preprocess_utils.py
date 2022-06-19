@@ -7,7 +7,6 @@ from transformers import pipeline
 from opencc import OpenCC
 from clip_diffusion.config import config
 from clip_diffusion.prompt_utils import parse_prompt
-from clip_diffusion.clip_utils import clip_models
 
 translator = pipeline(
     "translation",
@@ -58,7 +57,7 @@ def set_seed(seed):
         torch.backends.cudnn.deterministic = True
 
 
-def get_embedding_and_weights(text_prompts):
+def get_embedding_and_weights(text_prompts, clip_models):
     """
     取得prompt的embedding及weight
     """
