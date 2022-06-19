@@ -298,7 +298,7 @@ def latent_diffusion_generate(
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
-    batch_folder = f"{out_dir_path}/latent/{batch_name}"  # 儲存圖片的資料夾
+    batch_folder = f"{out_dir_path}/latent"  # 儲存圖片的資料夾
     make_dir(batch_folder)
     remove_old_files(batch_folder)  # 移除舊的圖片
 
