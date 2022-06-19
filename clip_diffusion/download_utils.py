@@ -16,9 +16,7 @@ DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unc
 SECONDARY_MODEL_URL = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
-LATENT_DIFFUSION_MODEL_URL = (
-    "https://ommer-lab.com/files/latent-diffusion/nitro/txt2img-f8-large/model.ckpt"
-)
+LATENT_DIFFUSION_MODEL_REPO = "multimodalart/compvis-latent-diffusion-text2img-large"
 
 # 檢查用的SHA
 DIFFUSION_MODEL_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"

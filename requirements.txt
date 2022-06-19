@@ -2,6 +2,7 @@ lpips
 datetime 
 timm
 anvil-uplink
+pyimgur
 transformers
 sentencepiece
 sacremoses
