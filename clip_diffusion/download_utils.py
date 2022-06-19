@@ -3,6 +3,7 @@ import hashlib
 from urllib import request
 from pathlib import Path
 from tqdm import tqdm
+from huggingface_hub import hf_hub_download
 from .config import config
 from .dir_utils import model_path, diffusion_model_path, secondary_model_path
 
@@ -51,7 +52,7 @@ def does_SHA_match(model_name):
         return False
 
 
-def download(url, model_name):
+def download(url, model_name, download_from_huggingface=False, repo=None):
     """
     下載模型並儲存，回傳儲存位置
     """
@@ -64,6 +65,11 @@ def download(url, model_name):
             raise RuntimeError(f"{download_target} exists and is not a regular file")
         else:
             return str(download_target)
+
+    if download_from_huggingface:
+        cache_path = hf_hub_download(repo_id=repo, filename=model_name)
+        os.renmae(cache_path, download_target)
+        return str(download_target)
 
     with request.urlopen(url) as source, open(download_target_tmp, "wb") as output:
         with tqdm(total=int(source.info().get("Content-Length")), ncols=80) as loop:

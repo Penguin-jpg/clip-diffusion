@@ -17,7 +17,9 @@ pip install transformers
 pip install sentencepiece
 pip install sacremoses
 pip install opencc
+pip install huggingface-hub
 pip install omegaconf
+pip install pytorch-lightning
 ```
 
 ### 簡介
