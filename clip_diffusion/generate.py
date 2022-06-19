@@ -21,7 +21,7 @@ from clip_diffusion.preprocess_utils import (
 from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
 from clip_diffusion.model_utils import (
     alpha_sigma_to_t,
-    load_clip_models,
+    load_clip_models_and_preprocessings,
     load_latent_diffusion_model,
     load_model_and_diffusion,
     load_secondary_model,
@@ -46,7 +46,7 @@ normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )
 lpips_model = lpips.LPIPS(net="vgg").to(config.device)
-clip_models = load_clip_models(chosen_clip_models)
+clip_models, preprocessings = load_clip_models_and_preprocessings(chosen_clip_models)
 secondary_model = load_secondary_model()
 latent_diffusion_model = load_latent_diffusion_model()
 
@@ -320,7 +320,7 @@ def latent_diffusion_generate(
                         )
                     )
 
-                for _ in range(config.num_iterations):
+                for _ in tqdm(range(config.num_iterations)):
                     gc.collect()
                     torch.cuda.empty_cache()
 
@@ -353,14 +353,16 @@ def latent_diffusion_generate(
                             x_sample.cpu().numpy(), "c h w -> h w c"
                         )
                         filename = os.path.join(batch_folder, f"{count:04}.png")
-                        Image.fromarray(x_sample.astype(np.uint8)).save(
-                            filename
-                        )  # 儲存生成圖片
+                        image_vector = Image.fromarray(x_sample.astype(np.uint8))
+                        image_preprocess = preprocessings[0](image_vector).unsqueeze(0)
 
                         with torch.no_grad():
-                            image_features = clip_models[0].encode_image(filename)
+                            image_features = clip_models[0].encode_image(
+                                image_preprocess
+                            )
 
                         image_features /= image_features.norm(dim=-1, keepdim=True)
+                        image_vector.save(filename)
                         count += 1
                     samples.append(x_samples_ddim)
 

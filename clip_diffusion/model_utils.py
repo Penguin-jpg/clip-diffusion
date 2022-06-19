@@ -20,24 +20,24 @@ from clip_diffusion.download_utils import (
 )
 
 
-def load_clip_models(chosen_models):
+def load_clip_models_and_preprocessings(chosen_models):
     """
-    選擇並載入要使用的Clip模型
+    選擇並載入要使用的Clip模型和preprocess function
     """
 
     clip_models = []
+    preprocessings = []
 
     for model_name, selected in chosen_models.items():
         if selected:
-            # 取[0]代表只取Clip模型(不取後續的compose)
-            clip_models.append(
-                clip.load(model_name, config.device)[0].eval().requires_grad_(False)
-            )
+            model, preprocess = clip.load(model_name, config.device)
+            clip_models.append(model.eval().requires_grad_(False))
+            preprocessings.append(preprocess)
 
     gc.collect()
     torch.cuda.empty_cache()
 
-    return clip_models
+    return clip_models, preprocessings
 
 
 def load_model_and_diffusion():
