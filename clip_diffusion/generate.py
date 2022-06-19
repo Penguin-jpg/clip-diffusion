@@ -352,17 +352,15 @@ def latent_diffusion_generate(
                         x_sample = 255.0 * rearrange(
                             x_sample.cpu().numpy(), "c h w -> h w c"
                         )
-                        image_embedding = Image.fromarray(x_sample.astype(np.uint8))
+                        filename = os.path.join(batch_folder, f"{count:04}.png")
+                        Image.fromarray(x_sample.astype(np.uint8)).save(
+                            filename
+                        )  # 儲存生成圖片
 
                         with torch.no_grad():
-                            image_features = clip_models[0].encode_image(
-                                image_embedding
-                            )
+                            image_features = clip_models[0].encode_image(filename)
 
                         image_features /= image_features.norm(dim=-1, keepdim=True)
-                        image_embedding.save(
-                            os.path.join(batch_folder, f"{count:04}.png")
-                        )
                         count += 1
                     samples.append(x_samples_ddim)
 
