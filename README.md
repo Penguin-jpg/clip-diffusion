@@ -11,15 +11,7 @@ pip install -e ./CLIP
 pip install -e ./guided-diffusion
 pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
-pip install lpips datetime timm
-pip install anvil-uplink
-pip install transformers
-pip install sentencepiece
-pip install sacremoses
-pip install opencc
-pip install huggingface-hub
-pip install omegaconf
-pip install pytorch-lightning
+pip install -r requirements.txt
 ```
 
 ### 簡介

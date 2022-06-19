@@ -1,0 +1,13 @@
+lpips 
+datetime 
+timm
+anvil-uplink
+transformers
+sentencepiece
+sacremoses
+opencc
+huggingface-hub
+omegaconf
+pytorch-lightning
+torch-fidelity
+einops
