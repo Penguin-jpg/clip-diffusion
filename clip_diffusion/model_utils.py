@@ -42,7 +42,7 @@ def load_clip_models(chosen_models):
 
 def load_model_and_diffusion():
     """
-    載入diffusion和model
+    載入diffusion model和diffusion
     """
 
     model_config = model_and_diffusion_defaults()

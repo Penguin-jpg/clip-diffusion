@@ -15,7 +15,12 @@ from clip_diffusion.preprocess_utils import (
     get_embedding_and_weights,
 )
 from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
-from clip_diffusion.model_utils import alpha_sigma_to_t
+from clip_diffusion.model_utils import (
+    alpha_sigma_to_t,
+    load_clip_models,
+    load_model_and_diffusion,
+    load_secondary_model,
+)
 from clip_diffusion.cutouts import MakeCutoutsDango
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import *
@@ -23,18 +28,26 @@ from clip_diffusion.image_utils import *
 
 # 參考並修改自：disco diffusion
 
-lpips_model = lpips.LPIPS(net="vgg").to(config.device)  # LPIPS model
+chosen_clip_models = {
+    "ViT-B/32": True,
+    "ViT-B/16": True,
+    "ViT-L/14": False,
+    "RN50": True,
+    "RN50x4": True,
+    "RN50x16": False,
+    "RN50x64": False,
+    "RN101": False,
+}
 normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )
+lpips_model = lpips.LPIPS(net="vgg").to(config.device)
+clip_models = load_clip_models(chosen_clip_models)
+secondary_model = load_secondary_model()
 
 
 @anvil.server.background_task
 def generate(
-    clip_models,
-    model,
-    diffusion,
-    secondary_model,
     text_prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
     ],
@@ -53,6 +66,7 @@ def generate(
     """
 
     text_prompts = translate_zh_to_en(text_prompts)  # 將prompts翻成英文
+    model, diffusion = load_model_and_diffusion()  # 載入diffusion model和diffusion
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder)
     remove_old_files(batch_folder)  # 移除舊的圖片

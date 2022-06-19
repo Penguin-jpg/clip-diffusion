@@ -24,4 +24,6 @@ pip install -r requirements.txt
   5. [CLIP Guided Diffusion HQ 512x512 Uncond.ipynb](https://colab.research.google.com/drive/1QBsaDAZv8np29FPbvjffbE1eytoJcsgA)
   6. [perlin-noise](https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869)
   7. [VQGAN+CLIP](https://colab.research.google.com/drive/1go6YwMFe5MX6XM9tv-cnQiSTU50N9EeT?fbclid=IwAR30ZqxIJG0-2wDukRydFA3jU5OpLHrlC_Sg1iRXqmoTkEhaJtHdRi6H7AI)
+  8. [latent diffusion huggingface](https://huggingface.co/spaces/multimodalart/latentdiffusion)
 - 使用 [anvil](https://anvil.works/) 撰寫網頁前端及伺服器功能
+- 因為 anvil 不能序列化任意物件，為了配合，程式碼的相依性會比較高
