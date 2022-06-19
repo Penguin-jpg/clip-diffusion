@@ -26,22 +26,22 @@ def contains_zh(prompt):
     return False
 
 
-def translate_zh_to_en(text_prompts):
+def translate_zh_to_en(prompts):
     """
     將中文翻譯成英文
     """
 
     # 先轉簡體，以符合模型輸入
-    for index, prompt in enumerate(text_prompts):
+    for index, prompt in enumerate(prompts):
         # 如果包含中文
         if contains_zh(prompt):
             prompt = converter.convert(prompt)
             # 翻譯成英文
             result = translator(prompt)[0]
             # 更新prompt
-            text_prompts[index] = result["translation_text"]
+            prompts[index] = result["translation_text"]
 
-    return text_prompts
+    return prompts
 
 
 def set_seed(seed):
