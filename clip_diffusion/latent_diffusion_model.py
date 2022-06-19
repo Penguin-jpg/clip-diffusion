@@ -1,8 +1,8 @@
 import torch
 from ldm.util import instantiate_from_config
 from omegaconf import OmegaConf
-from .config import config
-from .download_utils import LATENT_DIFFUSION_MODEL_REPO, download
+from clip_diffusion.config import config
+from clip_diffusion.download_utils import LATENT_DIFFUSION_MODEL_REPO, download
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
 

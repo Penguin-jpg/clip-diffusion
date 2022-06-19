@@ -4,8 +4,12 @@ from urllib import request
 from pathlib import Path
 from tqdm import tqdm
 from huggingface_hub import hf_hub_download
-from .config import config
-from .dir_utils import model_path, diffusion_model_path, secondary_model_path
+from clip_diffusion.config import config
+from clip_diffusion.dir_utils import (
+    model_path,
+    diffusion_model_path,
+    secondary_model_path,
+)
 
 # 參考並修改自：
 # 1. https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py

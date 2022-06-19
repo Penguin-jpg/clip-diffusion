@@ -1,5 +1,5 @@
 import clip
-from .config import config
+from clip_diffusion.config import config
 
 clip_models = []
 

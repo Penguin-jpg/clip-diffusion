@@ -3,8 +3,8 @@ import math
 from torch import nn
 from dataclasses import dataclass
 from functools import partial
-from .config import config
-from .download_utils import SECONDARY_MODEL_URL, download
+from clip_diffusion.config import config
+from clip_diffusion.download_utils import SECONDARY_MODEL_URL, download
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
 def append_dims(x, n):

@@ -1,6 +1,5 @@
 import torch
 import random
-import json
 
 INT_MAX = 2 ** 32
 

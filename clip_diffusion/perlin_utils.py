@@ -1,7 +1,7 @@
 import torch
 from torchvision.transforms import functional as TF
 from PIL import ImageOps
-from .config import config
+from clip_diffusion.config import config
 
 # 維持disco diffusion所採用的二維perlin noise
 # 參考並修改自

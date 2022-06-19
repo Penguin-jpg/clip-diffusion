@@ -4,8 +4,8 @@ from guided_diffusion.script_util import (
     model_and_diffusion_defaults,
     create_model_and_diffusion,
 )
-from .config import config
-from .download_utils import DIFFUSION_MODEL_URL, download
+from clip_diffusion.config import config
+from clip_diffusion.download_utils import DIFFUSION_MODEL_URL, download
 
 
 def load_model_and_diffusion():

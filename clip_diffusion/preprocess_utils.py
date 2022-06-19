@@ -5,9 +5,9 @@ import numpy as np
 import random
 from transformers import pipeline
 from opencc import OpenCC
-from .config import config
-from .prompt_utils import parse_prompt
-from .clip_utils import clip_models
+from clip_diffusion.config import config
+from clip_diffusion.prompt_utils import parse_prompt
+from clip_diffusion.clip_utils import clip_models
 
 translator = pipeline(
     "translation",

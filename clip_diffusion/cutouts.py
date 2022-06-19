@@ -4,8 +4,8 @@ from torch.nn import functional as F
 from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
-from .resample_utils import resample
-from .config import config
+from clip_diffusion.resample_utils import resample
+from clip_diffusion.config import config
 
 # 作者：Katherine Crowson(https://github.com/crowsonkb)
 class MakeCutouts(nn.Module):

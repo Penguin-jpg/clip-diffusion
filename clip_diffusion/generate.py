@@ -8,16 +8,20 @@ from PIL import Image
 from tqdm.notebook import tqdm
 from ipywidgets import Output
 from IPython import display
-from .config import config
-from .preprocess_utils import translate_zh_to_en, set_seed, get_embedding_and_weights
-from .perlin_utils import regen_perlin, regen_perlin_no_expand
-from .clip_utils import load_clip_models
-from .secondary_model import *
-from .diffusion_model import load_model_and_diffusion
-from .cutouts import MakeCutoutsDango
-from .loss import spherical_dist_loss, tv_loss, range_loss
-from .dir_utils import *
-from .image_utils import *
+from clip_diffusion.config import config
+from clip_diffusion.preprocess_utils import (
+    translate_zh_to_en,
+    set_seed,
+    get_embedding_and_weights,
+)
+from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
+from clip_diffusion.clip_utils import load_clip_models
+from clip_diffusion.secondary_model import *
+from clip_diffusion.diffusion_model import load_model_and_diffusion
+from clip_diffusion.cutouts import MakeCutoutsDango
+from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
+from clip_diffusion.dir_utils import *
+from clip_diffusion.image_utils import *
 
 # 參考並修改自：disco diffusion
 
