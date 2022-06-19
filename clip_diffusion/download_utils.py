@@ -68,7 +68,7 @@ def download(url, model_name, download_from_huggingface=False, repo=None):
 
     if download_from_huggingface:
         cache_path = hf_hub_download(repo_id=repo, filename=model_name)
-        os.renmae(cache_path, download_target)
+        os.rename(cache_path, download_target)
         return str(download_target)
 
     with request.urlopen(url) as source, open(download_target_tmp, "wb") as output:
