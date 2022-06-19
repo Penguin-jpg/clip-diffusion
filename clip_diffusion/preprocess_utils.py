@@ -57,7 +57,7 @@ def set_seed(seed):
         torch.backends.cudnn.deterministic = True
 
 
-def get_embedding_and_weights(text_prompts, clip_models):
+def get_embedding_and_weights(prompts, clip_models):
     """
     取得prompt的embedding及weight
     """
@@ -73,7 +73,7 @@ def get_embedding_and_weights(text_prompts, clip_models):
         }
         model_stat["clip_model"] = clip_model
 
-        for prompt in text_prompts:
+        for prompt in prompts:
             text, weight = parse_prompt(prompt)  # 取得text及weight
             text = clip_model.encode_text(
                 clip.tokenize(prompt).to(config.device)

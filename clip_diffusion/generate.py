@@ -48,7 +48,7 @@ secondary_model = load_secondary_model()
 
 @anvil.server.background_task
 def generate(
-    text_prompts=[
+    prompts=[
         "A beautiful painting of a singular lighthouse, shining its light across a tumultuous sea of blood by greg rutkowski and thomas kinkade, trending on artstation.",
     ],
     init_image=None,
@@ -58,14 +58,14 @@ def generate(
 ):
     """
     生成圖片(和anvil client互動)
-    text_prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
+    prompts: 要生成的東西(第一個item寫敘述，後續的item寫特徵)
     init_image: 模型會參考該圖片生成初始噪聲(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
     """
 
-    text_prompts = translate_zh_to_en(text_prompts)  # 將prompts翻成英文
+    prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     model, diffusion = load_model_and_diffusion()  # 載入diffusion model和diffusion
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder)
@@ -75,7 +75,7 @@ def generate(
     set_seed(config.seed)
 
     # 取得prompt的embedding及weight
-    model_stats = get_embedding_and_weights(text_prompts, clip_models)
+    model_stats = get_embedding_and_weights(prompts, clip_models)
 
     init = None  # init_image或perlin noise只能擇一
     loss_values = []
