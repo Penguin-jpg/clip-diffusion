@@ -33,8 +33,8 @@ from clip_diffusion.image_utils import *
 
 
 chosen_clip_models = {
-    "ViT-B/32": True,
     "ViT-B/16": True,
+    "ViT-B/32": True,
     "ViT-L/14": False,
     "RN50": True,
     "RN50x4": True,
@@ -284,6 +284,7 @@ def generate(
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
+@anvil.server.background_task
 def latent_diffusion_generate(
     prompts=[
         "A cute golden retriever.",
@@ -292,7 +293,7 @@ def latent_diffusion_generate(
     num_iterations=3,
     num_samples=3,
     latent_diffusion_steps=50,
-    latent_diffusion_eta=0,
+    latent_diffusion_eta=0.0,
     sample_width=256,
     sample_height=256,
     batch_name="latent",
@@ -366,20 +367,22 @@ def latent_diffusion_generate(
                         x_sample = 255.0 * rearrange(
                             x_sample.cpu().numpy(), "c h w -> h w c"
                         )
-                        filename = os.path.join(batch_folder, f"{count:04}.png")
+                        filename = os.path.join(
+                            batch_folder, f"{batch_name}_{count:04}.png"
+                        )
                         image_vector = Image.fromarray(x_sample.astype(np.uint8))
                         image_preprocess = (
-                            preprocessings[0](image_vector)
+                            preprocessings[1](image_vector)
                             .unsqueeze(0)
                             .to(config.device)
-                        )
+                        )  # 配合ViT-B/32進行preprocess
 
                         with torch.no_grad():
-                            image_features = clip_models[0].encode_image(
+                            image_embeddings = clip_models[1].encode_image(
                                 image_preprocess
-                            )
+                            )  # 使用ViT-B/32進行encode
 
-                        image_features /= image_features.norm(dim=-1, keepdim=True)
+                        image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)
                         image_vector.save(filename)
                         count += 1
                     samples.append(x_samples_ddim)
@@ -387,7 +390,7 @@ def latent_diffusion_generate(
     # 轉成grid形式
     grid = torch.stack(samples, 0)
     grid = rearrange(grid, "n b c h w -> (n b) c h w")
-    grid = make_grid(grid, nrow=2)
+    grid = make_grid(grid, nrow=num_samples)
     grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
     Image.fromarray(grid.astype(np.uint8)).save(
         os.path.join(batch_folder, f"latent_diffusion.png")

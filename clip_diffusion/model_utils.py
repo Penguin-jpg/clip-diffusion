@@ -306,17 +306,20 @@ def load_latent_diffusion_model():
     model_config = OmegaConf.load(
         "./latent-diffusion/configs/latent-diffusion/txt2img-1p4B-eval.yaml"
     )
-    pl_state_dict = torch.load(
-        download(
-            "",
-            config.latent_diffusion_model_name,
-            download_from_huggingface=True,
-            repo=LATENT_DIFFUSION_MODEL_REPO,
-        ),
-        map_location="cpu",
-    )  # pytorch-lightning的state_dict
+
     model = instantiate_from_config(model_config.model)
-    model.load_state_dict(pl_state_dict["state_dict"], strict=False)
+    model.load_state_dict(
+        torch.load(
+            download(
+                "",
+                config.latent_diffusion_model_name,
+                download_from_huggingface=True,
+                repo=LATENT_DIFFUSION_MODEL_REPO,
+            ),
+            map_location="cpu",
+        ),
+        strict=False,
+    )
     model.half().eval().requires_grad_(False).to(config.device)
 
     gc.collect()
