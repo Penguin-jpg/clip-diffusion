@@ -34,7 +34,10 @@ def super_resolution(model, batch_folder):
         result_image = model(original_image)
 
         # 儲存圖片
-        util.imsave(os.path.join(result_path, f"{image_name}_sr.{ext}"))
+        util.imsave(
+            result_image,
+            os.path.join(result_path, f"{image_name}_sr.{ext}"),
+        )
         del img_L  # 刪除以釋放記憶體
 
         gc.collect()
