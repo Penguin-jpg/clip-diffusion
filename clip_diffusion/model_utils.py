@@ -11,11 +11,13 @@ from guided_diffusion.script_util import (
     model_and_diffusion_defaults,
     create_model_and_diffusion,
 )
+from bsrgan.models import RRDBNet
 from clip_diffusion.config import config
 from clip_diffusion.download_utils import (
     DIFFUSION_MODEL_URL,
     SECONDARY_MODEL_URL,
     LATENT_DIFFUSION_MODEL_REPO,
+    BSRGAN_MODEL_URL,
     download,
 )
 
@@ -321,6 +323,26 @@ def load_latent_diffusion_model():
         strict=False,
     )
     model.half().eval().requires_grad_(False).to(config.device)
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    return model
+
+
+def load_bsrgan_model():
+    """
+    載入bsrgan模型
+    """
+
+    model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32, sf=4)
+    model.load_state_dict(
+        torch.load(
+            download(BSRGAN_MODEL_URL, config.bsrgan_model_name), map_location="cpu"
+        ),
+        strict=True,
+    )
+    model.requires_grad_(False).eval().to(config.device)
 
     gc.collect()
     torch.cuda.empty_cache()

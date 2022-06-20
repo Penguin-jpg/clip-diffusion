@@ -21,6 +21,7 @@ SECONDARY_MODEL_URL = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
 LATENT_DIFFUSION_MODEL_REPO = "multimodalart/compvis-latent-diffusion-text2img-large"
+BSRGAN_MODEL_URL = "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
 
 # 檢查用的SHA
 DIFFUSION_MODEL_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"
