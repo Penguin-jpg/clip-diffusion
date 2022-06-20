@@ -5,8 +5,8 @@ import gc
 import bsrgan.utils_image as util
 from bsrgan.utils_logger import logger_info
 from bsrgan.models import RRDBNet as net
-from .config import config
-from .dir_utils import make_dir, remove_old_files
+from clip_diffusion.config import config
+from clip_diffusion.dir_utils import make_dir, remove_old_files
 
 
 def super_resolution(model, batch_folder):
