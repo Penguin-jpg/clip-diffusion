@@ -31,14 +31,14 @@ def super_resolution(model, batch_folder):
 
         # 進行sr
         result_image = model(original_image)
+        result_image = util.tensor2uint(result_image)
 
         # 儲存圖片
-        result_image = util.tensor2uint(result_image)
         util.imsave(
             result_image,
             os.path.join(result_path, f"{image_name}_sr.{ext}"),
         )
-        del img_L  # 刪除以釋放記憶體
+        del original_image  # 刪除以釋放記憶體
 
         gc.collect()
         torch.cuda.empty_cache()
