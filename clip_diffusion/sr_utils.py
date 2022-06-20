@@ -5,7 +5,7 @@ import gc
 import bsrgan.utils_image as util
 from bsrgan.utils_logger import logger_info
 from clip_diffusion.config import config
-from clip_diffusion.dir_utils import make_dir, remove_old_files
+from clip_diffusion.dir_utils import make_dir, remove_old_dirs_and_files
 
 
 def super_resolution(model, batch_folder):
@@ -17,7 +17,7 @@ def super_resolution(model, batch_folder):
     logger = logging.getLogger("blind_sr_log")
     result_path = f"{batch_folder}/sr"  # 存放sr結果的路徑
     make_dir(result_path)
-    remove_old_files(result_path)  # 移除舊的圖片
+    remove_old_dirs_and_files(result_path)  # 移除舊的圖片
 
     # 對batch_folder內的每張圖片做sr
     for index, image in enumerate(util.get_image_paths(batch_folder)):
