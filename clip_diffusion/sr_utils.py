@@ -4,7 +4,6 @@ import torch
 import gc
 import bsrgan.utils_image as util
 from bsrgan.utils_logger import logger_info
-from bsrgan.models import RRDBNet as net
 from clip_diffusion.config import config
 from clip_diffusion.dir_utils import make_dir, remove_old_files
 
@@ -34,6 +33,7 @@ def super_resolution(model, batch_folder):
         result_image = model(original_image)
 
         # 儲存圖片
+        result_image = util.tensor2uint(result_image)
         util.imsave(
             result_image,
             os.path.join(result_path, f"{image_name}_sr.{ext}"),
