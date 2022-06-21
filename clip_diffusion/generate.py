@@ -342,7 +342,7 @@ def latent_diffusion_generate(
                     gc.collect()
                     torch.cuda.empty_cache()
 
-                    anvil.server.task_state["current_iteration"] = current_iteration
+                    anvil.server.task_state["current_iteration"] = current_iteration + 1
 
                     conditioning = latent_diffusion_model.get_learned_conditioning(
                         num_samples * [prompts[0]]
