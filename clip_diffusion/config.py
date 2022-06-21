@@ -59,7 +59,7 @@ class Config:
             "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
         )
         self.latent_diffusion_model_name = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"  # 使用的latent diffusion model checkpoint
-        self.bsrgan_model_name = "bsrgan.pth"  # 使用的bsrgan model checkpoint
+        self.bsrgan_model_name = "BSRGAN.pth"  # 使用的bsrgan model checkpoint
 
         # Clip相關
         self.clip_guidance_scale = 5000  # clip引導的強度(生成圖片要多接近prompt)
