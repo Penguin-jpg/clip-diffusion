@@ -40,8 +40,3 @@ diffusion_model_path = (
 secondary_model_path = (
     f"{model_path}/secondary_model_imagenet_2.pth"  # secondary model路徑
 )
-
-
-make_dir(init_dir_path)
-make_dir(out_dir_path)
-make_dir(model_path)
