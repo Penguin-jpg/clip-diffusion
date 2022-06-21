@@ -330,7 +330,6 @@ def latent_diffusion_generate(
     with torch.no_grad():
         with torch.cuda.amp.autocast():
             with latent_diffusion_model.ema_scope():
-
                 uncoditional_conditioning = None
                 if latent_diffusion_guidance_scale > 0:
                     uncoditional_conditioning = (
@@ -339,11 +338,11 @@ def latent_diffusion_generate(
                         )
                     )
 
-                for current_interation in trange(num_iterations, desc="Sampling"):
+                for current_iteration in trange(num_iterations, desc="Sampling"):
                     gc.collect()
                     torch.cuda.empty_cache()
 
-                    anvil.server.task_state["current_iteration"] = current_interation
+                    anvil.server.task_state["current_iteration"] = current_iteration
 
                     conditioning = latent_diffusion_model.get_learned_conditioning(
                         num_samples * [prompts[0]]

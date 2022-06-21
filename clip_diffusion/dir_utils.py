@@ -19,7 +19,14 @@ def remove_old_dirs_and_files(dir_path):
     """
 
     if os.path.exists(dir_path):
-        shutil.rmtree(dir_path)  # 刪除所有資料夾和檔案
+        # 移除所有舊檔案
+        for filename in os.listdir(dir_path):
+            file_path = os.path.join(dir_path, filename)
+            # 如果是檔案就直接刪除
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):  # 如果是資料夾就用rmtree
+                shutil.rmtree(file_path)
     else:
         print(f"{dir_path} does not exist")
 
