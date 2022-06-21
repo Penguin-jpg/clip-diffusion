@@ -21,6 +21,7 @@ from clip_diffusion.preprocess_utils import (
 from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
 from clip_diffusion.model_utils import (
     alpha_sigma_to_t,
+    load_bsrgan_model,
     load_clip_models_and_preprocessings,
     load_latent_diffusion_model,
     load_model_and_diffusion,
@@ -29,7 +30,8 @@ from clip_diffusion.model_utils import (
 from clip_diffusion.cutouts import MakeCutoutsDango
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import *
-from clip_diffusion.image_utils import *
+from clip_diffusion.image_utils import upload_png, upload_gif, get_image_from_bytes
+from clip_diffusion.sr_utils import super_resolution
 
 
 chosen_clip_models = {
@@ -49,10 +51,11 @@ lpips_model = lpips.LPIPS(net="vgg").to(config.device)
 clip_models, preprocessings = load_clip_models_and_preprocessings(chosen_clip_models)
 secondary_model = load_secondary_model()
 latent_diffusion_model = load_latent_diffusion_model()
+bsrgan_model = load_bsrgan_model()
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
-def generate(
+def guided_diffusion_generate(
     prompts=[
         "A cute golden retriever.",
     ],
@@ -311,6 +314,7 @@ def latent_diffusion_generate(
     batch_name: 本次生成的名稱
     """
 
+    anvil.server.task_state["using_latent_diffusion"] = True  # 設定一個flag避免同時做兩個生成
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
@@ -335,9 +339,11 @@ def latent_diffusion_generate(
                         )
                     )
 
-                for _ in trange(num_iterations, desc="Sampling"):
+                for current_interation in trange(num_iterations, desc="Sampling"):
                     gc.collect()
                     torch.cuda.empty_cache()
+
+                    anvil.server.task_state["current_iteration"] = current_interation
 
                     conditioning = latent_diffusion_model.get_learned_conditioning(
                         num_samples * [prompts[0]]
@@ -387,14 +393,24 @@ def latent_diffusion_generate(
                         count += 1
                     samples.append(x_samples_ddim)
 
+    # 提高解析度
+    super_resolution(bsrgan_model, batch_folder)
+
     # 轉成grid形式
     grid = torch.stack(samples, 0)
     grid = rearrange(grid, "n b c h w -> (n b) c h w")
     grid = make_grid(grid, nrow=num_samples)
     grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
+    grid_filename = "grid_image.png"
     Image.fromarray(grid.astype(np.uint8)).save(
-        os.path.join(batch_folder, f"latent_diffusion.png")
+        os.path.join(batch_folder, grid_filename)
     )  # 儲存grid圖片
+
+    anvil.server.task_state["grid_image_url"] = upload_png(
+        f"{batch_folder}/{grid_filename}"
+    )
 
     gc.collect()
     torch.cuda.empty_cache()
+
+    anvil.server.task_state["using_latent_diffusion"] = False  # 生成結束
