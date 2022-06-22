@@ -385,23 +385,21 @@ def latent_diffusion_generate(
 
                         samples.append(x_samples_ddim)
 
-                        # 轉成grid形式
-                        grid = torch.stack(samples, 0)
-                        grid = rearrange(grid, "n b c h w -> (n b) c h w")
-                        grid = make_grid(grid, nrow=num_samples)
-                        grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-                        grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
-                        exception_paths.append(grid_filename)
-                        Image.fromarray(grid.astype(np.uint8)).save(
-                            os.path.join(batch_folder, grid_filename)
-                        )  # 儲存grid圖片
+                    # 轉成grid形式
+                    grid = torch.stack(samples, 0)
+                    grid = rearrange(grid, "n b c h w -> (n b) c h w")
+                    grid = make_grid(grid, nrow=num_samples)
+                    grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
+                    grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
+                    exception_paths.append(grid_filename)
+                    Image.fromarray(grid.astype(np.uint8)).save(
+                        os.path.join(batch_folder, grid_filename)
+                    )  # 儲存grid圖片
 
-                        urls.append(
-                            upload_png(f"{batch_folder}/{grid_filename}")
-                        )  # 儲存url
+                    urls.append(upload_png(f"{batch_folder}/{grid_filename}"))  # 儲存url
 
-                        gc.collect()
-                        torch.cuda.empty_cache()
+                    gc.collect()
+                    torch.cuda.empty_cache()
 
     super_resolution(
         bsrgan_model, batch_folder, exception_paths=exception_paths
