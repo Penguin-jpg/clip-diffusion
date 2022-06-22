@@ -391,7 +391,7 @@ def latent_diffusion_generate(
                     grid = make_grid(grid, nrow=num_samples)
                     grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
                     grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
-                    exception_paths.append(grid_filename)
+                    exception_paths.append(os.path.join(batch_folder, grid_filename))
                     Image.fromarray(grid.astype(np.uint8)).save(
                         os.path.join(batch_folder, grid_filename)
                     )  # 儲存grid圖片
