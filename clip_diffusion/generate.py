@@ -70,8 +70,7 @@ def guided_diffusion_generate(
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     model, diffusion = load_model_and_diffusion()  # 載入diffusion model和diffusion
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
-    make_dir(batch_folder)
-    remove_old_dirs_and_files(batch_folder)  # 移除舊的圖片
+    make_dir(batch_folder, remove_old=True)
 
     # 設定種子
     set_seed(config.seed)
@@ -304,13 +303,13 @@ def latent_diffusion_generate(
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
-    make_dir(batch_folder)
-    remove_old_dirs_and_files(batch_folder)  # 移除舊的圖片
+    make_dir(batch_folder, remove_old=True)
 
     # 設定種子
     set_seed(config.seed)
 
-    urls = []
+    urls = []  # grid圖片的url
+    exception_paths = []  # 不做sr的圖片路徑
 
     with torch.no_grad():
         with torch.cuda.amp.autocast():
@@ -363,8 +362,9 @@ def latent_diffusion_generate(
                                 x_sample.cpu().numpy(), "c h w -> h w c"
                             )
                             filename = os.path.join(
-                                batch_folder, f"{batch_name}_{model_name}_{count}.png"
-                            )
+                                batch_folder,
+                                f"{batch_name}_{model_name.replace('/', '-')}_{count}.png",
+                            )  # 將"/"替換為"-"避免誤認為路徑
                             image_vector = Image.fromarray(x_sample.astype(np.uint8))
                             image_preprocess = (
                                 preprocessings[model_name](image_vector)
@@ -384,15 +384,14 @@ def latent_diffusion_generate(
                             count += 1
 
                         samples.append(x_samples_ddim)
-                        # 提高解析度
-                        super_resolution(bsrgan_model, batch_folder)
 
                         # 轉成grid形式
                         grid = torch.stack(samples, 0)
                         grid = rearrange(grid, "n b c h w -> (n b) c h w")
                         grid = make_grid(grid, nrow=num_samples)
                         grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-                        grid_filename = f"{model_name}_grid_image.png"
+                        grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
+                        exception_paths.append(grid_filename)
                         Image.fromarray(grid.astype(np.uint8)).save(
                             os.path.join(batch_folder, grid_filename)
                         )  # 儲存grid圖片
@@ -404,5 +403,8 @@ def latent_diffusion_generate(
                         gc.collect()
                         torch.cuda.empty_cache()
 
+    super_resolution(
+        bsrgan_model, batch_folder, exception_paths=exception_paths
+    )  # 提高解析度
     anvil.server.task_state["grid_image_urls"] = urls
     anvil.server.task_state["using_latent_diffusion"] = False  # 生成結束
