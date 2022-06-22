@@ -1,10 +1,10 @@
 import torch
-from torchvision import transforms as T
-from torchvision.transforms import functional as TF
 import gc
 import lpips
 import anvil
 import numpy as np
+from torchvision import transforms as T
+from torchvision.transforms import functional as TF
 from PIL import Image
 from tqdm.notebook import tqdm, trange
 from ipywidgets import Output
@@ -17,8 +17,9 @@ from clip_diffusion.preprocess_utils import (
     translate_zh_to_en,
     set_seed,
     get_embedding_and_weights,
+    create_init_noise,
 )
-from clip_diffusion.perlin_utils import regen_perlin, regen_perlin_no_expand
+from clip_diffusion.perlin_utils import regen_perlin
 from clip_diffusion.model_utils import (
     alpha_sigma_to_t,
     load_bsrgan_model,
@@ -30,20 +31,11 @@ from clip_diffusion.model_utils import (
 from clip_diffusion.cutouts import MakeCutoutsDango
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import *
-from clip_diffusion.image_utils import upload_png, upload_gif, get_image_from_bytes
+from clip_diffusion.image_utils import upload_png, upload_gif
 from clip_diffusion.sr_utils import super_resolution
 
 
-chosen_clip_models = {
-    "ViT-B/16": True,
-    "ViT-B/32": True,
-    "ViT-L/14": False,
-    "RN50": True,
-    "RN50x4": True,
-    "RN50x16": False,
-    "RN50x64": False,
-    "RN101": False,
-}
+chosen_clip_models = ["ViT-B/16", "ViT-B/32", "RN50", "RN50x4"]
 normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )
@@ -60,6 +52,7 @@ def guided_diffusion_generate(
         "A cute golden retriever.",
     ],
     init_image=None,
+    use_latent_diffusion=False,
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
@@ -68,6 +61,7 @@ def guided_diffusion_generate(
     生成圖片(和anvil client互動)
     prompts: 要生成的東西
     init_image: 模型會參考該圖片生成初始噪聲(會是anvil的Media類別)
+    use_latent_diffusion: 是否要使用latent diffusion生成的初始圖片
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
@@ -83,25 +77,15 @@ def guided_diffusion_generate(
     set_seed(config.seed)
 
     # 取得prompt的embedding及weight
-    model_stats = get_embedding_and_weights(prompts, clip_models)
+    model_stats = get_embedding_and_weights(prompts, clip_models.values())
 
-    init = None  # init_image或perlin noise只能擇一
+    # 建立初始噪聲
+    init = create_init_noise(use_latent_diffusion, init_image, use_perlin, perlin_mode)
+
     loss_values = []
-
-    # 如果初始圖片不為空
-    if init_image is not None:
-        # 透過anvil傳來的image_file的bytes開啟圖片
-        init = get_image_from_bytes(init_image.get_bytes()).convert("RGB")
-        init = init.resize((config.side_x, config.side_y), Image.LANCZOS)
-        init = TF.to_tensor(init).to(config.device).unsqueeze(0).mul(2).sub(1)
-
-    # 使用perlin noise
-    if use_perlin:
-        init = regen_perlin_no_expand(perlin_mode)
-
     current_timestep = None  # 目前的timestep
 
-    # 透過clip引導guided diffusion(參考自disco diffusion)
+    # 透過clip引導guided diffusion
     def cond_fn(x, t, y=None):
         with torch.enable_grad():
             x_is_NaN = False
@@ -297,6 +281,7 @@ def latent_diffusion_generate(
     num_samples=3,
     latent_diffusion_steps=50,
     latent_diffusion_eta=0.0,
+    chosen_models=["ViT-B/16", "ViT-B/32", "RN50", "RN50x4"],
     sample_width=256,
     sample_height=256,
     batch_name="latent",
@@ -309,6 +294,7 @@ def latent_diffusion_generate(
     num_samples: 要生成的圖片數
     latent_diffusion_steps: latent diffusion要跑的step數
     latent_diffusion_eta: latent diffusion的eta
+    chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
     batch_name: 本次生成的名稱
@@ -324,8 +310,7 @@ def latent_diffusion_generate(
     # 設定種子
     set_seed(config.seed)
 
-    samples = []  # 儲存所有sample
-    count = 0  # 圖片編號
+    urls = []
 
     with torch.no_grad():
         with torch.cuda.amp.autocast():
@@ -338,78 +323,86 @@ def latent_diffusion_generate(
                         )
                     )
 
-                for current_iteration in trange(num_iterations, desc="Sampling"):
-                    gc.collect()
-                    torch.cuda.empty_cache()
+                for model_name in chosen_models:
+                    samples = []  # 儲存所有sample
+                    count = 0  # 圖片編號
+                    anvil.server.task_state["current_clip_model"] = model_name
+                    for current_iteration in trange(num_iterations, desc="Sampling"):
+                        gc.collect()
+                        torch.cuda.empty_cache()
 
-                    anvil.server.task_state["current_iteration"] = current_iteration + 1
-
-                    conditioning = latent_diffusion_model.get_learned_conditioning(
-                        num_samples * [prompts[0]]
-                    )
-                    shape = [4, sample_height // 8, sample_width // 8]
-
-                    # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
-                    samples_ddim, _ = sampler.sample(
-                        S=latent_diffusion_steps,
-                        conditioning=conditioning,
-                        batch_size=num_samples,
-                        shape=shape,
-                        verbose=False,
-                        unconditional_guidance_scale=latent_diffusion_guidance_scale,
-                        unconditional_conditioning=uncoditional_conditioning,
-                        eta=latent_diffusion_eta,
-                    )
-
-                    x_samples_ddim = latent_diffusion_model.decode_first_stage(
-                        samples_ddim
-                    )
-                    x_samples_ddim = torch.clamp(
-                        (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0
-                    )
-
-                    for x_sample in x_samples_ddim:
-                        x_sample = 255.0 * rearrange(
-                            x_sample.cpu().numpy(), "c h w -> h w c"
+                        anvil.server.task_state["current_iteration"] = (
+                            current_iteration + 1
                         )
-                        filename = os.path.join(
-                            batch_folder, f"{batch_name}_{count:04}.png"
+                        conditioning = latent_diffusion_model.get_learned_conditioning(
+                            num_samples * [prompts[0]]
                         )
-                        image_vector = Image.fromarray(x_sample.astype(np.uint8))
-                        image_preprocess = (
-                            preprocessings[1](image_vector)
-                            .unsqueeze(0)
-                            .to(config.device)
-                        )  # 配合ViT-B/32進行preprocess
+                        shape = [4, sample_height // 8, sample_width // 8]
 
-                        with torch.no_grad():
-                            image_embeddings = clip_models[1].encode_image(
-                                image_preprocess
-                            )  # 使用ViT-B/32進行encode
+                        # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
+                        samples_ddim, _ = sampler.sample(
+                            S=latent_diffusion_steps,
+                            conditioning=conditioning,
+                            batch_size=num_samples,
+                            shape=shape,
+                            verbose=False,
+                            unconditional_guidance_scale=latent_diffusion_guidance_scale,
+                            unconditional_conditioning=uncoditional_conditioning,
+                            eta=latent_diffusion_eta,
+                        )
 
-                        image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)
-                        image_vector.save(filename)
-                        count += 1
-                    samples.append(x_samples_ddim)
+                        x_samples_ddim = latent_diffusion_model.decode_first_stage(
+                            samples_ddim
+                        )
+                        x_samples_ddim = torch.clamp(
+                            (x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0
+                        )
 
-    # 提高解析度
-    super_resolution(bsrgan_model, batch_folder)
+                        for x_sample in x_samples_ddim:
+                            x_sample = 255.0 * rearrange(
+                                x_sample.cpu().numpy(), "c h w -> h w c"
+                            )
+                            filename = os.path.join(
+                                batch_folder, f"{batch_name}_{model_name}_{count}.png"
+                            )
+                            image_vector = Image.fromarray(x_sample.astype(np.uint8))
+                            image_preprocess = (
+                                preprocessings[model_name](image_vector)
+                                .unsqueeze(0)
+                                .to(config.device)
+                            )
 
-    # 轉成grid形式
-    grid = torch.stack(samples, 0)
-    grid = rearrange(grid, "n b c h w -> (n b) c h w")
-    grid = make_grid(grid, nrow=num_samples)
-    grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-    grid_filename = "grid_image.png"
-    Image.fromarray(grid.astype(np.uint8)).save(
-        os.path.join(batch_folder, grid_filename)
-    )  # 儲存grid圖片
+                            with torch.no_grad():
+                                image_embeddings = clip_models[model_name].encode_image(
+                                    image_preprocess
+                                )
 
-    anvil.server.task_state["grid_image_url"] = upload_png(
-        f"{batch_folder}/{grid_filename}"
-    )
+                            image_embeddings /= image_embeddings.norm(
+                                dim=-1, keepdim=True
+                            )
+                            image_vector.save(filename)
+                            count += 1
 
-    gc.collect()
-    torch.cuda.empty_cache()
+                        samples.append(x_samples_ddim)
+                        # 提高解析度
+                        super_resolution(bsrgan_model, batch_folder)
 
+                        # 轉成grid形式
+                        grid = torch.stack(samples, 0)
+                        grid = rearrange(grid, "n b c h w -> (n b) c h w")
+                        grid = make_grid(grid, nrow=num_samples)
+                        grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
+                        grid_filename = f"{model_name}_grid_image.png"
+                        Image.fromarray(grid.astype(np.uint8)).save(
+                            os.path.join(batch_folder, grid_filename)
+                        )  # 儲存grid圖片
+
+                        urls.append(
+                            upload_png(f"{batch_folder}/{grid_filename}")
+                        )  # 儲存url
+
+                        gc.collect()
+                        torch.cuda.empty_cache()
+
+    anvil.server.task_state["grid_image_urls"] = urls
     anvil.server.task_state["using_latent_diffusion"] = False  # 生成結束

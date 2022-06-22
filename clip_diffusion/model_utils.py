@@ -27,14 +27,13 @@ def load_clip_models_and_preprocessings(chosen_models):
     選擇並載入要使用的Clip模型和preprocess function
     """
 
-    clip_models = []
-    preprocessings = []
+    clip_models = {}
+    preprocessings = {}
 
-    for model_name, selected in chosen_models.items():
-        if selected:
-            model, preprocess = clip.load(model_name, config.device)
-            clip_models.append(model.eval().requires_grad_(False))
-            preprocessings.append(preprocess)
+    for model_name in chosen_models:
+        model, preprocess = clip.load(model_name, config.device)
+        clip_models[model_name] = model.eval().requires_grad_(False)
+        preprocessings[model_name] = preprocess
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -342,7 +341,7 @@ def load_bsrgan_model():
         ),
         strict=True,
     )
-    model.requires_grad_(False).eval().to(config.device)
+    model.eval().requires_grad_(False).to(config.device)
 
     gc.collect()
     torch.cuda.empty_cache()
