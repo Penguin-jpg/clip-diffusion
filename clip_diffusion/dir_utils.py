@@ -27,10 +27,11 @@ def make_dir(dir_path, remove_old=True):
 
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
-        if remove_old:
-            remove_old_dirs_and_files(dir_path)
     else:
         print(f"{dir_path} already exists")
+
+        if remove_old:
+            remove_old_dirs_and_files(dir_path)
 
 
 init_dir_path = "./init_images"  # 儲存init_image的資料夾
