@@ -3,18 +3,12 @@ import io
 import pyimgur
 from glob import glob
 from PIL import Image
+from anvil import BlobMedia
 
 # 參考並修改自：https://github.com/afiaka87/clip-guided-diffusion/blob/a631a06b51ac5c6636136fab27833c68862eaa24/cgd/script_util.py
 
 CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(CLIENT_ID)
-
-
-def get_image_from_bytes(image_bytes):
-    """
-    透過io.BytesIO讀取圖片的bytes再轉成Image
-    """
-    return Image.open(io.BytesIO(image_bytes))
 
 
 def upload_png(image_path):
@@ -54,3 +48,29 @@ def upload_gif(image_path, batch_name):
     )
 
     return gif_image.link  # 回傳url
+
+
+def get_image_from_bytes(image_bytes):
+    """
+    透過io.BytesIO讀取圖片的bytes再轉成Image
+    """
+    return Image.open(io.BytesIO(image_bytes))
+
+
+def image_to_bytes(image_path):
+    """
+    將指定圖片轉為bytes
+    """
+
+    image = Image.open(image_path)
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def image_to_blob_media(content_type, image_path):
+    """
+    將指定圖片轉為anvil的BlobMedia
+    """
+
+    return BlobMedia(content_type, image_to_bytes(image_path))

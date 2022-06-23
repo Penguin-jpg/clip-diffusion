@@ -20,7 +20,7 @@ def remove_old_dirs_and_files(dir_path):
         print(f"{dir_path} does not exist")
 
 
-def make_dir(dir_path, remove_old=True):
+def make_dir(dir_path, remove_old=False):
     """
     建立資料夾
     """

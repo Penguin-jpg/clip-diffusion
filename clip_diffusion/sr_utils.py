@@ -2,10 +2,16 @@ import os.path
 import logging
 import torch
 import gc
-import bsrgan.utils_image as util
+from bsrgan.utils_image import (
+    get_image_paths,
+    imread_uint,
+    uint2tensor4,
+    tensor2uint,
+    imsave,
+)
 from bsrgan.utils_logger import logger_info
 from clip_diffusion.config import config
-from clip_diffusion.dir_utils import make_dir, remove_old_dirs_and_files
+from clip_diffusion.dir_utils import make_dir
 
 
 def super_resolution(model, batch_folder, exception_paths=[]):
@@ -19,7 +25,7 @@ def super_resolution(model, batch_folder, exception_paths=[]):
     make_dir(result_path, remove_old=True)
 
     # 對batch_folder內的每張圖片做sr
-    for index, image_path in enumerate(util.get_image_paths(batch_folder)):
+    for index, image_path in enumerate(get_image_paths(batch_folder)):
         # 如果圖片路徑不是例外路徑(不想做sr的圖片)
         if image_path not in exception_paths:
             # 取得圖片名稱和副檔名
@@ -27,15 +33,15 @@ def super_resolution(model, batch_folder, exception_paths=[]):
             logger.info(f"{index:4d} --> {image_name + ext:<s}")
 
             # 原圖轉tensor
-            original_image = util.imread_uint(image_path, n_channels=3)
-            original_image = util.uint2tensor4(original_image).to(config.device)
+            original_image = imread_uint(image_path, n_channels=3)
+            original_image = uint2tensor4(original_image).to(config.device)
 
             # 進行sr
             result_image = model(original_image)
-            result_image = util.tensor2uint(result_image)
+            result_image = tensor2uint(result_image)
 
             # 儲存圖片
-            util.imsave(
+            imsave(
                 result_image,
                 os.path.join(result_path, f"{image_name}_sr.{ext}"),
             )

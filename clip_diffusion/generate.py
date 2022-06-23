@@ -308,7 +308,7 @@ def latent_diffusion_generate(
     # 設定種子
     set_seed(config.seed)
 
-    urls = []  # grid圖片的url
+    urls = {}  # grid圖片的url
     exception_paths = []  # 不做sr的圖片路徑
 
     with torch.no_grad():
@@ -396,7 +396,9 @@ def latent_diffusion_generate(
                         os.path.join(batch_folder, grid_filename)
                     )  # 儲存grid圖片
 
-                    urls.append(upload_png(f"{batch_folder}/{grid_filename}"))  # 儲存url
+                    urls[model_name] = upload_png(
+                        f"{batch_folder}/{grid_filename}"
+                    )  # 儲存url
 
                     gc.collect()
                     torch.cuda.empty_cache()
