@@ -29,8 +29,8 @@ def super_resolution(model, batch_folder, exception_paths=[]):
         # 如果圖片路徑不是例外路徑(不想做sr的圖片)
         if image_path not in exception_paths:
             # 取得圖片名稱和副檔名
-            image_name, ext = os.path.splitext(os.path.basename(image_path))
-            logger.info(f"{index:4d} --> {image_name + ext:<s}")
+            image_name = os.path.basename(image_path)
+            logger.info(f"{index:4d} --> {image_name:<s}")
 
             # 原圖轉tensor
             original_image = imread_uint(image_path, n_channels=3)
@@ -43,7 +43,7 @@ def super_resolution(model, batch_folder, exception_paths=[]):
             # 儲存圖片
             imsave(
                 result_image,
-                os.path.join(result_path, f"{image_name}_sr.{ext}"),
+                os.path.join(result_path, image_name),
             )
             del original_image  # 刪除以釋放記憶體
 
