@@ -264,9 +264,8 @@ def guided_diffusion_generate(
         anvil.server.task_state["current_result"] = upload_png(
             f"{batch_folder}/{filename}"
         )
-        anvil.server.task_state["generation_process"] = upload_gif(
-            batch_folder, batch_name
-        )
+
+        return upload_gif(batch_folder, batch_name)
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
@@ -406,5 +405,6 @@ def latent_diffusion_generate(
     super_resolution(
         bsrgan_model, batch_folder, exception_paths=exception_paths
     )  # 提高解析度
-    anvil.server.task_state["grid_image_urls"] = urls
     anvil.server.task_state["using_latent_diffusion"] = False  # 生成結束
+
+    return urls
