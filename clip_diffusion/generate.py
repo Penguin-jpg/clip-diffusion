@@ -79,7 +79,7 @@ def guided_diffusion_generate(
     model_stats = get_embedding_and_weights(prompts, clip_models.values())
 
     # 建立初始噪聲
-    init = create_init_noise(use_latent_diffusion, init_image, use_perlin, perlin_mode)
+    init = create_init_noise(init_image, use_latent_diffusion, use_perlin, perlin_mode)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
