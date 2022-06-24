@@ -8,7 +8,7 @@ from opencc import OpenCC
 from PIL import Image
 from torchvision.transforms import functional as TF
 from clip_diffusion.config import config
-from clip_diffusion.prompt_utils import parse_prompt, fetch
+from clip_diffusion.prompt_utils import parse_prompt
 from clip_diffusion.image_utils import get_image_from_bytes
 from clip_diffusion.perlin_utils import regen_perlin_no_expand
 
@@ -109,25 +109,18 @@ def get_embedding_and_weights(prompts, clip_models):
     return model_stats
 
 
-def create_init_noise(
-    init_image=None, use_latent_diffusion=False, use_perlin=True, perlin_mode="mixed"
-):
+def create_init_noise(init_image=None, use_perlin=True, perlin_mode="mixed"):
     """
-    建立初始噪聲，init_image或perlin noise只能擇一
+    建立初始雜訊，init_image或perlin noise只能擇一
     """
 
-    init_noise = None  # 初始噪聲
+    init_noise = None  # 初始雜訊
 
     # 如果初始圖片不為空
     if init_image is not None:
-        # 如果要用latent diffusion的圖片
-        if use_latent_diffusion:
-            init_noise = Image.open(fetch(init_image)).convert("RGB")  # 使用PIL Image開啟圖片
-        else:
-            init_noise = get_image_from_bytes(init_image.get_bytes()).convert(
-                "RGB"
-            )  # 透過anvil傳來的圖片的bytes開啟圖片
-
+        init_noise = get_image_from_bytes(init_image.get_bytes()).convert(
+            "RGB"
+        )  # 透過anvil傳來的圖片的bytes開啟圖片
         init_noise = init_noise.resize((config.side_x, config.side_y), Image.LANCZOS)
         init_noise = (
             TF.to_tensor(init_noise).to(config.device).unsqueeze(0).mul(2).sub(1)

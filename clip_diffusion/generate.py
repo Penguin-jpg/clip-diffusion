@@ -35,10 +35,10 @@ from clip_diffusion.image_utils import upload_png, upload_gif
 from clip_diffusion.sr_utils import super_resolution
 
 
-chosen_clip_models = ["ViT-B/16", "ViT-B/32", "RN50", "RN50x4"]
+chosen_clip_models = ["ViT-B/16", "ViT-B/32", "RN50"]
 normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
-)
+)  # Clip用到的normalize
 lpips_model = lpips.LPIPS(net="vgg").to(config.device)
 clip_models, preprocessings = load_clip_models_and_preprocessings(chosen_clip_models)
 secondary_model = load_secondary_model()
@@ -52,7 +52,6 @@ def guided_diffusion_generate(
         "A cute golden retriever.",
     ],
     init_image=None,
-    use_latent_diffusion=False,
     use_perlin=False,
     perlin_mode="mixed",
     batch_name="diffusion",
@@ -60,13 +59,13 @@ def guided_diffusion_generate(
     """
     生成圖片(和anvil client互動)
     prompts: 要生成的東西
-    init_image: 模型會參考該圖片生成初始噪聲(會是anvil的Media類別)
-    use_latent_diffusion: 是否要使用latent diffusion生成的初始圖片
+    init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     batch_name: 本次生成的名稱
     """
 
+    anvil.server.task_state.clear()  # 清空task_state
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     model, diffusion = load_model_and_diffusion()  # 載入diffusion model和diffusion
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
@@ -78,8 +77,8 @@ def guided_diffusion_generate(
     # 取得prompt的embedding及weight
     model_stats = get_embedding_and_weights(prompts, clip_models.values())
 
-    # 建立初始噪聲
-    init = create_init_noise(init_image, use_latent_diffusion, use_perlin, perlin_mode)
+    # 建立初始雜訊
+    init = create_init_noise(init_image, use_perlin, perlin_mode)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -265,7 +264,7 @@ def guided_diffusion_generate(
             f"{batch_folder}/{filename}"
         )
 
-        return upload_gif(batch_folder, batch_name)
+        return upload_gif(batch_folder, batch_name)  # 回傳生成過程的gif url
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
@@ -279,7 +278,7 @@ def latent_diffusion_generate(
     num_samples=3,
     latent_diffusion_steps=50,
     latent_diffusion_eta=0.0,
-    chosen_models=["ViT-B/16", "ViT-B/32", "RN50", "RN50x4"],
+    chosen_models=["ViT-B/16", "ViT-B/32", "RN50"],
     sample_width=256,
     sample_height=256,
     batch_name="latent",
@@ -298,7 +297,7 @@ def latent_diffusion_generate(
     batch_name: 本次生成的名稱
     """
 
-    anvil.server.task_state["using_latent_diffusion"] = True  # 設定一個flag避免同時做兩個生成
+    anvil.server.task_state.clear()  # 清空task_state
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
@@ -405,6 +404,5 @@ def latent_diffusion_generate(
     super_resolution(
         bsrgan_model, batch_folder, exception_paths=exception_paths
     )  # 提高解析度
-    anvil.server.task_state["using_latent_diffusion"] = False  # 生成結束
 
-    return urls
+    return urls  # 回傳每個Clip模型生成的grid image url
