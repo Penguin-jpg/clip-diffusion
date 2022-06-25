@@ -94,12 +94,17 @@ def guided_diffusion_generate(
     loss_values = []
     current_timestep = None  # 目前的timestep
 
-    # 透過clip引導guided diffusion
     def cond_fn(x, t, y=None):
+        """
+        透過clip引導guided diffusion
+        x: 第t-1個timestep的圖片tensor
+        t: timestep tensor
+        y: class
+        """
         with torch.enable_grad():
-            x_is_NaN = False
-            x = x.detach().requires_grad_()
-            n = x.shape[0]
+            x_is_NaN = False  # x是否為NaN
+            x = x.detach().requires_grad_()  # 將x從compute
+            n = x.shape[0]  # batch size
 
             # 使用secondary_model加速生成
             if config.use_secondary_model:
@@ -132,10 +137,12 @@ def guided_diffusion_generate(
 
             for model_stat in model_stats:
                 for _ in range(config.cutn_batches):
-                    t_int = (
-                        int(t.item()) + 1
-                    )  # errors on last step without +1, need to find source
-                    input_resolution = model_stat["clip_model"].visual.input_resolution
+                    t_int = int(t.item()) + 1  # 將t的值從tensor取出(加1是因為t從0開始)
+                    input_resolution = model_stat[
+                        "clip_model"
+                    ].visual.input_resolution  # Clip模型對應的input resolution
+
+                    # 做cutouts
                     cuts = MakeCutoutsDango(
                         input_resolution,
                         Overview=config.cut_overview[1000 - t_int],
@@ -181,7 +188,7 @@ def guided_diffusion_generate(
                 + sat_losses.sum() * config.sat_scale
             )
 
-            # numpy array, tensor的判斷式使用is not None
+            # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
                 init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
@@ -199,7 +206,7 @@ def guided_diffusion_generate(
                 grad
                 * magnitude.clamp(min=-config.clamp_max, max=config.clamp_max)
                 / magnitude
-            )  # min=-0.02,
+            )
 
         return grad
 
@@ -251,18 +258,17 @@ def guided_diffusion_generate(
                     display.clear_output(wait=True)
                     display.display(display.Image(f"{batch_folder}/{filename}"))
 
-                    if step_index % 5 == 0:
-                        # 將目前圖片的url存到current_result
-                        anvil.server.task_state["current_result"] = upload_png(
-                            f"{batch_folder}/{filename}"
-                        )
-
                     # 生成結束
                     if current_timestep == -1:
                         image.save(f"{batch_folder}/{filename}")
                         display.display(display.Image(f"{batch_folder}/{filename}"))
                         display.clear_output()
                         # 將最後一個timestep的url存到current_result
+                        anvil.server.task_state["current_result"] = upload_png(
+                            f"{batch_folder}/{filename}"
+                        )
+                    elif step_index % 15 == 0:  # 每15個timestep更新上傳一次圖片
+                        # 將目前圖片的url存到current_result
                         anvil.server.task_state["current_result"] = upload_png(
                             f"{batch_folder}/{filename}"
                         )
