@@ -46,19 +46,16 @@ def load_guided_diffusion_model(diffusion_steps=200, use_checkpoint=True):
     載入guided diffusion model和diffusion
     """
 
-    # 如果diffusion_steps小於1000，就將diffusion_steps補正到接近1000
-    diffusion_steps = (
-        (1000 // diffusion_steps) * diffusion_steps
-        if diffusion_steps < 1000
-        else diffusion_steps
-    )
-
     model_config = model_and_diffusion_defaults()
     model_config.update(
         {
             "attention_resolutions": "32, 16, 8",
             "class_cond": False,
-            "diffusion_steps": diffusion_steps,
+            "diffusion_steps": (
+                (1000 // diffusion_steps) * diffusion_steps
+                if diffusion_steps < 1000
+                else diffusion_steps
+            ),  # 如果diffusion_steps小於1000，就將diffusion_steps補正到接近1000
             "rescale_timesteps": True,
             "timestep_respacing": f"ddim{diffusion_steps}",  # 調整diffusion的timestep數量(使用DDIM sample)
             "image_size": 512,
