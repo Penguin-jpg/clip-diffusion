@@ -31,7 +31,7 @@ from clip_diffusion.model_utils import (
 from clip_diffusion.cutouts import MakeCutoutsDango
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import *
-from clip_diffusion.image_utils import upload_png, upload_gif, image_to_blob_media
+from clip_diffusion.image_utils import upload_png, upload_gif
 from clip_diffusion.sr_utils import super_resolution
 
 
@@ -256,21 +256,21 @@ def guided_diffusion_generate(
                     display.clear_output(wait=True)
                     display.display(display.Image(f"{batch_folder}/{filename}"))
 
+                    if step_index % 5 == 0:
+                        # 將目前圖片的url存到current_result
+                        anvil.server.task_state["current_result"] = upload_png(
+                            f"{batch_folder}/{filename}"
+                        )
+
                     # 生成結束
                     if current_timestep == -1:
                         image.save(f"{batch_folder}/{filename}")
                         display.display(display.Image(f"{batch_folder}/{filename}"))
                         display.clear_output()
-
-                    # 將目前圖片結果的url存到current_result
-                    # anvil.server.task_state["current_result"] = upload_png(
-                    #     f"{batch_folder}/{filename}"
-                    # )
-
-                    # 將目前圖片結果轉成BlobMedia存到current_result
-                    anvil.server.task_state["current_result"] = image_to_blob_media(
-                        "image/png", f"{batch_folder}/{filename}"
-                    )
+                        # 將最後一個timestep的url存到current_result
+                        anvil.server.task_state["current_result"] = upload_png(
+                            f"{batch_folder}/{filename}"
+                        )
 
         gc.collect()
         torch.cuda.empty_cache()
