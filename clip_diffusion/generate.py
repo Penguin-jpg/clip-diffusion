@@ -54,7 +54,7 @@ def guided_diffusion_generate(
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
-    diffusion_steps=200,
+    steps=200,
     skip_timesteps=0,
     clip_guidance_scale=5000,
     eta=0.8,
@@ -68,7 +68,7 @@ def guided_diffusion_generate(
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
-    diffusion_steps: 每個batch要跑的step數
+    steps: 每個batch要跑的step數
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的 0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
     eta: 調整每個timestep混入的噪音量(0: 無噪音; 1.0: 最多噪音)
@@ -78,9 +78,7 @@ def guided_diffusion_generate(
     """
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
-    model, diffusion = load_guided_diffusion_model(
-        diffusion_steps
-    )  # 載入diffusion model和diffusion
+    model, diffusion = load_guided_diffusion_model(steps)  # 載入diffusion model和diffusion
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -275,7 +273,7 @@ def guided_diffusion_generate(
         return upload_gif(
             batch_folder,
             display_rate,
-            append_last_timestep=diffusion_steps % display_rate,
+            append_last_timestep=steps % display_rate,
         )  # 回傳生成過程的gif url
 
 
