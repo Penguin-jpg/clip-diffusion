@@ -297,7 +297,7 @@ def latent_diffusion_generate(
     num_samples=3,
     diffusion_steps=50,
     eta=0.0,
-    chosen_models=["ViT-B/16", "ViT-B/32", "RN50"],
+    chosen_models=["ViT-B/32", "ViT-B/16", "RN50"],
     sample_width=256,
     sample_height=256,
 ):
