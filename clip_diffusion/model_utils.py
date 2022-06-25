@@ -21,6 +21,13 @@ from clip_diffusion.download_utils import (
     download,
 )
 
+GUIDED_DIFFUSION_MODEL_NAME = (
+    "512x512_diffusion_uncond_finetune_008100.pt"  # 使用的diffusion model checkpoint
+)
+SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
+LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"  # 使用的latent diffusion model checkpoint
+BSRGAN_MODEL_NAME = "BSRGAN.pth"  # 使用的bsrgan model checkpoint
+
 
 def load_clip_models_and_preprocessings(chosen_models):
     """
@@ -71,7 +78,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True):
     model, diffusion = create_model_and_diffusion(**model_config)
     model.load_state_dict(
         torch.load(
-            download(DIFFUSION_MODEL_URL, config.diffusion_model_name),
+            download(DIFFUSION_MODEL_URL, GUIDED_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         )
     )
@@ -288,7 +295,7 @@ def load_secondary_model():
     model = SecondaryDiffusionImageNet2()
     model.load_state_dict(
         torch.load(
-            download(SECONDARY_MODEL_URL, config.secondary_model_name),
+            download(SECONDARY_MODEL_URL, SECONDARY_MODEL_NAME),
             map_location="cpu",
         )
     )
@@ -315,7 +322,7 @@ def load_latent_diffusion_model():
         torch.load(
             download(
                 "",
-                config.latent_diffusion_model_name,
+                LATENT_DIFFUSION_MODEL_NAME,
                 download_from_huggingface=True,
                 repo=LATENT_DIFFUSION_MODEL_REPO,
             ),
@@ -338,9 +345,7 @@ def load_bsrgan_model():
 
     model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32, sf=4)
     model.load_state_dict(
-        torch.load(
-            download(BSRGAN_MODEL_URL, config.bsrgan_model_name), map_location="cpu"
-        ),
+        torch.load(download(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"),
         strict=True,
     )
     model.eval().requires_grad_(False).to(config.device)

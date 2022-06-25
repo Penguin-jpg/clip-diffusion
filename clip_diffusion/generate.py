@@ -1,4 +1,5 @@
 import torch
+import os
 import gc
 import lpips
 import anvil
@@ -30,17 +31,18 @@ from clip_diffusion.model_utils import (
 )
 from clip_diffusion.cutouts import MakeCutoutsDango
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
-from clip_diffusion.dir_utils import *
+from clip_diffusion.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.image_utils import upload_png, upload_gif
 from clip_diffusion.sr_utils import super_resolution
 
 
-chosen_clip_models = ["ViT-B/16", "ViT-B/32", "RN50"]
 normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )  # Clip用到的normalize
 lpips_model = lpips.LPIPS(net="vgg").to(config.device)
-clip_models, preprocessings = load_clip_models_and_preprocessings(chosen_clip_models)
+clip_models, preprocessings = load_clip_models_and_preprocessings(
+    config.chosen_clip_models
+)
 secondary_model = load_secondary_model()
 latent_diffusion_model = load_latent_diffusion_model()
 bsrgan_model = load_bsrgan_model()
@@ -60,7 +62,6 @@ def guided_diffusion_generate(
     eta=0.8,
     init_scale=1000,
     display_rate=25,
-    batch_name="diffusion",
 ):
     """
     生成圖片(和anvil client互動)
@@ -74,12 +75,11 @@ def guided_diffusion_generate(
     eta: 調整每個timestep混入的噪音量(0: 無噪音; 1.0: 最多噪音)
     init_scale: 增強init_image的效果
     display_rate: 生成過程的gif多少個step要更新一次
-    batch_name: batch_folder名稱
     """
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     model, diffusion = load_guided_diffusion_model(steps)  # 載入diffusion model和diffusion
-    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
+    batch_folder = f"{OUTPUT_PATH}/guided"  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
@@ -240,15 +240,10 @@ def guided_diffusion_generate(
         for step_index, sample in enumerate(samples):
             current_timestep -= 1  # 每次都將目前的timestep減1
 
-            # 紀錄目前的step
-            anvil.server.task_state["current_step"] = step_index + 1
-
             with image_display:
                 # 更新、儲存圖片
                 for _, image in enumerate(sample["pred_xstart"]):
-                    filename = (
-                        f"{batch_name}_{current_batch}-{step_index:04}.png"  # 圖片名稱
-                    )
+                    filename = f"guided_{current_batch}-{step_index:04}.png"  # 圖片名稱
                     image = TF.to_pil_image(
                         image.add(1).div(2).clamp(0, 1)
                     )  # 轉換為Pillow Image
@@ -271,6 +266,9 @@ def guided_diffusion_generate(
                         anvil.server.task_state["current_result"] = upload_png(
                             f"{batch_folder}/{filename}"
                         )
+
+            # 紀錄目前的step
+            anvil.server.task_state["current_step"] = step_index + 1
 
         gc.collect()
         torch.cuda.empty_cache()
@@ -296,7 +294,6 @@ def latent_diffusion_generate(
     chosen_models=["ViT-B/16", "ViT-B/32", "RN50"],
     sample_width=256,
     sample_height=256,
-    batch_name="latent",
 ):
     """
     使用latent diffusion生成圖片
@@ -309,12 +306,11 @@ def latent_diffusion_generate(
     chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
-    batch_name: batch_folder名稱
     """
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
-    batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
+    batch_folder = f"{OUTPUT_PATH}/latent"  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
@@ -372,7 +368,7 @@ def latent_diffusion_generate(
                             )
                             filename = os.path.join(
                                 batch_folder,
-                                f"{batch_name}_{model_name.replace('/', '-')}_{count}.png",
+                                f"latent_{model_name.replace('/', '-')}_{count}.png",
                             )  # 將"/"替換為"-"避免誤認為路徑
                             image_vector = Image.fromarray(x_sample.astype(np.uint8))
                             image_preprocess = (

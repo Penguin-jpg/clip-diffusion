@@ -4,12 +4,13 @@
 ```
 git clone https://github.com/openai/CLIP
 git clone https://github.com/crowsonkb/guided-diffusion
-git clone https://github.com/assafshocher/ResizeRight.git
+git clone https://github.com/Penguin-jpg/ResizeRight.git
 git clone https://github.com/CompVis/latent-diffusion.git
 git clone https://github.com/CompVis/taming-transformers
 git clone https://github.com/Penguin-jpg/BSRGAN.git
 pip install -e ./CLIP
 pip install -e ./guided-diffusion
+pip install -e ./resize-right
 pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
 pip install -e ./BSRGAN

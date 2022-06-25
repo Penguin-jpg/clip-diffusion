@@ -40,12 +40,7 @@ class _Config:
         self.use_secondary_model = (
             True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
         )
-        self.diffusion_model_name = "512x512_diffusion_uncond_finetune_008100.pt"  # 使用的diffusion model checkpoint
-        self.secondary_model_name = (
-            "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
-        )
-        self.latent_diffusion_model_name = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"  # 使用的latent diffusion model checkpoint
-        self.bsrgan_model_name = "BSRGAN.pth"  # 使用的bsrgan model checkpoint
+        self.chosen_clip_models = ["ViT-B/16", "ViT-B/32", "RN50"]
 
         # Clip相關
         self.clip_denoised = False  # clip是否要區分有噪音和沒有噪音的圖片
@@ -77,6 +72,7 @@ class _Config:
         width=896,
         height=768,
         use_secondary_model=True,
+        chosen_clip_models=["ViT-B/16", "ViT-B/32", "RN50"],
         clip_denoised=False,
         clamp_grad=True,
         clamp_max=0.05,
@@ -98,6 +94,7 @@ class _Config:
         self.side_x = (self.width // 64) * 64
         self.side_y = (self.height // 64) * 64
         self.use_secondary_model = use_secondary_model
+        self.chosen_clip_models = chosen_clip_models
         self.clip_denoised = clip_denoised
         self.clamp_grad = clamp_grad
         self.clamp_max = clamp_max

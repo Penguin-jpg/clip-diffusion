@@ -1,15 +1,8 @@
 import os
-import hashlib
 from urllib import request
 from pathlib import Path
 from tqdm import tqdm
-from huggingface_hub import hf_hub_download
-from clip_diffusion.config import config
-from clip_diffusion.dir_utils import (
-    model_path,
-    diffusion_model_path,
-    secondary_model_path,
-)
+from clip_diffusion.dir_utils import MODEL_PATH
 
 # 參考並修改自：https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
 
@@ -21,44 +14,13 @@ SECONDARY_MODEL_URL = (
 LATENT_DIFFUSION_MODEL_REPO = "multimodalart/compvis-latent-diffusion-text2img-large"
 BSRGAN_MODEL_URL = "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
 
-# 檢查用的SHA
-DIFFUSION_MODEL_SHA = "9c111ab89e214862b76e1fa6a1b3f1d329b1a88281885943d2cdbe357ad57648"
-SECONDARY_MODEL_SHA = "983e3de6f95c88c81b2ca7ebb2c217933be1973b1ff058776b970f901584613a"
-
-
-def does_SHA_match(model_name):
-    """
-    檢查SHA是否吻合
-    """
-
-    if model_name == config.diffusion_model_name:
-        check_path = diffusion_model_path
-        model_SHA = DIFFUSION_MODEL_SHA
-    elif model_name == config.secondary_model_name:
-        check_path = secondary_model_path
-        model_SHA = SECONDARY_MODEL_SHA
-    else:
-        print("SHA not provided")
-        return True
-
-    with open(check_path, "rb") as f:
-        bytes = f.read()
-        hash = hashlib.sha256(bytes).hexdigest()
-
-    if hash == model_SHA:
-        print(f"{model_name} SHA matches")
-        return True
-    else:
-        print(f"{model_name} SHA mismatches")
-        return False
-
 
 def download(url, model_name, download_from_huggingface=False, repo=None):
     """
     下載模型並儲存，回傳儲存位置
     """
 
-    download_target = Path(os.path.join(model_path, model_name))
+    download_target = Path(os.path.join(MODEL_PATH, model_name))
     download_target_tmp = download_target.with_suffix(".tmp")
 
     if os.path.exists(download_target):
@@ -68,6 +30,8 @@ def download(url, model_name, download_from_huggingface=False, repo=None):
             return str(download_target)
 
     if download_from_huggingface:
+        from huggingface_hub import hf_hub_download
+
         cache_path = hf_hub_download(repo_id=repo, filename=model_name)
         os.rename(cache_path, download_target)
         return str(download_target)
@@ -82,6 +46,4 @@ def download(url, model_name, download_from_huggingface=False, repo=None):
                 loop.update(len(buffer))
 
     os.rename(download_target_tmp, download_target)
-
-    if does_SHA_match(model_name):
-        return str(download_target)
+    return str(download_target)
