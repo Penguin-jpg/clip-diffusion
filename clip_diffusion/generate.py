@@ -276,7 +276,7 @@ def guided_diffusion_generate(
         return upload_gif(
             batch_folder,
             display_rate,
-            append_last_timestep=steps % display_rate,
+            append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
         )  # 回傳生成過程的gif url
 
 
