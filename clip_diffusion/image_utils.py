@@ -22,29 +22,37 @@ def upload_png(image_path):
     return image.link  # 回傳url
 
 
-def upload_gif(image_path, batch_name):
+def upload_gif(batch_folder, display_rate=30, append_last_timestep=False):
     """
     用生成過程的圖片建成gif，上傳至imgur並回傳該gif的url
     """
 
-    # 找出image_path下所有的png
-    images_glob = sorted(glob(os.path.join(image_path, "*.png")))
-    # 開啟所有的圖片
-    images = [Image.open(image) for image in images_glob]
+    # 找出batch_folder下所有的png
+    images_glob = sorted(glob(os.path.join(batch_folder, "*.png")))
+
+    images = []  # 儲存要找的圖片
+    for index, image_path in enumerate(images_glob):
+        # 按照更新速率找出需要的圖片
+        if index % display_rate == 0:
+            images.append(Image.open(image_path))
+
+    # 如果diffusion_steps無法被display_rate整除，就要手動補上最後一個timestep的圖片
+    if append_last_timestep:
+        images.append(Image.open(images_glob[-1]))
 
     # 儲存成gif
     images[0].save(
-        fp=f"{image_path}/{batch_name}.gif",
+        fp=f"{batch_folder}/diffusion.gif",
         format="GIF",
         save_all=True,
         append_images=images[1:],
-        duration=200,
+        duration=300,
         loop=0,
     )
 
     # 將生成過程的gif上傳至Imgur
     gif_image = imgur.upload_image(
-        f"{image_path}/{batch_name}.gif", title=f"{batch_name}.gif"
+        f"{batch_folder}/diffusion.gif", title="diffusion.gif"
     )
 
     return gif_image.link  # 回傳url

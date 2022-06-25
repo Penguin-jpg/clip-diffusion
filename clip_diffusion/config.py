@@ -1,18 +1,10 @@
 import torch
 import random
 
-INT_MAX = 2 ** 32
+INT_MAX = 2**32
 
 
-def get_seed():
-    """
-    生成種子
-    """
-    random.seed()
-    return random.randint(0, INT_MAX)
-
-
-class Config:
+class _Config:
     """
     將設定統整在一個class
     """
@@ -45,12 +37,6 @@ class Config:
         self.cut_icgray_p = [0.2] * 400 + [0] * 900
 
         # model相關
-        self.steps = 200  # 每個iteration要跑的step數
-        self.timestep_respacing = f"ddim{self.steps}"  # 調整diffusion的timestep數量
-        self.diffusion_steps = (
-            (1000 // self.steps) * self.steps if self.steps < 1000 else self.steps
-        )  # diffusion要跑的step數
-        self.use_checkpoint = True  # 是否要使用model checkpoint
         self.use_secondary_model = (
             True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
         )
@@ -62,7 +48,6 @@ class Config:
         self.bsrgan_model_name = "BSRGAN.pth"  # 使用的bsrgan model checkpoint
 
         # Clip相關
-        self.clip_guidance_scale = 5000  # clip引導的強度(生成圖片要多接近prompt)
         self.clip_denoised = False  # clip是否要區分有噪音和沒有噪音的圖片
         self.clamp_grad = True  # 是否在cond_fn中要使用adaptive的Clip梯度
         self.clamp_max = 0.05  # 限制的最大梯度
@@ -73,34 +58,25 @@ class Config:
         self.sat_scale = 0  # 控制允許多少飽和
 
         # 生成相關
-        self.seed = get_seed()  # 亂數種子
+        self.seed = self.get_seed()  # 亂數種子
         self.batch_size = 1  # 一次要sample的數量
         self.num_batches = 1  # 要生成的圖片數量
         self.skip_augs = False  # 是否不做圖片的augmentation
-        self.randomize_class = (
-            True  # imagenet的class是否要每個iteration都隨機改變(製造unconditional的效果)
-        )
         self.fuzzy_prompt = False  # 是否要加入multiple noisy prompts到prompt losses內
         self.rand_mag = 0.05  # 控制隨機噪音的強度
-        self.init_scale = 1000  # 增強init_image的效果
-        self.skip_timesteps = (
-            0  # 控制要跳過的step數(從第幾個step開始)，當使用init_image時時最好調整為原先 Step 的 0~50%
-        )
-        self.eta = 0.8  # 調整每個timestep混入的噪音量(0：無噪音；1.0：最多噪音)
-        self.settings_name = "default_settings"  # 設定資料的名稱
-        self.display_rate = 25  # 多少個step要更新顯示的圖片一次
-        self.intermediate_saves = [
-            self.display_rate * i
-            for i in range((self.steps - self.skip_timesteps) // self.display_rate + 1)
-        ]  # 分別在哪些step的圖片要存起來(要+1才能包含最後一個step)
+
+    def get_seed(self):
+        """
+        生成種子
+        """
+        random.seed()
+        return random.randint(0, INT_MAX)
 
     def adjust_settings(
         self,
-        width=1024,
+        width=896,
         height=768,
-        steps=200,
         use_secondary_model=True,
-        clip_guidance_scale=5000,
         clip_denoised=False,
         clamp_grad=True,
         clamp_max=0.05,
@@ -110,14 +86,8 @@ class Config:
         batch_size=1,
         num_batches=1,
         skip_augs=False,
-        randomize_class=True,
         fuzzy_prompt=False,
         rand_mag=0.05,
-        init_scale=1000,
-        skip_timesteps=0,
-        eta=0.8,
-        settings_name="default_settings",
-        display_rate=25,
     ):
         """
         調整設定
@@ -127,13 +97,7 @@ class Config:
         self.height = height
         self.side_x = (self.width // 64) * 64
         self.side_y = (self.height // 64) * 64
-        self.steps = steps
-        self.timestep_respacing = f"ddim{self.steps}"
-        self.diffusion_steps = (
-            (1000 // self.steps) * self.steps if self.steps < 1000 else self.steps
-        )
         self.use_secondary_model = use_secondary_model
-        self.clip_guidance_scale = clip_guidance_scale
         self.clip_denoised = clip_denoised
         self.clamp_grad = clamp_grad
         self.clamp_max = clamp_max
@@ -143,17 +107,8 @@ class Config:
         self.batch_size = batch_size
         self.num_batches = num_batches
         self.skip_augs = skip_augs
-        self.randomize_class = randomize_class
         self.fuzzy_prompt = fuzzy_prompt
         self.rand_mag = rand_mag
-        self.init_scale = init_scale
-        self.skip_timesteps = skip_timesteps
-        self.eta = eta
-        self.settings_name = settings_name
-        self.display_rate = display_rate
-        self.intermediate_saves = [
-            self.display_rate * i for i in range(self.steps // self.display_rate + 1)
-        ]
 
 
-config = Config()
+config = _Config()

@@ -25,7 +25,7 @@ from clip_diffusion.model_utils import (
     load_bsrgan_model,
     load_clip_models_and_preprocessings,
     load_latent_diffusion_model,
-    load_model_and_diffusion,
+    load_guided_diffusion_model,
     load_secondary_model,
 )
 from clip_diffusion.cutouts import MakeCutoutsDango
@@ -54,6 +54,12 @@ def guided_diffusion_generate(
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
+    diffusion_steps=200,
+    skip_timesteps=0,
+    clip_guidance_scale=5000,
+    eta=0.8,
+    init_scale=1000,
+    display_rate=25,
     batch_name="diffusion",
 ):
     """
@@ -62,12 +68,19 @@ def guided_diffusion_generate(
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
-    batch_name: 本次生成的名稱
+    diffusion_steps: 每個batch要跑的step數
+    skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的 0~50%
+    clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
+    eta: 調整每個timestep混入的噪音量(0: 無噪音; 1.0: 最多噪音)
+    init_scale: 增強init_image的效果
+    display_rate: 生成過程的gif多少個step要更新一次
+    batch_name: batch_folder名稱
     """
 
-    anvil.server.task_state.clear()  # 清空task_state
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
-    model, diffusion = load_model_and_diffusion()  # 載入diffusion model和diffusion
+    model, diffusion = load_guided_diffusion_model(
+        diffusion_steps
+    )  # 載入diffusion model和diffusion
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -153,9 +166,7 @@ def guided_diffusion_generate(
                         losses.sum().item()
                     )  # log loss, probably shouldn't do per cutn_batch
                     x_in_grad += (
-                        torch.autograd.grad(
-                            losses.sum() * config.clip_guidance_scale, x_in
-                        )[0]
+                        torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0]
                         / config.cutn_batches
                     )
             tv_losses = tv_loss(x_in)
@@ -173,9 +184,9 @@ def guided_diffusion_generate(
             )
 
             # numpy array, tensor的判斷式使用is not None
-            if init is not None and config.init_scale:
+            if init is not None and init_scale:
                 init_losses = lpips_model(x_in, init)
-                loss = loss + init_losses.sum() * config.init_scale
+                loss = loss + init_losses.sum() * init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
 
             if not torch.isnan(x_in_grad).any():
@@ -207,7 +218,7 @@ def guided_diffusion_generate(
         gc.collect()
         torch.cuda.empty_cache()
         current_timestep = (
-            diffusion.num_timesteps - config.skip_timesteps - 1
+            diffusion.num_timesteps - skip_timesteps - 1
         )  # 將目前timestep的值初始化為總timestep數-1
 
         if use_perlin:
@@ -221,10 +232,10 @@ def guided_diffusion_generate(
             model_kwargs={},
             cond_fn=cond_fn,
             progress=True,
-            skip_timesteps=config.skip_timesteps,
+            skip_timesteps=skip_timesteps,
             init_image=init,
-            randomize_class=config.randomize_class,
-            eta=config.eta,
+            randomize_class=True,
+            eta=eta,
         )
 
         # current_timestep從總timestep數開始；step_index從0開始
@@ -235,36 +246,37 @@ def guided_diffusion_generate(
             anvil.server.task_state["current_step"] = step_index + 1
 
             with image_display:
-                # 如果需要更新、儲存圖片或生成結束時進入
-                if step_index in config.intermediate_saves or current_timestep == -1:
-                    for _, image in enumerate(sample["pred_xstart"]):
-                        filename = f"{batch_name}_{current_batch:04}-{step_index:03}.png"  # 圖片名稱
-                        image = TF.to_pil_image(
-                            image.add(1).div(2).clamp(0, 1)
-                        )  # 轉換為Pillow Image
+                # 更新、儲存圖片
+                for _, image in enumerate(sample["pred_xstart"]):
+                    filename = (
+                        f"{batch_name}_{current_batch}-{step_index:04}.png"  # 圖片名稱
+                    )
+                    image = TF.to_pil_image(
+                        image.add(1).div(2).clamp(0, 1)
+                    )  # 轉換為Pillow Image
+                    image.save(f"{batch_folder}/{filename}")
+                    display.clear_output(wait=True)
+                    display.display(display.Image(f"{batch_folder}/{filename}"))
 
-                        # 需要更新和儲存圖片
-                        if step_index in config.intermediate_saves:
-                            image.save(f"{batch_folder}/{filename}")
-                            # 將目前圖片結果的url存到current_result
-                            url = upload_png(f"{batch_folder}/{filename}")
-                            anvil.server.task_state["current_result"] = url
-                            display.clear_output(wait=True)
-                            display.display(display.Image(f"{batch_folder}/{filename}"))
+                    # 生成結束
+                    if current_timestep == -1:
+                        image.save(f"{batch_folder}/{filename}")
+                        display.display(display.Image(f"{batch_folder}/{filename}"))
+                        display.clear_output()
 
-                        # 生成結束
-                        if current_timestep == -1:
-                            image.save(f"{batch_folder}/{filename}")
-                            display.display(display.Image(f"{batch_folder}/{filename}"))
-                            display.clear_output()
+                    # 將目前圖片結果的url存到current_result
+                    anvil.server.task_state["current_result"] = upload_png(
+                        f"{batch_folder}/{filename}"
+                    )
 
         gc.collect()
         torch.cuda.empty_cache()
-        anvil.server.task_state["current_result"] = upload_png(
-            f"{batch_folder}/{filename}"
-        )
 
-        return upload_gif(batch_folder, batch_name)  # 回傳生成過程的gif url
+        return upload_gif(
+            batch_folder,
+            display_rate,
+            append_last_timestep=diffusion_steps % display_rate,
+        )  # 回傳生成過程的gif url
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
@@ -276,8 +288,8 @@ def latent_diffusion_generate(
     latent_diffusion_guidance_scale=5,
     num_iterations=3,
     num_samples=3,
-    latent_diffusion_steps=50,
-    latent_diffusion_eta=0.0,
+    diffusion_steps=50,
+    eta=0.0,
     chosen_models=["ViT-B/16", "ViT-B/32", "RN50"],
     sample_width=256,
     sample_height=256,
@@ -289,15 +301,14 @@ def latent_diffusion_generate(
     latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
     num_iterations: 做幾次latent diffusion生成
     num_samples: 要生成的圖片數
-    latent_diffusion_steps: latent diffusion要跑的step數
-    latent_diffusion_eta: latent diffusion的eta
+    diffusion_steps: latent diffusion要跑的step數
+    eta: latent diffusion的eta
     chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
-    batch_name: 本次生成的名稱
+    batch_name: batch_folder名稱
     """
 
-    anvil.server.task_state.clear()  # 清空task_state
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
     batch_folder = f"{out_dir_path}/{batch_name}"  # 儲存圖片的資料夾
@@ -328,9 +339,6 @@ def latent_diffusion_generate(
                         gc.collect()
                         torch.cuda.empty_cache()
 
-                        anvil.server.task_state["current_iteration"] = (
-                            current_iteration + 1
-                        )
                         conditioning = latent_diffusion_model.get_learned_conditioning(
                             num_samples * [prompts[0]]
                         )
@@ -338,14 +346,14 @@ def latent_diffusion_generate(
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                         samples_ddim, _ = sampler.sample(
-                            S=latent_diffusion_steps,
+                            S=diffusion_steps,
                             conditioning=conditioning,
                             batch_size=num_samples,
                             shape=shape,
                             verbose=False,
                             unconditional_guidance_scale=latent_diffusion_guidance_scale,
                             unconditional_conditioning=uncoditional_conditioning,
-                            eta=latent_diffusion_eta,
+                            eta=eta,
                         )
 
                         x_samples_ddim = latent_diffusion_model.decode_first_stage(
@@ -380,6 +388,11 @@ def latent_diffusion_generate(
                             )
                             image_vector.save(filename)
                             count += 1
+
+                            # 做完時才記錄current_iteration
+                            anvil.server.task_state["current_iteration"] = (
+                                current_iteration + 1
+                            )
 
                         samples.append(x_samples_ddim)
 
