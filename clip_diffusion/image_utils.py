@@ -65,7 +65,7 @@ def get_image_from_bytes(image_bytes):
     return Image.open(io.BytesIO(image_bytes))
 
 
-def image_to_bytes(image_path):
+def _image_to_bytes(image_path):
     """
     將指定圖片轉為bytes
     """
@@ -81,4 +81,4 @@ def image_to_blob_media(content_type, image_path):
     將指定圖片轉為anvil的BlobMedia
     """
 
-    return BlobMedia(content_type, image_to_bytes(image_path))
+    return BlobMedia(content_type, _image_to_bytes(image_path))
