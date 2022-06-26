@@ -18,7 +18,8 @@ pip install -r requirements.txt
 ```
 
 ### 簡介
-- 這個專題使用了 CLIP 引導 Diffusion 進行 text-to-image generation
+- 使用 CLIP 引導 Guided Diffusion 進行 text-to-image generation，並且
+  融合 Latent Diffusion 生成初始圖片
 - 主要參考並改寫、整合自以下作者、repository 或 colab notebook：
   1. [Disco Diffusion](https://github.com/alembics/disco-diffusion)
   2. [Katherine Crowson](https://github.com/crowsonkb)

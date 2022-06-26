@@ -1,4 +1,4 @@
-import os.path
+import os
 import logging
 import torch
 import gc

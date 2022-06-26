@@ -16,7 +16,7 @@ from clip_diffusion.config import config
 from clip_diffusion.download_utils import (
     DIFFUSION_MODEL_URL,
     SECONDARY_MODEL_URL,
-    LATENT_DIFFUSION_MODEL_REPO,
+    LATENT_DIFFUSION_MODEL_URL,
     BSRGAN_MODEL_URL,
     download,
 )
@@ -320,12 +320,7 @@ def load_latent_diffusion_model():
     model = instantiate_from_config(model_config.model)
     model.load_state_dict(
         torch.load(
-            download(
-                "",
-                LATENT_DIFFUSION_MODEL_NAME,
-                download_from_huggingface=True,
-                repo=LATENT_DIFFUSION_MODEL_REPO,
-            ),
+            download(LATENT_DIFFUSION_MODEL_URL, LATENT_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         ),
         strict=False,

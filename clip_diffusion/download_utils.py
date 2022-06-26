@@ -11,11 +11,11 @@ DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unc
 SECONDARY_MODEL_URL = (
     "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
-LATENT_DIFFUSION_MODEL_REPO = "multimodalart/compvis-latent-diffusion-text2img-large"
+LATENT_DIFFUSION_MODEL_URL = "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
 BSRGAN_MODEL_URL = "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
 
 
-def download(url, model_name, download_from_huggingface=False, repo=None):
+def download(url, model_name):
     """
     下載模型並儲存，回傳儲存位置
     """
@@ -28,13 +28,6 @@ def download(url, model_name, download_from_huggingface=False, repo=None):
             raise RuntimeError(f"{download_target} exists and is not a regular file")
         else:
             return str(download_target)
-
-    if download_from_huggingface:
-        from huggingface_hub import hf_hub_download
-
-        cache_path = hf_hub_download(repo_id=repo, filename=model_name)
-        os.rename(cache_path, download_target)
-        return str(download_target)
 
     with request.urlopen(url) as source, open(download_target_tmp, "wb") as output:
         with tqdm(total=int(source.info().get("Content-Length")), ncols=80) as loop:
