@@ -40,7 +40,7 @@ class _Config:
         self.use_secondary_model = (
             True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
         )
-        self.chosen_clip_models = ["ViT-B/32", "ViT-B/16", "RN50"]
+        self.chosen_clip_models = ["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"]
 
         # Clip相關
         self.clip_denoised = False  # clip是否要區分有噪音和沒有噪音的圖片
@@ -72,7 +72,7 @@ class _Config:
         width=960,
         height=768,
         use_secondary_model=True,
-        chosen_clip_models=["ViT-B/32", "ViT-B/16", "RN50"],
+        chosen_clip_models=["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"],
         clip_denoised=False,
         clamp_grad=True,
         clamp_max=0.05,
