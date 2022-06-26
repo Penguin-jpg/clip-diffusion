@@ -53,7 +53,7 @@ class _Config:
         self.sat_scale = 0  # 控制允許多少飽和
 
         # 生成相關
-        self.seed = self.get_seed()  # 亂數種子
+        self.seed = None  # 亂數種子(會由anvil客戶端做第一次的初始化)
         self.batch_size = 1  # 一次要sample的數量
         self.num_batches = 1  # 要生成的圖片數量
         self.skip_augs = False  # 是否不做圖片的augmentation
