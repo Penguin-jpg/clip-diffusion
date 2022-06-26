@@ -96,7 +96,7 @@ def guided_diffusion_generate(
 
     def cond_fn(x, t, y=None):
         """
-        透過clip引導guided diffusion
+        透過clip引導guided diffusion(計算grad(log(p(y|x))))
         x: 第t-1個timestep的圖片tensor
         t: timestep tensor
         y: class
