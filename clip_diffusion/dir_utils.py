@@ -2,6 +2,10 @@ import os
 import shutil
 
 
+OUTPUT_PATH = "./output_images"  # 儲存輸出圖片的資料夾
+MODEL_PATH = "./models"  # 儲存model的資料夾
+
+
 def remove_old_dirs_and_files(dir_path):
     """
     移除指定路徑下的所有資料夾及檔案
@@ -32,7 +36,3 @@ def make_dir(dir_path, remove_old=False):
 
         if remove_old:
             remove_old_dirs_and_files(dir_path)
-
-
-OUTPUT_PATH = "./output_images"  # 儲存輸出圖片的資料夾
-MODEL_PATH = "./models"  # 儲存model的資料夾

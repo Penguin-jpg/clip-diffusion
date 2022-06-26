@@ -79,7 +79,7 @@ def guided_diffusion_generate(
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     model, diffusion = load_guided_diffusion_model(steps)  # 載入diffusion model和diffusion
-    batch_folder = f"{OUTPUT_PATH}/guided"  # 儲存圖片的資料夾
+    batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
@@ -251,26 +251,27 @@ def guided_diffusion_generate(
                 # 更新、儲存圖片
                 for _, image in enumerate(sample["pred_xstart"]):
                     filename = f"guided_{current_batch}-{step_index:04}.png"  # 圖片名稱
+                    image_path = os.path.join(batch_folder, filename)  # 圖片路徑
                     image = TF.to_pil_image(
                         image.add(1).div(2).clamp(0, 1)
                     )  # 轉換為Pillow Image
-                    image.save(f"{batch_folder}/{filename}")
+                    image.save(image_path)
                     display.clear_output(wait=True)
-                    display.display(display.Image(f"{batch_folder}/{filename}"))
+                    display.display(display.Image(image_path))
 
                     # 生成結束
                     if current_timestep == -1:
-                        image.save(f"{batch_folder}/{filename}")
-                        display.display(display.Image(f"{batch_folder}/{filename}"))
+                        image.save(image_path)
+                        display.display(display.Image(image_path))
                         display.clear_output()
                         # 將最後一個timestep的url存到current_result
                         anvil.server.task_state["current_result"] = upload_png(
-                            f"{batch_folder}/{filename}"
+                            image_path
                         )
                     elif step_index % 15 == 0:  # 每15個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
                         anvil.server.task_state["current_result"] = upload_png(
-                            f"{batch_folder}/{filename}"
+                            image_path
                         )
 
             # 紀錄目前的step
@@ -316,7 +317,7 @@ def latent_diffusion_generate(
 
     prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
-    batch_folder = f"{OUTPUT_PATH}/latent"  # 儲存圖片的資料夾
+    batch_folder = os.path.join(OUTPUT_PATH, "latent")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
@@ -413,7 +414,7 @@ def latent_diffusion_generate(
                     )  # 儲存grid圖片
 
                     urls[model_name] = upload_png(
-                        f"{batch_folder}/{grid_filename}"
+                        os.path.join(batch_folder, grid_filename)
                     )  # 儲存url
 
                     gc.collect()

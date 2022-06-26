@@ -40,9 +40,11 @@ def upload_gif(batch_folder, display_rate=30, append_last_timestep=False):
     if append_last_timestep:
         images.append(Image.open(images_glob[-1]))
 
+    filename = os.path.join(batch_folder, "diffusion.gif")
+
     # 儲存成gif
     images[0].save(
-        fp=f"{batch_folder}/diffusion.gif",
+        fp=filename,
         format="GIF",
         save_all=True,
         append_images=images[1:],
@@ -51,9 +53,7 @@ def upload_gif(batch_folder, display_rate=30, append_last_timestep=False):
     )
 
     # 將生成過程的gif上傳至Imgur
-    gif_image = imgur.upload_image(
-        f"{batch_folder}/diffusion.gif", title="diffusion.gif"
-    )
+    gif_image = imgur.upload_image(filename, title="diffusion.gif")
 
     return gif_image.link  # 回傳url
 
