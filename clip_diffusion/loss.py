@@ -4,18 +4,25 @@ from torch.nn import functional as F
 
 
 def spherical_dist_loss(x, y):
+    """計算大圓距離"""
+
+    # 求x, y最後一個維度的L2 norm(歐基里德距離)
     x = F.normalize(x, dim=-1)
     y = F.normalize(y, dim=-1)
+    # 套入公式(作者有稍微對原式做修改)
     return (x - y).norm(dim=-1).div(2).arcsin().pow(2).mul(2)
 
 
 def tv_loss(input):
-    """L2 total variation loss, as in Mahendran et al."""
+    """計算L2 total variation loss，用來做總變差去躁"""
+
     input = F.pad(input, (0, 1, 0, 1), "replicate")
     x_diff = input[..., :-1, 1:] - input[..., :-1, :-1]
     y_diff = input[..., 1:, :-1] - input[..., :-1, :-1]
-    return (x_diff ** 2 + y_diff ** 2).mean([1, 2, 3])
+    return (x_diff**2 + y_diff**2).mean([1, 2, 3])
 
 
 def range_loss(input):
+    """控制RGB允許的範圍"""
+
     return (input - input.clamp(-1, 1)).pow(2).mean([1, 2, 3])

@@ -12,16 +12,16 @@ from clip_diffusion.prompt_utils import parse_prompt
 from clip_diffusion.image_utils import get_image_from_bytes
 from clip_diffusion.perlin_utils import regen_perlin_no_expand
 
-translator = pipeline(
+_translator = pipeline(
     "translation",
     model="Helsinki-NLP/opus-mt-zh-en",
     tokenizer="Helsinki-NLP/opus-mt-zh-en",
-)  # 中翻英
+)  # 用來中翻英
 
-converter = OpenCC("tw2sp.json")  # 繁體轉簡體
+_converter = OpenCC("tw2sp.json")  # 繁體轉簡體
 
 
-def contains_zh(prompt):
+def _contains_zh(prompt):
     """
     檢查是否包含中文
     """
@@ -38,10 +38,10 @@ def translate_zh_to_en(prompts):
     # 先轉簡體，以符合模型輸入
     for index, prompt in enumerate(prompts):
         # 如果包含中文
-        if contains_zh(prompt):
-            prompt = converter.convert(prompt)
+        if _contains_zh(prompt):
+            prompt = _converter.convert(prompt)
             # 翻譯成英文
-            result = translator(prompt)[0]
+            result = _translator(prompt)[0]
             # 更新prompt
             prompts[index] = result["translation_text"]
 

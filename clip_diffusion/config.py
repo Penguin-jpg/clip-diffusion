@@ -27,14 +27,13 @@ class _Config:
         )  # GPU或CPU
 
         # cutout相關
-        self.cutn = 16  # 要從圖片中做幾次crop
-        self.cutn_batches = 4  # 從cut的batch中累加Clip的梯度
-        self.cut_overview = [12] * 400 + [
+        self.num_cutout_batches = 4  # 要做的cutout次數
+        self.overview_cut_schedule = [12] * 400 + [
             4
-        ] * 600  # 前400/1000個steps會做12個cut；後600/1000個steps會做4個cut
-        self.cut_innercut = [4] * 400 + [12] * 600
-        self.cut_ic_pow = 1  # 控制生成圖片的景物豐富度(越高會有越多物件)
-        self.cut_icgray_p = [0.2] * 400 + [0] * 600  # 控制多少百分比的cut要取出做灰階化
+        ] * 600  # 前400/1000個diffusion steps會做12個cut；後600/1000個steps會做4個cut
+        self.inner_cut_schedule = [4] * 400 + [12] * 600
+        self.inner_cut_size_pow = 1  # 控制生成圖片的景物豐富度(越高會有越多物件)
+        self.cut_gray_portion_schedule = [0.2] * 400 + [0] * 600  # 控制多少百分比的cut要取出做灰階化
 
         # model相關
         self.use_secondary_model = (
@@ -56,7 +55,7 @@ class _Config:
         self.seed = None  # 亂數種子(會由anvil客戶端做第一次的初始化)
         self.batch_size = 1  # 一次要sample的數量
         self.num_batches = 1  # 要生成的圖片數量
-        self.skip_augs = False  # 是否不做圖片的augmentation
+        self.use_augmentation = True  # 是否要做圖片的augmentation
         self.fuzzy_prompt = False  # 是否要加入multiple noisy prompts到prompt losses內
         self.rand_mag = 0.05  # 控制隨機噪音的強度
 
@@ -71,6 +70,11 @@ class _Config:
         self,
         width=960,
         height=768,
+        cutn_batches=4,
+        cut_overview=[12] * 400 + [4] * 600,
+        cut_innercut=[4] * 400 + [12] * 600,
+        cut_ic_pow=1,
+        cut_icgray_p=[0.2] * 400 + [0] * 600,
         use_secondary_model=True,
         chosen_clip_models=["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"],
         clip_denoised=False,
@@ -81,7 +85,7 @@ class _Config:
         sat_scale=0,
         batch_size=1,
         num_batches=1,
-        skip_augs=False,
+        use_augmentation=True,
         fuzzy_prompt=False,
         rand_mag=0.05,
     ):
@@ -91,6 +95,11 @@ class _Config:
 
         self.width = width
         self.height = height
+        self.num_cutout_batches = cutn_batches
+        self.overview_cut_schedule = cut_overview
+        self.inner_cut_schedule = cut_innercut
+        self.inner_cut_size_pow = cut_ic_pow
+        self.cut_gray_portion_schedule = cut_icgray_p
         self.side_x = (self.width // 64) * 64
         self.side_y = (self.height // 64) * 64
         self.use_secondary_model = use_secondary_model
@@ -103,7 +112,7 @@ class _Config:
         self.sat_scale = sat_scale
         self.batch_size = batch_size
         self.num_batches = num_batches
-        self.skip_augs = skip_augs
+        self.use_augmentation = use_augmentation
         self.fuzzy_prompt = fuzzy_prompt
         self.rand_mag = rand_mag
 

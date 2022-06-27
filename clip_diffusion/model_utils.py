@@ -60,7 +60,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True):
             "class_cond": False,
             "diffusion_steps": (
                 (1000 // steps) * steps if steps < 1000 else steps
-            ),  # 如果steps小於1000，就將diffusion_steps補正到接近1000
+            ),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
             "rescale_timesteps": True,
             "timestep_respacing": f"ddim{steps}",  # 調整diffusion的timestep數量(使用DDIM sample)
             "image_size": 512,

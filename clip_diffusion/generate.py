@@ -29,7 +29,7 @@ from clip_diffusion.model_utils import (
     load_guided_diffusion_model,
     load_secondary_model,
 )
-from clip_diffusion.cutouts import MakeCutoutsDango
+from clip_diffusion.cutouts import MakeCutouts
 from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.image_utils import upload_png, upload_gif
@@ -97,13 +97,13 @@ def guided_diffusion_generate(
     def cond_fn(x, t, y=None):
         """
         透過clip引導guided diffusion(計算grad(log(p(y|x))))
-        x: 第t-1個timestep的圖片tensor
-        t: timestep tensor
+        x: 上一個timestep的圖片tensor
+        t: diffusion timestep tensor
         y: class
         """
         with torch.enable_grad():
             x_is_NaN = False  # x是否為NaN
-            x = x.detach().requires_grad_()  # 將x從compute
+            x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
             n = x.shape[0]  # batch size
 
             # 使用secondary_model加速生成
@@ -136,19 +136,19 @@ def guided_diffusion_generate(
                 x_in_grad = torch.zeros_like(x_in)
 
             for model_stat in model_stats:
-                for _ in range(config.cutn_batches):
-                    t_int = int(t.item()) + 1  # 將t的值從tensor取出(加1是因為t從0開始)
-                    input_resolution = model_stat[
-                        "clip_model"
-                    ].visual.input_resolution  # Clip模型對應的input resolution
-
-                    # 做cutouts
-                    cuts = MakeCutoutsDango(
-                        input_resolution,
-                        Overview=config.cut_overview[1000 - t_int],
-                        InnerCrop=config.cut_innercut[1000 - t_int],
-                        IC_Size_Pow=config.cut_ic_pow,
-                        IC_Grey_P=config.cut_icgray_p[1000 - t_int],
+                # 做cutout
+                for _ in range(config.num_cutout_batches):
+                    # 將t的值從tensor取出(t每次進入cond_fn時會減掉(1000/steps))
+                    t_value = int(t.item()) + 1
+                    # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
+                    cuts = MakeCutouts(
+                        cut_size=model_stat["clip_model"].visual.input_resolution,
+                        overview=config.overview_cut_schedule[1000 - t_value],
+                        inner_cut=config.inner_cut_schedule[1000 - t_value],
+                        inner_cut_size_pow=config.inner_cut_size_pow,
+                        cut_gray_portion=config.cut_gray_portion_schedule[
+                            1000 - t_value
+                        ],
                     )
                     clip_in = normalize(cuts(x_in.add(1).div(2)))
                     image_embeds = (
@@ -160,8 +160,8 @@ def guided_diffusion_generate(
                     )
                     dists = dists.view(
                         [
-                            config.cut_overview[1000 - t_int]
-                            + config.cut_innercut[1000 - t_int],
+                            config.overview_cut_schedule[1000 - t_value]
+                            + config.inner_cut_schedule[1000 - t_value],
                             n,
                             -1,
                         ]
@@ -172,7 +172,7 @@ def guided_diffusion_generate(
                     )  # log loss, probably shouldn't do per cutn_batch
                     x_in_grad += (
                         torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0]
-                        / config.cutn_batches
+                        / config.num_cutout_batches
                     )
             tv_losses = tv_loss(x_in)
 
