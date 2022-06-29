@@ -12,7 +12,7 @@ from clip_diffusion.utils.prompt_utils import parse_prompt
 from clip_diffusion.utils.image_utils import get_image_from_bytes
 from clip_diffusion.utils.perlin_utils import regen_perlin_no_expand
 
-_device = torch.device("cuda:0")
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _translator = pipeline(
     "translation",
     model="Helsinki-NLP/opus-mt-zh-en",
