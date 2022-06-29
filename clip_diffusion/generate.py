@@ -143,7 +143,9 @@ def guided_diffusion_generate(
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
                     cuts = MakeCutouts(
-                        cut_size=clip_model_stat["input_resolution"],
+                        cut_size=clip_model_stat[
+                            "clip_model"
+                        ].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[1000 - t_value],
                         inner_cut=config.inner_cut_schedule[1000 - t_value],
                         inner_cut_size_pow=config.inner_cut_size_pow,

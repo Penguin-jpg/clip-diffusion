@@ -132,7 +132,7 @@ def get_embedding_and_weights(prompts, clip_models):
 
     for clip_model in clip_models:
         clip_model_stat = {
-            "input_resolution": clip_model.visual.input_resolution,  # Clip model對應的圖片input resolution
+            "clip_model": clip_model,  # 對應的Clip model
             "target_embeddings": [],  # text的embedding
             "make_cutouts": None,  # 後續用來儲存cutout
             "weights": [],  # text對應的權重
