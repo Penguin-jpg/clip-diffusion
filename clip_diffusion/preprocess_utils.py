@@ -123,7 +123,7 @@ def set_seed():
     torch.backends.cudnn.deterministic = True
 
 
-def get_embedding_and_weights(prompts, clip_models):
+def get_embedding_and_text_weights(prompts, clip_models):
     """
     取得prompt的embedding及weight
     """
@@ -133,9 +133,9 @@ def get_embedding_and_weights(prompts, clip_models):
     for clip_model in clip_models:
         clip_model_stat = {
             "clip_model": clip_model,  # 對應的Clip model
-            "target_embeddings": [],  # text的embedding
+            "text_embeddings": [],  # text的embedding
             "make_cutouts": None,  # 後續用來儲存cutout
-            "weights": [],  # text對應的權重
+            "text_weights": [],  # text對應的權重
         }
         for prompt in prompts:
             text, weight = parse_prompt(prompt)  # 取得text及weight
@@ -143,26 +143,26 @@ def get_embedding_and_weights(prompts, clip_models):
                 clip.tokenize(prompt).to(config.device)
             ).float()
 
-            clip_model_stat["target_embeddings"].append(text)
-            clip_model_stat["weights"].append(weight)
+            clip_model_stat["text_embeddings"].append(text)
+            clip_model_stat["text_weights"].append(weight)
 
-        clip_model_stat["target_embeddings"] = torch.cat(
-            clip_model_stat["target_embeddings"]
+        clip_model_stat["text_embeddings"] = torch.cat(
+            clip_model_stat["text_embeddings"]
         )
-        clip_model_stat["weights"] = torch.tensor(
-            clip_model_stat["weights"], device=config.device
+        clip_model_stat["text_weights"] = torch.tensor(
+            clip_model_stat["text_weights"], device=config.device
         )
 
-        if clip_model_stat["weights"].sum().abs() < 1e-3:
-            raise RuntimeError("The weights must not sum to 0.")
+        if clip_model_stat["text_weights"].sum().abs() < 1e-3:
+            raise RuntimeError("The text_weights must not sum to 0.")
 
-        clip_model_stat["weights"] /= clip_model_stat["weights"].sum().abs()
+        clip_model_stat["text_weights"] /= clip_model_stat["text_weights"].sum().abs()
         clip_model_stats.append(clip_model_stat)
 
     return clip_model_stats
 
 
-def create_init_noise(init_image=None, use_perlin=True, perlin_mode="mixed"):
+def create_init_noise(init_image=None, use_perlin=False, perlin_mode="mixed"):
     """
     建立初始雜訊(init_image或perlin noise只能擇一)
     """

@@ -159,7 +159,7 @@ def guided_diffusion_generate(
                     )
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
-                        clip_model_stat["target_embeddings"].unsqueeze(0),
+                        clip_model_stat["text_embeddings"].unsqueeze(0),
                     )
                     dists = dists.view(
                         [
@@ -169,7 +169,7 @@ def guided_diffusion_generate(
                             -1,
                         ]
                     )
-                    losses = dists.mul(clip_model_stat["weights"]).sum(2).mean(0)
+                    losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(
                         losses.sum().item()
                     )  # log loss, probably shouldn't do per cutn_batch

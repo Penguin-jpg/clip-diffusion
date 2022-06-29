@@ -14,7 +14,7 @@ from guided_diffusion.script_util import (
 from bsrgan.models import RRDBNet
 from clip_diffusion.config import config
 from clip_diffusion.download_utils import (
-    DIFFUSION_MODEL_URL,
+    GUIDED_DIFFUSION_MODEL_URL,
     SECONDARY_MODEL_URL,
     LATENT_DIFFUSION_MODEL_URL,
     BSRGAN_MODEL_URL,
@@ -78,7 +78,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True):
     model, diffusion = create_model_and_diffusion(**model_config)
     model.load_state_dict(
         torch.load(
-            download(DIFFUSION_MODEL_URL, GUIDED_DIFFUSION_MODEL_NAME),
+            download(GUIDED_DIFFUSION_MODEL_URL, GUIDED_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         )
     )
