@@ -8,7 +8,7 @@ from clip_diffusion.config import config
 # 1. https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 # 2. disco diffusion
 
-_device = torch.device("cuda:0")  # 需要強制使用cuda，不然有些會被放到cpu(不知道為什麼)
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def fade_power_3(t):
