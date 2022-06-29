@@ -56,8 +56,6 @@ class _Config:
         self.batch_size = 1  # 一次要sample的數量
         self.num_batches = 1  # 要生成的圖片數量
         self.use_augmentation = True  # 是否要做圖片的augmentation
-        self.fuzzy_prompt = False  # 是否要加入multiple noisy prompts到prompt losses內
-        self.rand_mag = 0.05  # 控制隨機噪音的強度
 
     def get_seed(self):
         """
@@ -86,8 +84,6 @@ class _Config:
         batch_size=1,
         num_batches=1,
         use_augmentation=True,
-        fuzzy_prompt=False,
-        rand_mag=0.05,
     ):
         """
         調整設定
@@ -113,8 +109,6 @@ class _Config:
         self.batch_size = batch_size
         self.num_batches = num_batches
         self.use_augmentation = use_augmentation
-        self.fuzzy_prompt = fuzzy_prompt
-        self.rand_mag = rand_mag
 
 
 config = _Config()

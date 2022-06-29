@@ -143,17 +143,8 @@ def get_embedding_and_weights(prompts, clip_models):
                 clip.tokenize(prompt).to(config.device)
             ).float()
 
-            if config.fuzzy_prompt:
-                for _ in range(25):
-                    clip_model_stat["target_embeddings"].append(
-                        (text + torch.randn(text.shape).cuda() * config.rand_mag).clamp(
-                            0, 1
-                        )
-                    )
-                    clip_model_stat["weights"].append(weight)
-            else:
-                clip_model_stat["target_embeddings"].append(text)
-                clip_model_stat["weights"].append(weight)
+            clip_model_stat["target_embeddings"].append(text)
+            clip_model_stat["weights"].append(weight)
 
         clip_model_stat["target_embeddings"] = torch.cat(
             clip_model_stat["target_embeddings"]
