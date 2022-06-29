@@ -14,14 +14,14 @@ from ldm.models.diffusion.ddim import DDIMSampler
 from einops import rearrange
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
-from clip_diffusion.preprocess_utils import (
+from clip_diffusion.utils.preprocess_utils import (
     prompts_preprocessing,
     set_seed,
     get_embedding_and_weights,
     create_init_noise,
 )
-from clip_diffusion.perlin_utils import regen_perlin
-from clip_diffusion.model_utils import (
+from clip_diffusion.utils.perlin_utils import regen_perlin
+from clip_diffusion.models import (
     load_clip_models_and_preprocessings,
     load_guided_diffusion_model,
     load_secondary_model,
@@ -29,17 +29,17 @@ from clip_diffusion.model_utils import (
     load_bsrgan_model,
     load_latent_diffusion_model,
 )
-from clip_diffusion.cutouts import MakeCutouts
-from clip_diffusion.loss import spherical_dist_loss, tv_loss, range_loss
-from clip_diffusion.dir_utils import make_dir, OUTPUT_PATH
-from clip_diffusion.image_utils import upload_png, upload_gif
-from clip_diffusion.sr_utils import super_resolution
+from clip_diffusion.text_to_image.cutouts import MakeCutouts
+from clip_diffusion.text_to_image.loss import spherical_dist_loss, tv_loss, range_loss
+from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
+from clip_diffusion.utils.image_utils import upload_png, upload_gif, super_resolution
 
 
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )  # Clip用到的normalize
-_lpips_model = lpips.LPIPS(net="vgg").to(config.device)
+_lpips_model = lpips.LPIPS(net="vgg").to(_device)
 _clip_models, _preprocessings = load_clip_models_and_preprocessings(
     config.chosen_clip_models
 )
@@ -111,12 +111,12 @@ def guided_diffusion_generate(
             if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[current_timestep],
-                    device=config.device,
+                    device=_device,
                     dtype=torch.float32,
                 )
                 sigma = torch.tensor(
                     diffusion.sqrt_one_minus_alphas_cumprod[current_timestep],
-                    device=config.device,
+                    device=_device,
                     dtype=torch.float32,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
@@ -126,8 +126,7 @@ def guided_diffusion_generate(
                 x_in_grad = torch.zeros_like(x_in)
             else:
                 my_t = (
-                    torch.ones([n], device=config.device, dtype=torch.long)
-                    * current_timestep
+                    torch.ones([n], device=_device, dtype=torch.long) * current_timestep
                 )
                 out = diffusion.p_mean_variance(
                     model, x, my_t, clip_denoised=False, model_kwargs={"y": y}
@@ -230,7 +229,7 @@ def guided_diffusion_generate(
         )  # 將目前timestep的值初始化為總timestep數-1
 
         if use_perlin:
-            init = regen_perlin(perlin_mode)
+            init = regen_perlin(perlin_mode, config.batch_size)
 
         # 使用DDIM進行sample
         samples = diffusion.ddim_sample_loop_progressive(
@@ -384,7 +383,7 @@ def latent_diffusion_generate(
                             image_preprocess = (
                                 _preprocessings[model_name](image_vector)
                                 .unsqueeze(0)
-                                .to(config.device)
+                                .to(_device)
                             )
 
                             with torch.no_grad():

@@ -1,4 +1,3 @@
-import torch
 import random
 
 INT_MAX = 2**32
@@ -6,7 +5,7 @@ INT_MAX = 2**32
 
 class _Config:
     """
-    將設定統整在一個class
+    將生成設定統整在這個class
     """
 
     def __init__(self):
@@ -20,11 +19,6 @@ class _Config:
         # resize用的x, y(一定要是64的倍數)
         self.side_x = (self.width // 64) * 64
         self.side_y = (self.height // 64) * 64
-
-        # device
-        self.device = torch.device(
-            "cuda:0" if torch.cuda.is_available() else "cpu"
-        )  # GPU或CPU
 
         # cutout相關
         self.num_cutout_batches = 4  # 要做的cutout次數

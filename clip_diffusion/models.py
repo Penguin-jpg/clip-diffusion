@@ -1,7 +1,11 @@
 import torch
 import clip
 import math
+import os
 import gc
+from urllib import request
+from pathlib import Path
+from tqdm import tqdm
 from torch import nn
 from dataclasses import dataclass
 from functools import partial
@@ -12,21 +16,51 @@ from guided_diffusion.script_util import (
     create_model_and_diffusion,
 )
 from bsrgan.models import RRDBNet
-from clip_diffusion.config import config
-from clip_diffusion.download_utils import (
-    GUIDED_DIFFUSION_MODEL_URL,
-    SECONDARY_MODEL_URL,
-    LATENT_DIFFUSION_MODEL_URL,
-    BSRGAN_MODEL_URL,
-    download,
-)
+from clip_diffusion.utils.dir_utils import MODEL_PATH
 
-GUIDED_DIFFUSION_MODEL_NAME = (
-    "512x512_diffusion_uncond_finetune_008100.pt"  # 使用的diffusion model checkpoint
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# 下載網址
+GUIDED_DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
+SECONDARY_MODEL_URL = (
+    "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
 )
-SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"  # 使用的secondary model checkpoint
-LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"  # 使用的latent diffusion model checkpoint
-BSRGAN_MODEL_NAME = "BSRGAN.pth"  # 使用的bsrgan model checkpoint
+LATENT_DIFFUSION_MODEL_URL = "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
+BSRGAN_MODEL_URL = "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
+
+# 模型名稱
+GUIDED_DIFFUSION_MODEL_NAME = "512x512_diffusion_uncond_finetune_008100.pt"
+SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"
+LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"
+BSRGAN_MODEL_NAME = "BSRGAN.pth"
+
+
+# 參考並修改自：https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
+def _download_model(url, model_name):
+    """
+    下載模型並儲存，回傳儲存位置
+    """
+
+    download_target = Path(os.path.join(MODEL_PATH, model_name))
+    download_target_tmp = download_target.with_suffix(".tmp")
+
+    if os.path.exists(download_target):
+        if not os.path.isfile(download_target):
+            raise RuntimeError(f"{download_target} exists and is not a regular file")
+        else:
+            return str(download_target)
+
+    with request.urlopen(url) as source, open(download_target_tmp, "wb") as output:
+        with tqdm(total=int(source.info().get("Content-Length")), ncols=80) as loop:
+            while True:
+                buffer = source.read(4096)
+                if not buffer:
+                    break
+                output.write(buffer)
+                loop.update(len(buffer))
+
+    os.rename(download_target_tmp, download_target)
+    return str(download_target)
 
 
 def load_clip_models_and_preprocessings(chosen_models):
@@ -38,7 +72,7 @@ def load_clip_models_and_preprocessings(chosen_models):
     preprocessings = {}
 
     for model_name in chosen_models:
-        model, preprocess = clip.load(model_name, config.device)
+        model, preprocess = clip.load(model_name, _device)
         clip_models[model_name] = model.eval().requires_grad_(False)
         preprocessings[model_name] = preprocess
 
@@ -48,7 +82,7 @@ def load_clip_models_and_preprocessings(chosen_models):
     return clip_models, preprocessings
 
 
-def load_guided_diffusion_model(steps=200, use_checkpoint=True):
+def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True):
     """
     載入guided diffusion model和diffusion
     """
@@ -71,24 +105,24 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True):
             "num_res_blocks": 2,
             "resblock_updown": True,
             "use_checkpoint": use_checkpoint,  # 使用gradient checkpoint
-            "use_fp16": True,
+            "use_fp16": use_fp16,
             "use_scale_shift_norm": True,
         }
     )
     model, diffusion = create_model_and_diffusion(**model_config)
     model.load_state_dict(
         torch.load(
-            download(GUIDED_DIFFUSION_MODEL_URL, GUIDED_DIFFUSION_MODEL_NAME),
+            _download_model(GUIDED_DIFFUSION_MODEL_URL, GUIDED_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(config.device)
+    model.eval().requires_grad_(False).to(_device)
 
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:
             param.requires_grad_()
 
-    if model_config["use_fp16"]:
+    if use_fp16:
         model.convert_to_fp16()
 
     gc.collect()
@@ -295,11 +329,11 @@ def load_secondary_model():
     model = SecondaryDiffusionImageNet2()
     model.load_state_dict(
         torch.load(
-            download(SECONDARY_MODEL_URL, SECONDARY_MODEL_NAME),
+            _download_model(SECONDARY_MODEL_URL, SECONDARY_MODEL_NAME),
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(config.device)
+    model.eval().requires_grad_(False).to(_device)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -320,12 +354,12 @@ def load_latent_diffusion_model():
     model = instantiate_from_config(model_config.model)
     model.load_state_dict(
         torch.load(
-            download(LATENT_DIFFUSION_MODEL_URL, LATENT_DIFFUSION_MODEL_NAME),
+            _download_model(LATENT_DIFFUSION_MODEL_URL, LATENT_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         ),
         strict=False,
     )
-    model.half().eval().requires_grad_(False).to(config.device)
+    model.half().eval().requires_grad_(False).to(_device)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -340,10 +374,12 @@ def load_bsrgan_model():
 
     model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32, sf=4)
     model.load_state_dict(
-        torch.load(download(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"),
+        torch.load(
+            _download_model(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"
+        ),
         strict=True,
     )
-    model.eval().requires_grad_(False).to(config.device)
+    model.eval().requires_grad_(False).to(_device)
 
     gc.collect()
     torch.cuda.empty_cache()
