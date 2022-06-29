@@ -46,7 +46,7 @@ def _contains_zh(prompt):
     return False
 
 
-def translate_zh_to_en(prompts):
+def _translate_zh_to_en(prompts):
     """
     將中文翻譯成英文
     """
@@ -90,7 +90,7 @@ def _append_styles_to_prompts(prompts, styles=["自訂"]):
 
         # 需要時補回據點
         if append_period:
-            prompts += "."
+            prompt += "."
 
         # 更新prompts
         prompts[index] = prompt
@@ -104,7 +104,7 @@ def prompts_preprocessing(prompts, styles=["自訂"]):
     """
 
     # 先中翻英
-    prompts = translate_zh_to_en(prompts)
+    prompts = _translate_zh_to_en(prompts)
     # 根據選擇的風格做prompt engineering
     prompts = _append_styles_to_prompts(prompts, styles)
 

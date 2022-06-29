@@ -15,7 +15,6 @@ from einops import rearrange
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
 from clip_diffusion.preprocess_utils import (
-    translate_zh_to_en,
     prompts_preprocessing,
     set_seed,
     get_embedding_and_weights,
@@ -317,7 +316,7 @@ def latent_diffusion_generate(
     sample_height: sample圖片的高
     """
 
-    prompts = translate_zh_to_en(prompts)  # 將prompts翻成英文
+    prompts = prompts_preprocessing(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(_latent_diffusion_model)  # 建立DDIM sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
