@@ -1,3 +1,4 @@
+import torch
 import random
 
 INT_MAX = 2**32
@@ -13,6 +14,7 @@ class _Config:
         初始化預設值
         """
 
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # 圖片長寬相關
         self.width = 960  # 生成圖片的寬度
         self.height = 768  # 　生成圖片的高度

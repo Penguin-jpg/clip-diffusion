@@ -8,8 +8,6 @@ from clip_diffusion.config import config
 # 1. https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 # 2. disco diffusion
 
-_device = torch.device("cuda:0")  # 需要強制使用cuda，不然有些會被放到cpu(不知道為什麼)
-
 
 def fade_power_3(t):
     """
@@ -37,8 +35,8 @@ def perlin(power, width, height, scale=10):
     # 隨機展生的梯度
     gx, gy = torch.randn(2, width + 1, height + 1, 1, 1)
     # 二維平面上的4個向量(噪音圖的4個頂點)，這些向量帶有高度
-    xs = torch.linspace(0, 1, scale + 1)[:-1, None].to(_device)
-    ys = torch.linspace(0, 1, scale + 1)[None, :-1].to(_device)
+    xs = torch.linspace(0, 1, scale + 1)[:-1, None].to(config.device)
+    ys = torch.linspace(0, 1, scale + 1)[None, :-1].to(config.device)
     # joint fade function(x, y皆參與影響)
     # 越接近1影響力要越大時就用x(或y)
     # 越接近0影響力越大時就用1-x(或1-y)
@@ -94,7 +92,7 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     return out
 
 
-def regen_perlin(perlin_mode, batch_size):
+def regen_perlin(perlin_mode):
     """
     重新生成perlin noise
     """
@@ -113,13 +111,13 @@ def regen_perlin(perlin_mode, batch_size):
         TF.to_tensor(init)
         .add(TF.to_tensor(init2))
         .div(2)
-        .to(_device)
+        .to(config.device)
         .unsqueeze(0)
         .mul(2)
         .sub(1)
     )
     del init2
-    return init.expand(batch_size, -1, -1, -1)
+    return init.expand(config.batch_size, -1, -1, -1)
 
 
 def regen_perlin_no_expand(perlin_mode):
@@ -141,7 +139,7 @@ def regen_perlin_no_expand(perlin_mode):
         TF.to_tensor(init)
         .add(TF.to_tensor(init2))
         .div(2)
-        .to(_device)
+        .to(config.device)
         .unsqueeze(0)
         .mul(2)
         .sub(1)

@@ -16,9 +16,8 @@ from guided_diffusion.script_util import (
     create_model_and_diffusion,
 )
 from bsrgan.models import RRDBNet
+from clip_diffusion.config import config
 from clip_diffusion.utils.dir_utils import MODEL_PATH
-
-_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # 下載網址
 GUIDED_DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
@@ -72,7 +71,7 @@ def load_clip_models_and_preprocessings(chosen_models):
     preprocessings = {}
 
     for model_name in chosen_models:
-        model, preprocess = clip.load(model_name, _device)
+        model, preprocess = clip.load(model_name, config.device)
         clip_models[model_name] = model.eval().requires_grad_(False)
         preprocessings[model_name] = preprocess
 
@@ -116,7 +115,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True):
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(_device)
+    model.eval().requires_grad_(False).to(config.device)
 
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:
@@ -333,7 +332,7 @@ def load_secondary_model():
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(_device)
+    model.eval().requires_grad_(False).to(config.device)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -359,7 +358,7 @@ def load_latent_diffusion_model():
         ),
         strict=False,
     )
-    model.half().eval().requires_grad_(False).to(_device)
+    model.half().eval().requires_grad_(False).to(config.device)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -379,7 +378,7 @@ def load_bsrgan_model():
         ),
         strict=True,
     )
-    model.eval().requires_grad_(False).to(_device)
+    model.eval().requires_grad_(False).to(config.device)
 
     gc.collect()
     torch.cuda.empty_cache()

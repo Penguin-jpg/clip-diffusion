@@ -12,7 +12,6 @@ from clip_diffusion.utils.prompt_utils import parse_prompt
 from clip_diffusion.utils.image_utils import get_image_from_bytes
 from clip_diffusion.utils.perlin_utils import regen_perlin_no_expand
 
-_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _translator = pipeline(
     "translation",
     model="Helsinki-NLP/opus-mt-zh-en",
@@ -140,7 +139,9 @@ def get_embedding_and_weights(prompts, clip_models):
         }
         for prompt in prompts:
             text, weight = parse_prompt(prompt)  # 取得text及weight
-            text = clip_model.encode_text(clip.tokenize(prompt).to(_device)).float()
+            text = clip_model.encode_text(
+                clip.tokenize(prompt).to(config.device)
+            ).float()
 
             clip_model_stat["text_embeddings"].append(text)
             clip_model_stat["text_weights"].append(weight)
@@ -149,7 +150,7 @@ def get_embedding_and_weights(prompts, clip_models):
             clip_model_stat["text_embeddings"]
         )
         clip_model_stat["text_weights"] = torch.tensor(
-            clip_model_stat["text_weights"], device=_device
+            clip_model_stat["text_weights"], device=config.device
         )
 
         if clip_model_stat["text_weights"].sum().abs() < 1e-3:
@@ -174,7 +175,9 @@ def create_init_noise(init_image=None, use_perlin=False, perlin_mode="mixed"):
             "RGB"
         )  # 透過anvil傳來的圖片的bytes開啟圖片
         init_noise = init_noise.resize((config.side_x, config.side_y), Image.LANCZOS)
-        init_noise = TF.to_tensor(init_noise).to(_device).unsqueeze(0).mul(2).sub(1)
+        init_noise = (
+            TF.to_tensor(init_noise).to(config.device).unsqueeze(0).mul(2).sub(1)
+        )
     elif use_perlin:  # 使用perlin noise
         init_noise = regen_perlin_no_expand(perlin_mode)
 
