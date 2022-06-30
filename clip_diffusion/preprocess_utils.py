@@ -88,7 +88,7 @@ def _append_styles_to_prompts(prompts, styles=["自訂"]):
         for style in styles:
             prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
 
-        # 需要時補回據點
+        # 需要時補回句點
         if append_period:
             prompt += "."
 
