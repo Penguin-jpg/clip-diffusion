@@ -15,6 +15,12 @@ pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
 pip install -e ./BSRGAN
 pip install -r requirements.txt
+# 若要使用 Instance Segmentation 的功能才需額外安裝
+pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+rm -rf mmdetection
+git clone https://github.com/open-mmlab/mmdetection.git
+pip install -e ./mmdetection
 ```
 
 ### 簡介
@@ -30,4 +36,3 @@ pip install -r requirements.txt
   7. [VQGAN+CLIP](https://colab.research.google.com/drive/1go6YwMFe5MX6XM9tv-cnQiSTU50N9EeT?fbclid=IwAR30ZqxIJG0-2wDukRydFA3jU5OpLHrlC_Sg1iRXqmoTkEhaJtHdRi6H7AI)
   8. [latent diffusion huggingface](https://huggingface.co/spaces/multimodalart/latentdiffusion)
 - 使用 [anvil](https://anvil.works/) 撰寫網頁前端及伺服器功能
-- 因為 anvil 不能序列化任意物件，為了配合，程式碼的相依性會比較高
