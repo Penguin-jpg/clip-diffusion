@@ -8,6 +8,8 @@ from clip_diffusion.config import config
 # 1. https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 # 2. disco diffusion
 
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def fade_power_3(t):
     """
@@ -33,10 +35,10 @@ def perlin(power, width, height, scale=10):
         fade = fade_power_3
 
     # 隨機展生的梯度
-    gx, gy = torch.randn(2, width + 1, height + 1, 1, 1)
+    gx, gy = torch.randn(2, width + 1, height + 1, 1, 1).to(_device)
     # 二維平面上的4個向量(噪音圖的4個頂點)，這些向量帶有高度
-    xs = torch.linspace(0, 1, scale + 1)[:-1, None].to(config.device)
-    ys = torch.linspace(0, 1, scale + 1)[None, :-1].to(config.device)
+    xs = torch.linspace(0, 1, scale + 1)[:-1, None].to(_device)
+    ys = torch.linspace(0, 1, scale + 1)[None, :-1].to(_device)
     # joint fade function(x, y皆參與影響)
     # 越接近1影響力要越大時就用x(或y)
     # 越接近0影響力越大時就用1-x(或1-y)
@@ -111,7 +113,7 @@ def regen_perlin(perlin_mode):
         TF.to_tensor(init)
         .add(TF.to_tensor(init2))
         .div(2)
-        .to(config.device)
+        .to(_device)
         .unsqueeze(0)
         .mul(2)
         .sub(1)
@@ -139,7 +141,7 @@ def regen_perlin_no_expand(perlin_mode):
         TF.to_tensor(init)
         .add(TF.to_tensor(init2))
         .div(2)
-        .to(config.device)
+        .to(_device)
         .unsqueeze(0)
         .mul(2)
         .sub(1)

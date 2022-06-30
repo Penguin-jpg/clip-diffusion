@@ -15,9 +15,9 @@ from bsrgan.utils_image import (
     imsave,
 )
 from bsrgan.utils_logger import logger_info
-from clip_diffusion.config import config
 from clip_diffusion.utils.dir_utils import make_dir
 
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(CLIENT_ID)
 
@@ -115,7 +115,7 @@ def super_resolution(model, batch_folder, exception_paths=[]):
 
             # 原圖轉tensor
             original_image = imread_uint(image_path, n_channels=3)
-            original_image = uint2tensor4(original_image).to(config.device)
+            original_image = uint2tensor4(original_image).to(_device)
 
             # 進行sr
             result_image = model(original_image)

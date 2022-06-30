@@ -34,11 +34,11 @@ from clip_diffusion.text_to_image.loss import spherical_dist_loss, tv_loss, rang
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import upload_png, upload_gif, super_resolution
 
-
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
 )  # Clip用到的normalize
-_lpips_model = lpips.LPIPS(net="vgg").to(config.device)
+_lpips_model = lpips.LPIPS(net="vgg").to(_device)
 _clip_models, _preprocessings = load_clip_models_and_preprocessings(
     config.chosen_clip_models
 )
@@ -110,12 +110,12 @@ def guided_diffusion_generate(
             if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[current_timestep],
-                    device=config.device,
+                    device=_device,
                     dtype=torch.float32,
                 )
                 sigma = torch.tensor(
                     diffusion.sqrt_one_minus_alphas_cumprod[current_timestep],
-                    device=config.device,
+                    device=_device,
                     dtype=torch.float32,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
@@ -125,8 +125,7 @@ def guided_diffusion_generate(
                 x_in_grad = torch.zeros_like(x_in)
             else:
                 my_t = (
-                    torch.ones([n], device=config.device, dtype=torch.long)
-                    * current_timestep
+                    torch.ones([n], device=_device, dtype=torch.long) * current_timestep
                 )
                 out = diffusion.p_mean_variance(
                     model, x, my_t, clip_denoised=False, model_kwargs={"y": y}
@@ -383,7 +382,7 @@ def latent_diffusion_generate(
                             image_preprocess = (
                                 _preprocessings[model_name](image_vector)
                                 .unsqueeze(0)
-                                .to(config.device)
+                                .to(_device)
                             )
 
                             with torch.no_grad():
