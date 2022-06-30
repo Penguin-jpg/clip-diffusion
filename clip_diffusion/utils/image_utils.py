@@ -17,9 +17,9 @@ from bsrgan.utils_image import (
 from bsrgan.utils_logger import logger_info
 from clip_diffusion.utils.dir_utils import make_dir
 
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(CLIENT_ID)
-_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def upload_png(image_path):

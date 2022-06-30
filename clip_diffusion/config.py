@@ -1,3 +1,4 @@
+import torch
 import random
 
 INT_MAX = 2**32

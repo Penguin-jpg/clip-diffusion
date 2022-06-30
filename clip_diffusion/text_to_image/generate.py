@@ -34,7 +34,6 @@ from clip_diffusion.text_to_image.loss import spherical_dist_loss, tv_loss, rang
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import upload_png, upload_gif, super_resolution
 
-
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _normalize = T.Normalize(
     mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
@@ -229,7 +228,7 @@ def guided_diffusion_generate(
         )  # 將目前timestep的值初始化為總timestep數-1
 
         if use_perlin:
-            init = regen_perlin(perlin_mode, config.batch_size)
+            init = regen_perlin(perlin_mode)
 
         # 使用DDIM進行sample
         samples = diffusion.ddim_sample_loop_progressive(
