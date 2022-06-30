@@ -17,7 +17,7 @@ from clip_diffusion.config import config
 from clip_diffusion.preprocess_utils import (
     prompts_preprocessing,
     set_seed,
-    get_embedding_and_weights,
+    get_embedding_and_text_weights,
     create_init_noise,
 )
 from clip_diffusion.perlin_utils import regen_perlin
@@ -87,7 +87,7 @@ def guided_diffusion_generate(
     set_seed()
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embedding_and_weights(prompts, _clip_models.values())
+    clip_model_stats = get_embedding_and_text_weights(prompts, _clip_models.values())
 
     # 建立初始雜訊
     init = create_init_noise(init_image, use_perlin, perlin_mode)
