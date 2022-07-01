@@ -155,7 +155,7 @@ def guided_diffusion_generate(
                     )
                     clip_in = _normalize(cuts(x_in.add(1).div(2)))
                     image_embeddings = (
-                        _clip_models[clip_model_stat["clip_model"]]
+                        _clip_models[clip_model_stat["clip_model_name"]]
                         .encode_image(clip_in)
                         .float()
                     )
