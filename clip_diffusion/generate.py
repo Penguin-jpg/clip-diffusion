@@ -87,7 +87,7 @@ def guided_diffusion_generate(
     set_seed()
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embedding_and_text_weights(prompts, _clip_models.values())
+    clip_model_stats = get_embedding_and_text_weights(prompts, _clip_models)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, use_perlin, perlin_mode)
@@ -143,8 +143,8 @@ def guided_diffusion_generate(
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
                     cuts = MakeCutouts(
-                        cut_size=clip_model_stat[
-                            "clip_model"
+                        cut_size=_clip_models[
+                            clip_model_stat["clip_model_name"]
                         ].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[1000 - t_value],
                         inner_cut=config.inner_cut_schedule[1000 - t_value],
@@ -155,7 +155,9 @@ def guided_diffusion_generate(
                     )
                     clip_in = _normalize(cuts(x_in.add(1).div(2)))
                     image_embeddings = (
-                        clip_model_stat["clip_model"].encode_image(clip_in).float()
+                        _clip_models[clip_model_stat["clip_model"]]
+                        .encode_image(clip_in)
+                        .float()
                     )
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
