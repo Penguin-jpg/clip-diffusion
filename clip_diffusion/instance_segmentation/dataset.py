@@ -116,7 +116,7 @@ def convert_dataset_to_coco_format(dataset_paths, output_dir):
         )
 
 
-def build_dataset_from_config(config):
+def build_datasets_from_config(config):
     """
     建立dataset
     """

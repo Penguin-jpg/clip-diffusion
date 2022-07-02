@@ -73,7 +73,7 @@ def setup_config(
     config.checkpoint_config.interval = checkpoint_save_interval
 
     config.seed = seed
-    set_random_seed(seed)
+    set_random_seed(seed, deterministic=True)
 
     config.gpu_ids = range(num_gpus)
 
