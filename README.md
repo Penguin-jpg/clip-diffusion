@@ -1,6 +1,6 @@
 ## Clip Diffusion
 
-### Dependency
+### Dependency For Generation
 ```
 git clone https://github.com/openai/CLIP
 git clone https://github.com/crowsonkb/guided-diffusion
@@ -15,10 +15,21 @@ pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
 pip install -e ./BSRGAN
 pip install -r requirements.txt
-# 若要使用 Instance Segmentation 的功能才需額外安裝
+```
+
+### Dependency For Building Dataset
+```
+pip install clip-retrieval
+pip install img2dataset
+pip install labelme
+pip install labelme2coco
+```
+
+### Dependency For Instance Segmentation
+```
+pip install wandb
 pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
-rm -rf mmdetection
 git clone https://github.com/open-mmlab/mmdetection.git
 pip install -e ./mmdetection
 ```
