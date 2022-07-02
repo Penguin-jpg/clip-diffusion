@@ -1,6 +1,7 @@
 from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
 
+
 def _show_result(result):
     id, caption, url, similarity = (
         result["id"],
