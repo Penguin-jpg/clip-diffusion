@@ -17,12 +17,9 @@ pip install -e ./BSRGAN
 pip install -r requirements.txt
 ```
 
-### Dependency For Building Dataset
+### Dependency For CLIP Query
 ```
 pip install clip-retrieval
-pip install img2dataset
-pip install labelme
-pip install labelme2coco
 ```
 
 ### Dependency For Instance Segmentation
@@ -32,6 +29,9 @@ pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pyt
 pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
 git clone https://github.com/open-mmlab/mmdetection.git
 pip install -e ./mmdetection
+pip install img2dataset
+pip install labelme
+pip install labelme2coco
 ```
 
 ### 簡介
