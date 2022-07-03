@@ -17,7 +17,7 @@ def _show_config(config):
     顯示config資訊
     """
 
-    print(f"config:\n{config.pretty_text}")
+    print(config.pretty_text)
 
 
 def setup_config(
@@ -27,6 +27,8 @@ def setup_config(
     annotation_paths={"train": "datasets/train/train.json", "val": "datasets/val/val.json", "test": "datasets/test/test.json"},
     classes=(),
     pretrained_path=None,
+    use_fp16=True,
+    loss_scale="dynamic",
     save_dir="checkpoints",
     num_gpus=1,
     log_interval=10,
@@ -41,6 +43,8 @@ def setup_config(
     annotation_path: annotation檔案路徑(型態為dict; 格式為: dataset_name/{split}/annotation_file_name)
     classes: 資料集的class(型態為tuple)
     pretrained_path: 預訓練模型路徑
+    use_fp16: 是否要使用fp16混合精準度
+    loss_scale: 混合精準度的loss放大倍率(dynamic或浮點數)
     save_dir: 儲存checkpoint的資料夾
     num_gpus: gpu數量
     log_interval: 多少iteration更新一次訊息
@@ -60,6 +64,9 @@ def setup_config(
 
     config.model.mask_head.num_classes = len(classes)
     config.load_from = pretrained_path
+
+    if use_fp16:
+        config.fp16 = dict(loss_scale=loss_scale)
 
     config.work_dir = save_dir
     mkdir_or_exist(os.path.abspath(config.work_dir))
