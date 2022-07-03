@@ -29,10 +29,13 @@ def make_dir(dir_path, remove_old=False):
     建立資料夾
     """
 
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
-    else:
-        print(f"{dir_path} already exists")
+    if dir_path:
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        else:
+            print(f"{dir_path} already exists")
 
-        if remove_old:
-            _remove_old_dirs_and_files(dir_path)
+            if remove_old:
+                _remove_old_dirs_and_files(dir_path)
+    else:
+        print("path cannot be empty")

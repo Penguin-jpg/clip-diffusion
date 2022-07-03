@@ -1,6 +1,8 @@
+import os
 import json
 from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
+from clip_diffusion.utils.dir_utils import make_dir
 
 
 def _show_result(result):
@@ -23,10 +25,16 @@ def _results_to_json(results ,output_path):
     """
 
     if output_path:
+        dir_path = os.path.dirname(output_path) # 取出output_path中的資料夾名稱
+        # 如果output_path包含資料夾路徑
+        if dir_path != "":
+            make_dir(dir_path)
+
         with open(output_path, "w") as file:
             json.dump(results, file)
     else:
-        print("need to specify output path of json")
+        print("path cannot be empty")
+        
 
 def create_clip_client(
     backend_url="https://knn5.laion.ai/knn-service",
