@@ -8,12 +8,12 @@ from clip_diffusion.utils.dir_utils import make_dir
 def images_to_dataset(
     url_list,
     output_dir,
-    process_count=1,
-    thread_count=256,
+    num_processes=1,
+    num_threads=256,
     image_size=256,
     output_format="files",
     input_format="json",
-    number_sample_per_shard=1000,
+    num_samples_per_shard=1000,
     distributor="multiprocessing",
 ):
     """
@@ -26,12 +26,12 @@ def images_to_dataset(
     download(
         url_list=url_list,
         output_folder=output_dir,
-        processes_count=process_count,
-        thread_count=thread_count,
+        processes_count=num_processes,
+        thread_count=num_threads,
         image_size=image_size,
         output_format=output_format,
         input_format=input_format,
-        number_sample_per_shard=number_sample_per_shard,
+        number_sample_per_shard=num_samples_per_shard,
         distributor=distributor,
     )
 

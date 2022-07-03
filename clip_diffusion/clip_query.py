@@ -1,3 +1,4 @@
+import json
 from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
 
@@ -15,6 +16,17 @@ def _show_result(result):
     print(f"similarity: {similarity}")
     display(Image(url=url, unconfined=True))
 
+
+def _results_to_json(results ,output_path):
+    """
+    將query的結果存成json
+    """
+
+    if output_path:
+        with open(output_path, "w") as file:
+            json.dump(results, file)
+    else:
+        print("need to specify output path of json")
 
 def create_clip_client(
     backend_url="https://knn5.laion.ai/knn-service",
@@ -38,7 +50,7 @@ def create_clip_client(
     )
 
 
-def query_by_text(client, text, show_first_result=True):
+def query_by_text(client, text, show_first_result=True, to_json=False, json_file_path=None):
     """
     透過文字進行query
     """
@@ -48,10 +60,13 @@ def query_by_text(client, text, show_first_result=True):
     if show_first_result:
         _show_result(results[0])
 
+    if to_json:
+        _results_to_json(results, json_file_path)
+
     return results
 
 
-def query_by_image(client, image_url, show_first_result=True):
+def query_by_image(client, image_url, show_first_result=True, to_json=False, json_file_path=None):
     """
     透過圖片進行query
     """
@@ -60,5 +75,8 @@ def query_by_image(client, image_url, show_first_result=True):
 
     if show_first_result:
         _show_result(results[0])
+
+    if to_json:
+        _results_to_json(results, json_file_path)
 
     return results
