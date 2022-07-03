@@ -1,6 +1,8 @@
 import os
 from img2dataset import download
-from mmdet.datasets import build_dataset
+from mmdet import __version__
+from mmcv.utils import get_git_hash
+from mmdet.datasets import build_dataset, build_dataloader
 from labelme2coco import get_coco_from_labelme_folder, save_json
 from clip_diffusion.utils.dir_utils import make_dir
 
@@ -52,9 +54,33 @@ def convert_dataset_to_coco_format(dataset_paths, output_dir):
         )
 
 
-def build_datasets(config):
+def build_datasets(config, split="train"):
     """
     建立dataset
     """
 
-    return [build_dataset(config.data["train"])]
+    if split == "train":
+        datasets = [build_datasets(config.data.train)]
+        config.checkpoint_config.meta = dict(
+            mmdet_version=__version__ + get_git_hash()[:7], CLASSES=datasets[0].CLASSES
+        )
+        return datasets
+    elif split == "test":
+        return build_dataset(config.data.test)
+
+
+def build_dataloader(config, dataset):
+    """
+    建立dataloader(目前只有test才需要用，train已經包含在train_detector內)
+    """
+
+    test_dataloader_default_args = dict(
+        samples_per_gpu=1, workers_per_gpu=2, dist=False, shuffle=False
+    )
+
+    test_loader_config = {
+        **test_dataloader_default_args,
+        **config.data.get("test_dataloader", {}),
+    }
+
+    return build_dataloader(dataset, **test_loader_config)
