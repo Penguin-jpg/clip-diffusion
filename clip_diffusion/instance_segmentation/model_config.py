@@ -23,11 +23,10 @@ def _show_config(config):
 
 def setup_config(
     config_path,
-    seed,
-    dataset_type,
-    annotation_path,
-    image_prefix,
-    classes,
+    seed=42,
+    dataset_type="COCODataset",
+    annotation_paths={"train": "datasets/train/train.json", "val": "datasets/val/val.json", "test": "datasets/test/test.json"},
+    classes=(),
     pretrained_path=None,
     save_dir="checkpoints",
     num_gpus=1,
@@ -41,7 +40,6 @@ def setup_config(
     seed: 亂數種子
     dataset_type: 資料集格式
     annotation_path: annotation檔案路徑(型態為dict; 格式為: dataset_name/{split}/annotation_file_name)
-    image_prefix: 到圖片的路徑(型態為dict; 格式為: dataset_name/{split})
     classes: 資料集的class(型態為tuple)
     pretrained_path: 預訓練模型路徑
     save_dir: 儲存checkpoint的資料夾
@@ -56,8 +54,11 @@ def setup_config(
     config.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     config.dataset_type = dataset_type
 
+    # 取出訓練圖片的prefix
+    image_prefix = {split:os.path.dirname(annotation_path) for split, annotation_path in annotation_paths.items()}
+
     for split in ["train", "val", "test"]:
-        config.data[split].ann_file = annotation_path[split]
+        config.data[split].ann_file = annotation_paths[split]
         config.data[split].img_prefix = image_prefix[split]
         config.data[split].classes = classes
 
@@ -89,6 +90,6 @@ def setup_config(
             type="WandbLoggerHook", init_kwargs=wandb_init_kwargs, interval=log_interval
         ),
     ]
-    _show_config()
+    _show_config(config)
 
     return config
