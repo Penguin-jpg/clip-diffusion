@@ -60,7 +60,7 @@ def build_datasets(config, split="train"):
     """
 
     if split == "train":
-        datasets = [build_datasets(config.data.train)]
+        datasets = [build_dataset(config.data.train)]
         config.checkpoint_config.meta = dict(
             mmdet_version=__version__ + get_git_hash()[:7], CLASSES=datasets[0].CLASSES
         )
@@ -69,18 +69,9 @@ def build_datasets(config, split="train"):
         return build_dataset(config.data.test)
 
 
-def build_dataloader(config, dataset):
+def build_test_dataloader(config, dataset):
     """
     建立dataloader(目前只有test才需要用，train已經包含在train_detector內)
     """
 
-    test_dataloader_default_args = dict(
-        samples_per_gpu=1, workers_per_gpu=2, dist=False, shuffle=False
-    )
-
-    test_loader_config = {
-        **test_dataloader_default_args,
-        **config.data.get("test_dataloader", {}),
-    }
-
-    return build_dataloader(dataset, **test_loader_config)
+    return build_dataloader(dataset, **config.data.test_dataloader)

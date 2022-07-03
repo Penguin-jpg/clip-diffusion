@@ -1,9 +1,8 @@
 import os
-import wandb
 from mmcv import Config, mkdir_or_exist
 from mmdet.apis import init_random_seed, set_random_seed
 from mmdet.utils import replace_cfg_vals, setup_multi_processes, get_device
-from mmdet.datasets import replace_ImageToTensor, build_dataloader
+from mmdet.datasets import replace_ImageToTensor
 
 
 def _load_config(config_path):
@@ -25,7 +24,7 @@ def show_config(config):
     print(f"config:\n{config.pretty_text}")
 
 
-def setup_training_config(
+def setup_train_config(
     config_path,
     seed=None,
     deterministic=True,
@@ -33,7 +32,6 @@ def setup_training_config(
     annotation_paths={
         "train": "datasets/train/train.json",
         "val": "datasets/val/val.json",
-        "test": "datasets/test/test.json",
     },
     classes=(),
     resume_from=None,
@@ -110,6 +108,8 @@ def setup_training_config(
     ]
 
     if use_wandb:
+        import wandb
+
         wandb.login()  # 登入wandb
 
         if not wandb_init_kwargs:
@@ -129,11 +129,16 @@ def setup_training_config(
     return config
 
 
-def setup_testing_config(
+def setup_test_config(
     config_path,
+    annotation_path="datasets/test/test.json",
+    classes=(),
+    samples_per_gpu=1,
+    works_per_gpu=2,
+    shuffle=False,
     use_fp16=False,
     loss_scale="dynamic",
-    save_dir="checkpoints",
+    save_dir="tests",
     num_gpus=1,
 ):
     """
@@ -142,8 +147,16 @@ def setup_testing_config(
 
     config = _load_config(config_path)  # 建立config
 
+    config.data.test.ann_file = annotation_path
+    config.data.test.img_prefix = os.path.dirname(annotation_path)
+    config.data.test.classes = classes
     config.data.test.test_mode = True
-    config.model.train_cfg = None
+    config.data.test_dataloader = dict(
+        samples_per_gpu=samples_per_gpu,
+        workers_per_gpu=works_per_gpu,
+        dist=False,
+        shuffle=shuffle,
+    )
     config.device = get_device()
 
     if use_fp16:
@@ -155,11 +168,6 @@ def setup_testing_config(
     config.gpu_ids = range(num_gpus)
 
     # 將不需要的部分設為None
-    if "pretrained" in config.model:
-        config.model.pretrained = None
-    elif "init_config" in config.model.backbone:
-        config.model.backbone.init_config = None
-
     if config.model.get("neck"):
         if isinstance(config.model.neck, list):
             for neck_config in config.model.neck:
@@ -173,3 +181,7 @@ def setup_testing_config(
     if config.data.test_dataloader.get("samples_per_gpu", 1) > 1:
         # 將test_pipeline的ImageToTensor替換為DefaultFormatBundle
         config.data.test.pipeline = replace_ImageToTensor(config.data.test.pipeline)
+
+    show_config(config)
+
+    return config

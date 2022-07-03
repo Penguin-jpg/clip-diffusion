@@ -1,5 +1,4 @@
 import os
-import json
 from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
 from clip_diffusion.utils.dir_utils import make_dir
@@ -19,18 +18,20 @@ def _show_result(result):
     display(Image(url=url, unconfined=True))
 
 
-def _results_to_json(results ,output_path):
+def _results_to_json(results, output_path):
     """
     將query的結果存成json
     """
 
     if output_path:
-        dir_path = os.path.dirname(output_path) # 取出output_path中的資料夾名稱
+        dir_path = os.path.dirname(output_path)  # 取出output_path中的資料夾名稱
         # 如果output_path包含資料夾路徑
         if dir_path != "":
             make_dir(dir_path)
 
         with open(output_path, "w") as file:
+            import json
+
             json.dump(results, file)
     else:
         print("path cannot be empty")
@@ -58,7 +59,9 @@ def create_clip_client(
     )
 
 
-def query_by_text(client, text, show_first_result=True, to_json=False, json_file_path=None):
+def query_by_text(
+    client, text, show_first_result=True, to_json=False, json_file_path=None
+):
     """
     透過文字進行query
     """
@@ -74,7 +77,9 @@ def query_by_text(client, text, show_first_result=True, to_json=False, json_file
     return results
 
 
-def query_by_image(client, image_url, show_first_result=True, to_json=False, json_file_path=None):
+def query_by_image(
+    client, image_url, show_first_result=True, to_json=False, json_file_path=None
+):
     """
     透過圖片進行query
     """
