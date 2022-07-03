@@ -1,4 +1,3 @@
-import torch
 import os
 import wandb
 from mmcv import Config, mkdir_or_exist
@@ -51,7 +50,7 @@ def setup_config(
     """
 
     config = _load_config_from_file(config_path)
-    config.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    config.device = "cuda"
     config.dataset_type = dataset_type
 
     for split, annotation_path in annotation_paths.items():
