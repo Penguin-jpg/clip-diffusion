@@ -34,7 +34,7 @@ def _results_to_json(results ,output_path):
             json.dump(results, file)
     else:
         print("path cannot be empty")
-        
+
 
 def create_clip_client(
     backend_url="https://knn5.laion.ai/knn-service",
