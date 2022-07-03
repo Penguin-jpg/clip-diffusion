@@ -1,6 +1,7 @@
 import json
 from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
+from clip_diffusion.utils.dir_utils import make_dir
 
 
 def _show_result(result):
@@ -23,6 +24,7 @@ def _results_to_json(results ,output_path):
     """
 
     if output_path:
+        make_dir(output_path, remove_old=True)
         with open(output_path, "w") as file:
             json.dump(results, file)
     else:
