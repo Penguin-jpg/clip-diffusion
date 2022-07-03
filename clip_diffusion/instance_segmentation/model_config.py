@@ -81,7 +81,6 @@ def setup_train_config(
         )  # 取出訓練圖片的prefix
         config.data[split].classes = classes
 
-    config.model.mask_head.num_classes = len(classes)
     config.resume_from = resume_from
     config.load_from = pretrained_path
 
@@ -133,16 +132,6 @@ def setup_test_config(
     config_path,
     annotation_path="datasets/test/test.json",
     classes=(),
-    samples_per_gpu=1,
-    works_per_gpu=2,
-    shuffle=False,
-    num_boxes_pre_nms=500,
-    score_threshold=0.1,
-    mask_threshold=0.5,
-    filter_threshold=0.05,
-    kernel="gaussian",
-    sigma=2.0,
-    num_max_boxes=100,
     use_fp16=False,
     loss_scale="dynamic",
     save_dir="tests",
@@ -150,16 +139,6 @@ def setup_test_config(
 ):
     """
     建立測試用的config
-    samples_per_gpu: 每個gpu的batch size
-    worker_per_gpu: 每個gpu的worker數
-    shuffle: 是否要對資料集shuffle
-    num_boxes_pre_nms: 做NMS之前的bounding box數量
-    score_threshold: 低於該數值以下的bounding box濾掉
-    mask_threshold: mask prediction的threshold
-    filter_threshold: 做NMS後的score threshold
-    kernel: 使用的kernel類型
-    sigma: gaussian method的標準差
-    num_max_boxes: 做NMS後最多留下的bounding box數
     """
 
     config = _load_config(config_path)  # 建立config
@@ -168,19 +147,6 @@ def setup_test_config(
     config.data.test.img_prefix = os.path.dirname(annotation_path)
     config.data.test.classes = classes
     config.data.test.test_mode = True
-    config.data.test_dataloader = dict(
-        samples_per_gpu=samples_per_gpu,
-        workers_per_gpu=works_per_gpu,
-        dist=False,
-        shuffle=shuffle,
-    )
-    config.model.test_cfg.nms_pre = num_boxes_pre_nms
-    config.model.test_cfg.score_thr = score_threshold
-    config.model.test_cfg.mask_thr = mask_threshold
-    config.model.test_cfg.filter_thr = filter_threshold
-    config.model.test_cfg.kernel = kernel
-    config.model.test_cfg.sigma = sigma
-    config.model.test_cfg.max_per_img = num_max_boxes
     config.device = get_device()
 
     if use_fp16:

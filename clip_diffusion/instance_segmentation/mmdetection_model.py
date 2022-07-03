@@ -9,7 +9,6 @@ from mmdet.apis import (
     single_gpu_test,
 )
 from mmdet.utils import build_dp
-from mmcv.runner import load_checkpoint
 
 
 def train(config, datasets, do_eval=True):
