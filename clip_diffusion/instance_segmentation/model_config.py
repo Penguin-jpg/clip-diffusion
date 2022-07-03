@@ -54,12 +54,9 @@ def setup_config(
     config.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     config.dataset_type = dataset_type
 
-    # 取出訓練圖片的prefix
-    image_prefix = {split:os.path.dirname(annotation_path) for split, annotation_path in annotation_paths.items()}
-
-    for split in ["train", "val", "test"]:
-        config.data[split].ann_file = annotation_paths[split]
-        config.data[split].img_prefix = image_prefix[split]
+    for split, annotation_path in annotation_paths.items():
+        config.data[split].ann_file = annotation_path
+        config.data[split].img_prefix = os.path.dirname(annotation_path) # 取出訓練圖片的prefix
         config.data[split].classes = classes
 
     config.model.mask_head.num_classes = len(classes)
