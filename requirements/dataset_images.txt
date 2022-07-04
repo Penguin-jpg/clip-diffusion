@@ -1,2 +1,3 @@
+ipython
 clip-retrieval
 img2dataset
