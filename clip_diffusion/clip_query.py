@@ -129,7 +129,7 @@ def download_images_from_urls(
     image_size=256,
     resize_mode="border",
     encode_format="jpg",
-    encode_quality=0,
+    encode_quality=95,
     input_format="json",
     output_format="files",
     num_samples_per_shard=10000,
@@ -146,7 +146,7 @@ def download_images_from_urls(
     image_size: 下載的圖片會resize到這個大小
     resize_mode: resize的方式(no, border, keep_ratio, center_crop)
     encode_format: 輸出的圖片格式(jpg, png, webp)
-    encode_quality: encode的品質，範圍從0~100(當使用png時應為0~9)，越高圖像壓縮越多
+    encode_quality: encode的品質，範圍從0~100(當使用png時應為0~9)，越低圖像壓縮越多
     input_format: url_file_path的格式(txt, csv, tsv.gz, json, parquet)
     output_format: 下載的圖片要如何儲存(files, webdataset, parquet, tfrecord,dummy)
     num_samples_per_shard: 每個subfolder最多能存幾張圖片
