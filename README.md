@@ -17,7 +17,7 @@ pip install -e ./BSRGAN
 pip install -r requirements.txt
 ```
 
-### Dependency For CLIP Query
+### Dependency For Dataset Images
 ```
 pip install clip-retrieval
 ```
@@ -27,11 +27,13 @@ pip install clip-retrieval
 pip install wandb
 pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
-git clone https://github.com/open-mmlab/mmdetection.git
+git clone https://github.com/Penguin-jpg/mmdetection.git
 pip install -e ./mmdetection
 pip install img2dataset
 pip install labelme
 pip install labelme2coco
+# 如果要訓練 Instaboost 模型才需額外安裝
+# pip install instaboostfast
 ```
 
 ### 簡介

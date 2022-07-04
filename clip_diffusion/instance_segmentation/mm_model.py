@@ -6,15 +6,15 @@ from mmdet.models import build_detector
 from mmdet.apis import (
     train_detector,
     inference_detector,
-    show_result_pyplot,
     single_gpu_test,
+    init_detector,
 )
 from mmdet.utils import build_dp
 
 
 def train(config, datasets, do_eval=True):
     """
-    使用mmdetection訓練
+    訓練模型
     """
 
     model = build_detector(config.model)
@@ -35,10 +35,10 @@ def test(
     score_threshold=0.3,
 ):
     """
-    測試模型的效果
+    評估模型的效果
     """
 
-    model = build_detector(config, test_cfg=config.get("test_cfg"))
+    model = build_detector(config.model)
     model.CLASSES = dataset.CLASSES
 
     if config.get("fp16", None):
@@ -60,7 +60,7 @@ def test(
     torch.cuda.empty_cache()
 
 
-def inference(model, image_path, output_path="inference_results", score_threshold=0.3):
+def inference(model, image_path, output_path="result.jpg", score_threshold=0.3):
     """
     對單張圖片做inference
     """
@@ -71,11 +71,21 @@ def inference(model, image_path, output_path="inference_results", score_threshol
     # 模型推論
     result = inference_detector(model, image)
 
-    # 將結果視覺化(無法顯示，原因不明)
-    # show_result_pyplot(model, image_path, result, score_thr=score_threshold)
-
     # 將推論結果存到output_path
-    model.show_result(image, result, out_file=output_path)
+    model.show_result(image, result, out_file=output_path, score_thr=score_threshold)
 
     gc.collect()
     torch.cuda.empty_cache()
+
+
+def load_inference_detector(config, checkpoint):
+    """
+    載入inference用的模型
+    """
+
+    model = init_detector(config, checkpoint, device=config.device)
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    return model

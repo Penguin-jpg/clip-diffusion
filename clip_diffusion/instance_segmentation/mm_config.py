@@ -5,7 +5,7 @@ from mmdet.utils import replace_cfg_vals, setup_multi_processes, get_device
 from mmdet.datasets import replace_ImageToTensor
 
 
-def _load_config(config_path):
+def _load_mm_config(config_path):
     """
     從檔案讀取模型config
     """
@@ -16,7 +16,7 @@ def _load_config(config_path):
     return config
 
 
-def show_config(config):
+def show_mm_config(config):
     """
     顯示config資訊
     """
@@ -69,7 +69,7 @@ def setup_train_config(
     wandb_init_kwargs: wandb的初始化參數
     """
 
-    config = _load_config(config_path)  # 建立config
+    config = _load_mm_config(config_path)  # 建立config
 
     config.device = get_device()
     config.dataset_type = dataset_type
@@ -123,7 +123,7 @@ def setup_train_config(
             ),
         )
 
-    show_config(config)  # 顯示目前的config
+    show_mm_config(config)  # 顯示目前的config
 
     return config
 
@@ -147,7 +147,7 @@ def setup_test_config(
     shuffle: 是否要對資料集shuffle
     """
 
-    config = _load_config(config_path)  # 建立config
+    config = _load_mm_config(config_path)  # 建立config
 
     config.data.test.ann_file = annotation_path
     config.data.test.img_prefix = os.path.dirname(annotation_path)
@@ -190,6 +190,20 @@ def setup_test_config(
         # 將test_pipeline的ImageToTensor替換為DefaultFormatBundle
         config.data.test.pipeline = replace_ImageToTensor(config.data.test.pipeline)
 
-    show_config(config)
+    show_mm_config(config)
 
     return config
+
+
+def save_mm_config(config, output_path="my_config.py"):
+    """
+    將config儲存成檔案
+    """
+
+    content = config.pretty_text
+    mkdir_or_exist(os.path.dirname(output_path))
+
+    with open(output_path, "w") as file:
+        file.write(content)
+
+    print(f"writing finished!")
