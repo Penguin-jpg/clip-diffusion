@@ -1,6 +1,7 @@
 import os
 from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
+from img2dataset import download
 from clip_diffusion.utils.dir_utils import make_dir
 
 
@@ -93,3 +94,34 @@ def query_by_image(
         _results_to_json(results, json_file_path)
 
     return results
+
+
+def images_to_dataset(
+    url_list,
+    output_dir,
+    num_processes=1,
+    num_threads=256,
+    image_size=256,
+    output_format="files",
+    input_format="json",
+    num_samples_per_shard=1000,
+    distributor="multiprocessing",
+):
+    """
+    將圖片轉為dataset
+    """
+
+    make_dir(output_dir, remove_old=True)
+
+    # 下載圖片
+    download(
+        url_list=url_list,
+        output_folder=output_dir,
+        processes_count=num_processes,
+        thread_count=num_threads,
+        image_size=image_size,
+        output_format=output_format,
+        input_format=input_format,
+        number_sample_per_shard=num_samples_per_shard,
+        distributor=distributor,
+    )

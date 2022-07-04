@@ -1,41 +1,8 @@
 import os
-from img2dataset import download
 from mmdet import __version__
 from mmcv.utils import get_git_hash
 from mmdet.datasets import build_dataset, build_dataloader
 from labelme2coco import get_coco_from_labelme_folder, save_json
-from clip_diffusion.utils.dir_utils import make_dir
-
-
-def images_to_dataset(
-    url_list,
-    output_dir,
-    num_processes=1,
-    num_threads=256,
-    image_size=256,
-    output_format="files",
-    input_format="json",
-    num_samples_per_shard=1000,
-    distributor="multiprocessing",
-):
-    """
-    將圖片轉為dataset
-    """
-
-    make_dir(output_dir, remove_old=True)
-
-    # 下載圖片
-    download(
-        url_list=url_list,
-        output_folder=output_dir,
-        processes_count=num_processes,
-        thread_count=num_threads,
-        image_size=image_size,
-        output_format=output_format,
-        input_format=input_format,
-        number_sample_per_shard=num_samples_per_shard,
-        distributor=distributor,
-    )
 
 
 def convert_dataset_to_coco_format(dataset_paths, output_dir):

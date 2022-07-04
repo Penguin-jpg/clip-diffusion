@@ -14,24 +14,21 @@ pip install -e ./resize-right
 pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
 pip install -e ./BSRGAN
-pip install -r requirements.txt
+pip install -r requirements/generation.txt
 ```
 
 ### Dependency For Dataset Images
 ```
-pip install clip-retrieval
+pip install -r requirements/dataset_images.txt
 ```
 
 ### Dependency For Instance Segmentation
 ```
-pip install wandb
-pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+pip install -r requirements/instance_segmentation.txt
 git clone https://github.com/Penguin-jpg/mmdetection.git
 pip install -e ./mmdetection
-pip install img2dataset
-pip install labelme
-pip install labelme2coco
+# 如果需要手動標註資料才需額外安裝
+# pip install labelme
 # 如果要訓練 Instaboost 模型才需額外安裝
 # pip install instaboostfast
 ```

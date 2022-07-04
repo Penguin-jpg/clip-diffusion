@@ -12,7 +12,7 @@ from mmdet.apis import (
 from mmdet.utils import build_dp
 
 
-def train(config, datasets, do_eval=True):
+def train_mm_detector(config, datasets, do_eval=True):
     """
     訓練模型
     """
@@ -26,7 +26,7 @@ def train(config, datasets, do_eval=True):
     torch.cuda.empty_cache()
 
 
-def test(
+def test_mm_detector(
     config,
     checkpoint,
     dataset,
@@ -60,7 +60,9 @@ def test(
     torch.cuda.empty_cache()
 
 
-def inference(model, image_path, output_path="result.jpg", score_threshold=0.3):
+def inference_mm_detector(
+    model, image_path, output_path="result.jpg", score_threshold=0.3
+):
     """
     對單張圖片做inference
     """
@@ -78,7 +80,7 @@ def inference(model, image_path, output_path="result.jpg", score_threshold=0.3):
     torch.cuda.empty_cache()
 
 
-def load_inference_detector(config, checkpoint):
+def load_mm_detector(config, checkpoint):
     """
     載入inference用的模型
     """
