@@ -64,7 +64,7 @@ def get_query_results(
     client,
     text=None,
     image_url=None,
-    num_results=100,
+    num_results=1000,
     show_first_result=True,
     to_json=False,
     output_path=None,
@@ -96,7 +96,7 @@ def get_query_results(
 
 
 def combine_results(
-    results_1, results_2, num_results=100, to_json=False, output_path=None
+    results_1, results_2, num_results=1000, to_json=False, output_path=None
 ):
     """
     將兩個results結合
