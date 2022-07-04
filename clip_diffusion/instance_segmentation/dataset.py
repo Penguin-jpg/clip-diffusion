@@ -74,12 +74,4 @@ def build_test_dataloader(config, dataset):
     建立dataloader(目前只有test才需要用，train已經包含在train_detector內)
     """
 
-    test_dataloader_default_args = dict(
-        samples_per_gpu=1, workers_per_gpu=2, dist=False, shuffle=False
-    )
-    test_loader_config = {
-        **test_dataloader_default_args,
-        **config.data.get("test_dataloader", {}),
-    }
-
-    return build_dataloader(dataset, **test_loader_config)
+    return build_dataloader(dataset, **config.data.get("test_dataloader"))

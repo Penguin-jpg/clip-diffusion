@@ -21,7 +21,7 @@ def show_config(config):
     顯示config資訊
     """
 
-    print(f"config:\n{config.pretty_text}")
+    print(config.pretty_text)
 
 
 def setup_train_config(
@@ -132,6 +132,9 @@ def setup_test_config(
     config_path,
     annotation_path="datasets/test/test.json",
     classes=(),
+    samples_per_gpu=1,
+    workers_per_gpu=2,
+    shuffle=False,
     use_fp16=False,
     loss_scale="dynamic",
     save_dir="tests",
@@ -139,6 +142,9 @@ def setup_test_config(
 ):
     """
     建立測試用的config
+    samples_per_gpu: 每個gpu的batch size
+    worker_per_gpu: 每個gpu的worker數
+    shuffle: 是否要對資料集shuffle
     """
 
     config = _load_config(config_path)  # 建立config
@@ -147,6 +153,13 @@ def setup_test_config(
     config.data.test.img_prefix = os.path.dirname(annotation_path)
     config.data.test.classes = classes
     config.data.test.test_mode = True
+    config.model.train_cfg = None
+    config.data.test_dataloader = dict(
+        samples_per_gpu=samples_per_gpu,
+        workers_per_gpu=workers_per_gpu,
+        dist=False,
+        shuffle=shuffle,
+    )
     config.device = get_device()
 
     if use_fp16:
@@ -158,6 +171,11 @@ def setup_test_config(
     config.gpu_ids = range(num_gpus)
 
     # 將不需要的部分設為None
+    if "pretrained" in config.model:
+        config.model.pretrained = None
+    elif "init_config" in config.model.backbone:
+        config.model.backbone.init_config = None
+
     if config.model.get("neck"):
         if isinstance(config.model.neck, list):
             for neck_config in config.model.neck:
