@@ -60,14 +60,14 @@ def create_clip_client(
     )
 
 
-def get_queries(
+def get_query_results(
     client,
     text=None,
-    image=None,
+    image_url=None,
     num_results=100,
     show_first_result=True,
     to_json=False,
-    json_file_path=None,
+    output_path=None,
 ):
     """
     透過文字或圖片進行query
@@ -77,7 +77,7 @@ def get_queries(
         print("number of results cannot be zero")
         return
 
-    results = client.query(text=text, image=image)
+    results = client.query(text=text, image=image_url)
 
     if num_results > len(results):
         print(
@@ -90,9 +90,35 @@ def get_queries(
         _show_result(results[0])
 
     if to_json:
-        _results_to_json(results, json_file_path)
+        _results_to_json(results, output_path)
 
     return results
+
+
+def combine_results(
+    results_1, results_2, num_results=100, to_json=False, output_path=None
+):
+    """
+    將兩個results結合
+    """
+
+    if num_results < 0:
+        print("number of results cannot be zero")
+        return
+
+    new_results = results_1 + results_2
+
+    if num_results > len(new_results):
+        print(
+            "excceeds max number of results! automatically shorten to match max length"
+        )
+    else:
+        new_results = new_results[:num_results]
+
+    if to_json:
+        _results_to_json(new_results, output_path)
+
+    return new_results
 
 
 def download_images_from_urls(
@@ -102,7 +128,7 @@ def download_images_from_urls(
     num_threads=256,
     image_size=256,
     resize_mode="border",
-    encode_format="png",
+    encode_format="jpg",
     encode_quality=0,
     input_format="json",
     output_format="files",
