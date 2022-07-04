@@ -6,7 +6,7 @@ INT_MAX = 2**32
 
 class _Config:
     """
-    將設定統整在一個class
+    將生成設定統整在這個class
     """
 
     def __init__(self):
@@ -20,11 +20,6 @@ class _Config:
         # resize用的x, y(一定要是64的倍數)
         self.side_x = (self.width // 64) * 64
         self.side_y = (self.height // 64) * 64
-
-        # device
-        self.device = torch.device(
-            "cuda:0" if torch.cuda.is_available() else "cpu"
-        )  # GPU或CPU
 
         # cutout相關
         self.num_cutout_batches = 4  # 要做的cutout次數
@@ -69,10 +64,10 @@ class _Config:
         width=960,
         height=768,
         cutn_batches=4,
-        cut_overview=[12] * 400 + [4] * 600,
-        cut_innercut=[4] * 400 + [12] * 600,
-        cut_ic_pow=1,
-        cut_icgray_p=[0.2] * 400 + [0] * 600,
+        overview_cut_schedule=[12] * 400 + [4] * 600,
+        inner_cut_schedule=[4] * 400 + [12] * 600,
+        inner_cut_size_pow=1,
+        cut_gray_portion_schedule=[0.2] * 400 + [0] * 600,
         use_secondary_model=True,
         chosen_clip_models=["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"],
         clip_denoised=False,
@@ -92,10 +87,10 @@ class _Config:
         self.width = width
         self.height = height
         self.num_cutout_batches = cutn_batches
-        self.overview_cut_schedule = cut_overview
-        self.inner_cut_schedule = cut_innercut
-        self.inner_cut_size_pow = cut_ic_pow
-        self.cut_gray_portion_schedule = cut_icgray_p
+        self.overview_cut_schedule = overview_cut_schedule
+        self.inner_cut_schedule = inner_cut_schedule
+        self.inner_cut_size_pow = inner_cut_size_pow
+        self.cut_gray_portion_schedule = cut_gray_portion_schedule
         self.side_x = (self.width // 64) * 64
         self.side_y = (self.height // 64) * 64
         self.use_secondary_model = use_secondary_model
