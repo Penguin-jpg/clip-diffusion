@@ -57,7 +57,7 @@ def create_clip_client(
         aesthetic_weight=aesthetic_weight,
         modality=modality,
         num_images=num_images,
-    ).query
+    )
 
 
 def get_queries(
