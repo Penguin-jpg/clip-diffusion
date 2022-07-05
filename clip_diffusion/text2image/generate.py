@@ -17,7 +17,7 @@ from clip_diffusion.config import config
 from clip_diffusion.utils.preprocess_utils import (
     prompts_preprocessing,
     set_seed,
-    get_embedding_and_text_weights,
+    get_embedding_and_weights,
     create_init_noise,
 )
 from clip_diffusion.utils.perlin_utils import regen_perlin
@@ -29,8 +29,8 @@ from clip_diffusion.models import (
     load_bsrgan_model,
     load_latent_diffusion_model,
 )
-from clip_diffusion.text_to_image.cutouts import MakeCutouts
-from clip_diffusion.text_to_image.loss import spherical_dist_loss, tv_loss, range_loss
+from clip_diffusion.text2image.cutouts import MakeCutouts
+from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import upload_png, upload_gif, super_resolution
 
@@ -86,7 +86,7 @@ def guided_diffusion_generate(
     set_seed()
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embedding_and_text_weights(prompts, _clip_models)
+    clip_model_stats = get_embedding_and_weights(prompts, _clip_models)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, use_perlin, perlin_mode)
