@@ -302,7 +302,7 @@ def guided_diffusion_generate(
         gc.collect()
         torch.cuda.empty_cache()
 
-        return gif_urls  # 回傳gif url
+    return gif_urls  # 回傳gif url
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
