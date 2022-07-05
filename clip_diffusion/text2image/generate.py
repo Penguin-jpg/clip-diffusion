@@ -311,23 +311,23 @@ def latent_diffusion_generate(
     prompts=[
         "A cute golden retriever.",
     ],
-    latent_diffusion_guidance_scale=5,
     diffusion_steps=50,
     eta=0.0,
+    latent_diffusion_guidance_scale=5,
     num_iterations=3,
     num_samples=3,
-    chosen_models=["ViT-B/32", "ViT-B/16", "RN50"],
+    chosen_models=["ViT-B/32", "ViT-B/16"],
     sample_width=256,
     sample_height=256,
 ):
     """
     使用latent diffusion生成圖片
     prompts: 要生成的東西
+    diffusion_steps: latent diffusion要跑的step數
+    eta: latent diffusion的eta
     latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
     num_iterations: 做幾次latent diffusion生成
     num_samples: 要生成的圖片數
-    diffusion_steps: latent diffusion要跑的step數
-    eta: latent diffusion的eta
     chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
