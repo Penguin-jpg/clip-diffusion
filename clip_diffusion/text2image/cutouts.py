@@ -100,7 +100,7 @@ class MakeCutouts(nn.Module):
         cutouts = torch.cat(cutouts)
 
         # 對cutout的圖片做augmentation
-        if self.use_augmentation:
+        if self.use_augmentations:
             cutouts = self._augmentations(cutouts)
 
         return cutouts
