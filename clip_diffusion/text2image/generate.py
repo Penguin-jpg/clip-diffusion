@@ -306,10 +306,8 @@ def guided_diffusion_generate(
             # 紀錄目前的step
             anvil.server.task_state["current_step"] = step_index + 1
 
-        if use_grid_image:
-            anvil.server.task_state["grid_image_url"] = images_to_grid_image(
-                batch_folder, images, num_rows, num_cols
-            )  # 儲存grid圖片的url到grid_image_url
+        gc.collect()
+        torch.cuda.empty_cache()
 
         # 儲存生成過程的gif url
         gif_urls.append(
@@ -322,8 +320,12 @@ def guided_diffusion_generate(
             )
         )
 
-        gc.collect()
-        torch.cuda.empty_cache()
+        if use_grid_image:
+            grid_image_url = images_to_grid_image(
+                batch_folder, images, num_rows, num_cols
+            )  # 儲存grid圖片的url到grid_image_url
+
+            return gif_urls, grid_image_url
 
     return gif_urls  # 回傳gif url
 
