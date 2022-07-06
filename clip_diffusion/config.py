@@ -76,15 +76,13 @@ class Config:
         調整設定
         """
 
-        self.width = width
-        self.height = height
+        self.width = (width // 64) * 64  # 調整成64的倍數
+        self.height = (height // 64) * 64
         self.num_cutout_batches = num_cutn_batches
         self.overview_cut_schedule = overview_cut_schedule
         self.inner_cut_schedule = inner_cut_schedule
         self.inner_cut_size_pow = inner_cut_size_pow
         self.cut_gray_portion_schedule = cut_gray_portion_schedule
-        self.side_x = (self.width // 64) * 64
-        self.side_y = (self.height // 64) * 64
         self.use_secondary_model = use_secondary_model
         self.chosen_clip_models = chosen_clip_models
         self.clip_denoised = clip_denoised
