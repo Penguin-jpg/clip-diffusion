@@ -83,11 +83,11 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     out = perlin_ms(octaves, width, height, grayscale)
 
     if grayscale:  # 灰階
-        out = TF.resize(size=(config.side_y, config.side_x), img=out.unsqueeze(0))
+        out = TF.resize(size=(config.height, config.width), img=out.unsqueeze(0))
         out = TF.to_pil_image(out.clamp(0, 1)).convert("RGB")
     else:  # 有顏色
         out = out.reshape(-1, 3, out.shape[0] // 3, out.shape[1])
-        out = TF.resize(size=(config.side_y, config.side_x), img=out)
+        out = TF.resize(size=(config.height, config.width), img=out)
         out = TF.to_pil_image(out.clamp(0, 1).squeeze())
 
     out = ImageOps.autocontrast(out)
@@ -119,7 +119,7 @@ def regen_perlin(perlin_mode):
         .sub(1)
     )
     del init2
-    return init.expand(config.batch_size, -1, -1, -1)
+    return init.expand(1, -1, -1, -1)
 
 
 def regen_perlin_no_expand(perlin_mode):

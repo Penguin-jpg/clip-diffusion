@@ -1,10 +1,9 @@
-import torch
 import random
 
-INT_MAX = 2**32
+_INT_MAX = 2**32
 
 
-class _Config:
+class Config:
     """
     將生成設定統整在這個class
     """
@@ -14,12 +13,9 @@ class _Config:
         初始化預設值
         """
 
-        # 圖片長寬相關
+        # 圖片長寬相關(一定要是64的倍數)
         self.width = 960  # 生成圖片的寬度
         self.height = 768  # 　生成圖片的高度
-        # resize用的x, y(一定要是64的倍數)
-        self.side_x = (self.width // 64) * 64
-        self.side_y = (self.height // 64) * 64
 
         # cutout相關
         self.num_cutout_batches = 4  # 要做的cutout次數
@@ -47,23 +43,21 @@ class _Config:
         self.sat_scale = 0  # 控制允許多少飽和
 
         # 生成相關
-        self.seed = None  # 亂數種子(會由anvil客戶端做第一次的初始化)
-        self.batch_size = 1  # 一次要sample的數量
-        self.num_batches = 1  # 要生成的圖片數量
-        self.use_augmentation = True  # 是否要做圖片的augmentation
+        self.seed = self.get_seed()  # 亂數種子
+        self.use_augmentations = True  # 是否要做圖片的augmentation
 
     def get_seed(self):
         """
         生成種子
         """
         random.seed()
-        return random.randint(0, INT_MAX)
+        return random.randint(0, _INT_MAX)
 
     def adjust_settings(
         self,
         width=960,
         height=768,
-        cutn_batches=4,
+        num_cutn_batches=4,
         overview_cut_schedule=[12] * 400 + [4] * 600,
         inner_cut_schedule=[4] * 400 + [12] * 600,
         inner_cut_size_pow=1,
@@ -76,23 +70,19 @@ class _Config:
         tv_scale=0,
         range_scale=150,
         sat_scale=0,
-        batch_size=1,
-        num_batches=1,
-        use_augmentation=True,
+        use_augmentations=True,
     ):
         """
         調整設定
         """
 
-        self.width = width
-        self.height = height
-        self.num_cutout_batches = cutn_batches
+        self.width = (width // 64) * 64  # 調整成64的倍數
+        self.height = (height // 64) * 64
+        self.num_cutout_batches = num_cutn_batches
         self.overview_cut_schedule = overview_cut_schedule
         self.inner_cut_schedule = inner_cut_schedule
         self.inner_cut_size_pow = inner_cut_size_pow
         self.cut_gray_portion_schedule = cut_gray_portion_schedule
-        self.side_x = (self.width // 64) * 64
-        self.side_y = (self.height // 64) * 64
         self.use_secondary_model = use_secondary_model
         self.chosen_clip_models = chosen_clip_models
         self.clip_denoised = clip_denoised
@@ -101,9 +91,7 @@ class _Config:
         self.tv_scale = tv_scale
         self.range_scale = range_scale
         self.sat_scale = sat_scale
-        self.batch_size = batch_size
-        self.num_batches = num_batches
-        self.use_augmentation = use_augmentation
+        self.use_augmentations = use_augmentations
 
 
-config = _Config()
+config = Config()

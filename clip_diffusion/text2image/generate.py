@@ -61,6 +61,7 @@ def guided_diffusion_generate(
     clip_guidance_scale=5000,
     eta=0.8,
     init_scale=1000,
+    num_batches=1,
     display_rate=25,
 ):
     """
@@ -70,10 +71,11 @@ def guided_diffusion_generate(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     steps: 每個batch要跑的step數
-    skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的 0~50%
+    skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
     eta: 調整每個timestep混入的噪音量(0: 無噪音; 1.0: 最多噪音)
     init_scale: 增強init_image的效果
+    num_batches: 要生成的圖片數量
     display_rate: 生成過程的gif多少個step要更新一次
     """
 
@@ -150,6 +152,7 @@ def guided_diffusion_generate(
                         cut_gray_portion=config.cut_gray_portion_schedule[
                             1000 - t_value
                         ],
+                        use_augmentations=config.use_augmentations,
                     )
                     clip_in = _normalize(cuts(x_in.add(1).div(2)))
                     image_embeddings = (
@@ -213,18 +216,19 @@ def guided_diffusion_generate(
 
         return grad
 
-    # 在server端顯示
-    image_display = Output()
+    image_display = Output()  # 在server端顯示圖片
+    gif_urls = []  # 生成過程的gif url
 
-    for current_batch in range(config.num_batches):
+    for current_batch in range(num_batches):
         display.clear_output(wait=True)
-        progress_bar = tqdm(range(config.num_batches), desc="Batches")
-        progress_bar.n = current_batch
+        progress_bar = tqdm(range(num_batches), desc="Batches")
+        progress_bar.n = current_batch + 1
         progress_bar.refresh()
-        print("")
         display.display(image_display)
+
         gc.collect()
         torch.cuda.empty_cache()
+
         current_timestep = (
             diffusion.num_timesteps - skip_timesteps - 1
         )  # 將目前timestep的值初始化為總timestep數-1
@@ -235,7 +239,12 @@ def guided_diffusion_generate(
         # 使用DDIM進行sample
         samples = diffusion.ddim_sample_loop_progressive(
             model,
-            (config.batch_size, 3, config.side_y, config.side_x),
+            (
+                1,
+                3,
+                config.height,
+                config.width,
+            ),  # shape=(batch_size, num_channels, height, width)
             clip_denoised=config.clip_denoised,
             model_kwargs={},
             cond_fn=cond_fn,
@@ -280,14 +289,20 @@ def guided_diffusion_generate(
             # 紀錄目前的step
             anvil.server.task_state["current_step"] = step_index + 1
 
+        # 儲存生成過程的gif url
+        gif_urls.append(
+            upload_gif(
+                batch_folder,
+                current_batch,
+                display_rate,
+                append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
+            )
+        )
+
         gc.collect()
         torch.cuda.empty_cache()
 
-        return upload_gif(
-            batch_folder,
-            display_rate,
-            append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
-        )  # 回傳生成過程的gif url
+    return gif_urls  # 回傳gif url
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
@@ -296,23 +311,23 @@ def latent_diffusion_generate(
     prompts=[
         "A cute golden retriever.",
     ],
+    diffusion_steps=50,
+    eta=0.0,
     latent_diffusion_guidance_scale=5,
     num_iterations=3,
     num_samples=3,
-    diffusion_steps=50,
-    eta=0.0,
-    chosen_models=["ViT-B/32", "ViT-B/16", "RN50"],
+    chosen_models=["ViT-B/32", "ViT-B/16"],
     sample_width=256,
     sample_height=256,
 ):
     """
     使用latent diffusion生成圖片
     prompts: 要生成的東西
+    diffusion_steps: latent diffusion要跑的step數
+    eta: latent diffusion的eta
     latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
     num_iterations: 做幾次latent diffusion生成
     num_samples: 要生成的圖片數
-    diffusion_steps: latent diffusion要跑的step數
-    eta: latent diffusion的eta
     chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高

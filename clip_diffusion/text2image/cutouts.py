@@ -4,7 +4,6 @@ from torch.nn import functional as F
 from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
-from clip_diffusion.config import config
 
 # 參考並修改自：disco diffusion
 # 作者： Dango233(https://github.com/Dango233)
@@ -22,6 +21,7 @@ class MakeCutouts(nn.Module):
         inner_cut,
         inner_cut_size_pow,
         cut_gray_portion,
+        use_augmentations,
     ):
         super().__init__()
         self.padargs = {}  # 提供給pad的額外參數
@@ -30,7 +30,8 @@ class MakeCutouts(nn.Module):
         self.inner_cut = inner_cut  # 要做的inner cut次數
         self.inner_cut_size_pow = inner_cut_size_pow  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
-        self.augmentations = T.Compose(
+        self.use_augmentations = use_augmentations  # 是否要對cutout圖片使用augmentations
+        self._augmentations = T.Compose(
             [
                 T.RandomHorizontalFlip(p=0.5),
                 T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
@@ -99,7 +100,7 @@ class MakeCutouts(nn.Module):
         cutouts = torch.cat(cutouts)
 
         # 對cutout的圖片做augmentation
-        if config.use_augmentation:
-            cutouts = self.augmentations(cutouts)
+        if self.use_augmentations:
+            cutouts = self._augmentations(cutouts)
 
         return cutouts
