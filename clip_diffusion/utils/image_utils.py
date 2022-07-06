@@ -34,7 +34,11 @@ def upload_png(image_path):
 
 
 def upload_gif(
-    batch_folder, current_batch, display_rate=30, append_last_timestep=False
+    batch_folder,
+    current_batch,
+    display_rate=30,
+    gif_duration=500,
+    append_last_timestep=False,
 ):
     """
     用生成過程的圖片建成gif，上傳至imgur並回傳該gif的url
@@ -63,7 +67,7 @@ def upload_gif(
         format="GIF",
         save_all=True,
         append_images=images[1:],
-        duration=300,
+        duration=gif_duration,
         loop=0,
     )
 
@@ -97,6 +101,33 @@ def image_to_blob_media(content_type, image_path):
     """
 
     return BlobMedia(content_type, _image_to_bytes(image_path))
+
+
+def images_to_grid_image(batch_folder, images, num_rows, num_cols):
+    """
+    將圖片變成grid格式
+    """
+
+    # 檢查row*col數量是否等於圖片數量
+    if len(images) != num_rows * num_cols:
+        print("num_rows * num_cols should equal to num_images")
+        return
+
+    width, height = images[0].size  # 取出一張的寬高
+
+    grid_image = Image.new(
+        "RGB", size=(num_cols * width, num_rows * height)
+    )  # 建立一個空的grid image
+
+    for index, image in enumerate(images):
+        grid_image.paste(
+            image, box=(index % num_cols * width, index // num_cols * height)
+        )  # 將圖片貼到grid image對應的位置
+
+    filename = os.path.join(batch_folder, "grid_image.png")
+    grid_image.save(filename)
+
+    return upload_png(filename)
 
 
 def super_resolution(model, batch_folder, exception_paths=[]):

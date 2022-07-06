@@ -32,7 +32,12 @@ from clip_diffusion.models import (
 from clip_diffusion.text2image.cutouts import MakeCutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
-from clip_diffusion.utils.image_utils import upload_png, upload_gif, super_resolution
+from clip_diffusion.utils.image_utils import (
+    images_to_grid_image,
+    upload_png,
+    upload_gif,
+    super_resolution,
+)
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _normalize = T.Normalize(
@@ -62,7 +67,11 @@ def guided_diffusion_generate(
     eta=0.8,
     init_scale=1000,
     num_batches=1,
+    use_grid_image=False,
+    num_rows=1,
+    num_cols=1,
     display_rate=25,
+    gif_duration=400,
 ):
     """
     生成圖片(和anvil client互動)
@@ -76,7 +85,11 @@ def guided_diffusion_generate(
     eta: 調整每個timestep混入的噪音量(0: 無噪音; 1.0: 最多噪音)
     init_scale: 增強init_image的效果
     num_batches: 要生成的圖片數量
+    use_grid_iamge: 是否要生成grid圖片
+    num_rows: grid圖片的row數量
+    num_cols: grid圖片的col數量
     display_rate: 生成過程的gif多少個step要更新一次
+    gif_duration: gif的播放時間
     """
 
     prompts = prompts_preprocessing(prompts, styles)  # prompts的前處理
@@ -218,6 +231,7 @@ def guided_diffusion_generate(
 
     image_display = Output()  # 在server端顯示圖片
     gif_urls = []  # 生成過程的gif url
+    images = []  # 最後一個timestep的圖片
 
     for current_batch in range(num_batches):
         display.clear_output(wait=True)
@@ -286,8 +300,16 @@ def guided_diffusion_generate(
                             image_path
                         )
 
+                        # 儲存最後一個timestep的圖片
+                        images.append(Image.open(image_path))
+
             # 紀錄目前的step
             anvil.server.task_state["current_step"] = step_index + 1
+
+        if use_grid_image:
+            anvil.server.task_state["grid_image_url"] = images_to_grid_image(
+                batch_folder, images, num_rows, num_cols
+            )  # 儲存grid圖片的url到grid_image_url
 
         # 儲存生成過程的gif url
         gif_urls.append(
@@ -295,6 +317,7 @@ def guided_diffusion_generate(
                 batch_folder,
                 current_batch,
                 display_rate,
+                gif_duration,
                 append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
             )
         )
