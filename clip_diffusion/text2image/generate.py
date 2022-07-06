@@ -294,14 +294,13 @@ def guided_diffusion_generate(
                         anvil.server.task_state["current_result"] = upload_png(
                             image_path
                         )
+                        # 儲存最後一個timestep的圖片
+                        images.append(Image.open(image_path))
                     elif step_index % 15 == 0:  # 每15個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
                         anvil.server.task_state["current_result"] = upload_png(
                             image_path
                         )
-
-                        # 儲存最後一個timestep的圖片
-                        images.append(Image.open(image_path))
 
             # 紀錄目前的step
             anvil.server.task_state["current_step"] = step_index + 1
@@ -320,12 +319,12 @@ def guided_diffusion_generate(
             )
         )
 
-        if use_grid_image:
-            grid_image_url = images_to_grid_image(
-                batch_folder, images, num_rows, num_cols
-            )  # 儲存grid圖片的url到grid_image_url
+    if use_grid_image:
+        grid_image_url = images_to_grid_image(
+            batch_folder, images, num_rows, num_cols
+        )  # 儲存grid圖片的url到grid_image_url
 
-            return gif_urls, grid_image_url
+        return gif_urls, grid_image_url
 
     return gif_urls  # 回傳gif url
 
