@@ -60,9 +60,7 @@ def test_mm_detector(
     torch.cuda.empty_cache()
 
 
-def inference_mm_detector(
-    model, image_path, output_path="result.jpg", score_threshold=0.3
-):
+def inference_mm_detector(model, image_path, output_path="result.jpg", score_threshold=0.3):
     """
     對單張圖片做inference
     """

@@ -145,12 +145,8 @@ def get_embedding_and_weights(prompts, clip_models):
             clip_model_stat["text_embeddings"].append(text)
             clip_model_stat["text_weights"].append(weight)
 
-        clip_model_stat["text_embeddings"] = torch.cat(
-            clip_model_stat["text_embeddings"]
-        )
-        clip_model_stat["text_weights"] = torch.tensor(
-            clip_model_stat["text_weights"], device=_device
-        )
+        clip_model_stat["text_embeddings"] = torch.cat(clip_model_stat["text_embeddings"])
+        clip_model_stat["text_weights"] = torch.tensor(clip_model_stat["text_weights"], device=_device)
 
         if clip_model_stat["text_weights"].sum().abs() < 1e-3:
             raise RuntimeError("The text_weights must not sum to 0.")
@@ -170,9 +166,7 @@ def create_init_noise(init_image=None, use_perlin=False, perlin_mode="mixed"):
 
     # 如果初始圖片不為空
     if init_image is not None:
-        init_noise = get_image_from_bytes(init_image.get_bytes()).convert(
-            "RGB"
-        )  # 透過anvil傳來的圖片的bytes開啟圖片
+        init_noise = get_image_from_bytes(init_image.get_bytes()).convert("RGB")  # 透過anvil傳來的圖片的bytes開啟圖片
         init_noise = init_noise.resize((config.width, config.height), Image.LANCZOS)
         init_noise = TF.to_tensor(init_noise).to(_device).unsqueeze(0).mul(2).sub(1)
     elif use_perlin:  # 使用perlin noise

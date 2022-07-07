@@ -109,15 +109,7 @@ def regen_perlin(perlin_mode):
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
 
-    init = (
-        TF.to_tensor(init)
-        .add(TF.to_tensor(init2))
-        .div(2)
-        .to(_device)
-        .unsqueeze(0)
-        .mul(2)
-        .sub(1)
-    )
+    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(_device).unsqueeze(0).mul(2).sub(1)
     del init2
     return init.expand(1, -1, -1, -1)
 
@@ -137,14 +129,6 @@ def regen_perlin_no_expand(perlin_mode):
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
 
-    init = (
-        TF.to_tensor(init)
-        .add(TF.to_tensor(init2))
-        .div(2)
-        .to(_device)
-        .unsqueeze(0)
-        .mul(2)
-        .sub(1)
-    )
+    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(_device).unsqueeze(0).mul(2).sub(1)
     del init2
     return init

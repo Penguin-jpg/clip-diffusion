@@ -80,9 +80,7 @@ def get_query_results(
     results = client.query(text=text, image=image_url)
 
     if num_results > len(results):
-        print(
-            "excceeds max number of results! automatically shorten to match max length"
-        )
+        print("excceeds max number of results! automatically shorten to match max length")
     else:
         results = results[:num_results]
 
@@ -95,9 +93,7 @@ def get_query_results(
     return results
 
 
-def combine_results(
-    results_1, results_2, num_results=1000, to_json=False, output_path=None
-):
+def combine_results(results_1, results_2, num_results=1000, to_json=False, output_path=None):
     """
     將兩個results結合
     """
@@ -109,9 +105,7 @@ def combine_results(
     new_results = results_1 + results_2
 
     if num_results > len(new_results):
-        print(
-            "excceeds max number of results! automatically shorten to match max length"
-        )
+        print("excceeds max number of results! automatically shorten to match max length")
     else:
         new_results = new_results[:num_results]
 
