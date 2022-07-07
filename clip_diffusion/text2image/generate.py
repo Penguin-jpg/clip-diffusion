@@ -42,10 +42,10 @@ from clip_diffusion.utils.image_utils import (
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 _normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])  # Clip用到的normalize
 _lpips_model = lpips.LPIPS(net="vgg").to(_device)
-_clip_models, _preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models)
-_secondary_model = load_secondary_model()
-_latent_diffusion_model = load_latent_diffusion_model()
-_bsrgan_model = load_bsrgan_model()
+_clip_models, _preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+_secondary_model = load_secondary_model(_device)
+_latent_diffusion_model = load_latent_diffusion_model(_device)
+_bsrgan_model = load_bsrgan_model(_device)
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
@@ -89,7 +89,7 @@ def guided_diffusion_generate(
     """
 
     prompts = prompts_preprocessing(prompts, styles)  # prompts的前處理
-    model, diffusion = load_guided_diffusion_model(steps)  # 載入diffusion model和diffusion
+    model, diffusion = load_guided_diffusion_model(steps, device=_device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -97,10 +97,10 @@ def guided_diffusion_generate(
     set_seed()
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embeddings_and_weights(prompts, _clip_models)
+    clip_model_stats = get_embeddings_and_weights(prompts, _clip_models, _device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, use_perlin, perlin_mode)
+    init = create_init_noise(init_image, use_perlin, perlin_mode, _device)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -121,13 +121,13 @@ def guided_diffusion_generate(
             if config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[current_timestep],
-                    device=_device,
                     dtype=torch.float32,
+                    device=_device,
                 )
                 sigma = torch.tensor(
                     diffusion.sqrt_one_minus_alphas_cumprod[current_timestep],
-                    device=_device,
                     dtype=torch.float32,
+                    device=_device,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
                 out = _secondary_model(x, cosine_t[None].repeat([n])).pred
@@ -214,7 +214,7 @@ def guided_diffusion_generate(
         current_timestep = diffusion.num_timesteps - skip_timesteps - 1
 
         if use_perlin:
-            init = regen_perlin(perlin_mode)
+            init = regen_perlin(perlin_mode, _device)
 
         # 使用DDIM進行sample
         samples = diffusion.ddim_sample_loop_progressive(
@@ -342,8 +342,8 @@ def latent_diffusion_generate(
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                         samples_ddim, _ = sampler.sample(
                             S=diffusion_steps,
-                            conditioning=conditioning,
                             batch_size=num_samples,
+                            conditioning=conditioning,
                             shape=shape,
                             verbose=False,
                             unconditional_guidance_scale=latent_diffusion_guidance_scale,
@@ -389,6 +389,7 @@ def latent_diffusion_generate(
                     gc.collect()
                     torch.cuda.empty_cache()
 
-    super_resolution(_bsrgan_model, batch_folder, exception_paths=exception_paths)  # 提高解析度
+    # 提高解析度
+    super_resolution(_bsrgan_model, batch_folder, exception_paths, _device)
 
     return urls  # 回傳每個Clip模型生成的grid image url

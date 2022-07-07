@@ -27,8 +27,6 @@ pip install -r requirements/dataset_images.txt
 pip install -r requirements/instance_segmentation.txt
 git clone https://github.com/Penguin-jpg/mmdetection.git
 pip install -e ./mmdetection
-# 如果需要手動標註資料才需額外安裝
-# pip install labelme
 # 如果要訓練 Instaboost 模型才需額外安裝
 # pip install instaboostfast
 ```
