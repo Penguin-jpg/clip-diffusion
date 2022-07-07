@@ -220,7 +220,7 @@ def guided_diffusion_generate(
         samples = diffusion.ddim_sample_loop_progressive(
             model,
             (1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
-            clip_denoised=config.clip_denoised,
+            clip_denoised=False,
             model_kwargs={},
             cond_fn=cond_fn,
             progress=True,
