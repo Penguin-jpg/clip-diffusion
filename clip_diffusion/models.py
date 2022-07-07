@@ -21,11 +21,13 @@ from clip_diffusion.utils.dir_utils import MODEL_PATH
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # 下載網址
-GUIDED_DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
-SECONDARY_MODEL_URL = (
-    "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
+GUIDED_DIFFUSION_MODEL_URL = (
+    "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
 )
-LATENT_DIFFUSION_MODEL_URL = "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
+SECONDARY_MODEL_URL = "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
+LATENT_DIFFUSION_MODEL_URL = (
+    "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
+)
 BSRGAN_MODEL_URL = "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
 
 # 模型名稱
@@ -92,9 +94,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True):
         {
             "attention_resolutions": "32, 16, 8",
             "class_cond": False,
-            "diffusion_steps": (
-                (1000 // steps) * steps if steps < 1000 else steps
-            ),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
+            "diffusion_steps": ((1000 // steps) * steps if steps < 1000 else steps),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
             "rescale_timesteps": True,
             "timestep_respacing": f"ddim{steps}",  # 調整diffusion的timestep數量(使用DDIM sample)
             "image_size": 512,
@@ -222,9 +222,7 @@ class SecondaryDiffusionImageNet(nn.Module):
                             ),
                             ConvBlock(c * 8, c * 4),
                             ConvBlock(c * 4, c * 2),
-                            nn.Upsample(
-                                scale_factor=2, mode="bilinear", align_corners=False
-                            ),
+                            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
                         ]
                     ),
                     ConvBlock(c * 4, c * 2),
@@ -347,9 +345,7 @@ def load_latent_diffusion_model():
     載入latent diffusion模型
     """
 
-    model_config = OmegaConf.load(
-        "./latent-diffusion/configs/latent-diffusion/txt2img-1p4B-eval.yaml"
-    )
+    model_config = OmegaConf.load("./latent-diffusion/configs/latent-diffusion/txt2img-1p4B-eval.yaml")
 
     model = instantiate_from_config(model_config.model)
     model.load_state_dict(
@@ -374,9 +370,7 @@ def load_bsrgan_model():
 
     model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32, sf=4)
     model.load_state_dict(
-        torch.load(
-            _download_model(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"
-        ),
+        torch.load(_download_model(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"),
         strict=True,
     )
     model.eval().requires_grad_(False).to(_device)

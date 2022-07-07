@@ -85,10 +85,7 @@ class MakeCutouts(nn.Module):
         # 做inner cut
         if self.inner_cut > 0:
             for i in range(self.inner_cut):
-                size = int(
-                    torch.rand([]) ** self.inner_cut_size_pow * (max_size - min_size)
-                    + min_size
-                )
+                size = int(torch.rand([]) ** self.inner_cut_size_pow * (max_size - min_size) + min_size)
                 offsetx = torch.randint(0, side_x - size + 1, ())
                 offsety = torch.randint(0, side_y - size + 1, ())
                 cutout = input[:, :, offsety : offsety + size, offsetx : offsetx + size]

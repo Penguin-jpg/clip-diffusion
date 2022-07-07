@@ -76,9 +76,7 @@ def setup_train_config(
 
     for split, annotation_path in annotation_paths.items():
         config.data[split].ann_file = annotation_path
-        config.data[split].img_prefix = os.path.dirname(
-            annotation_path
-        )  # 取出訓練圖片的prefix
+        config.data[split].img_prefix = os.path.dirname(annotation_path)  # 取出訓練圖片的prefix
         config.data[split].classes = classes
 
     config.resume_from = resume_from

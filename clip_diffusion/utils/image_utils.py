@@ -27,9 +27,7 @@ def upload_png(image_path):
     將生成過程的png上傳至imgur並回傳該png的url
     """
 
-    image = imgur.upload_image(
-        image_path, title=f"{os.path.basename(image_path)}"
-    )  # 上傳至imgur
+    image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")  # 上傳至imgur
     return image.link  # 回傳url
 
 
@@ -45,9 +43,7 @@ def upload_gif(
     """
 
     # 選出目前batch的所有圖片
-    images_glob = sorted(
-        glob(os.path.join(batch_folder, f"guided_{current_batch}*.png"))
-    )
+    images_glob = sorted(glob(os.path.join(batch_folder, f"guided_{current_batch}*.png")))
 
     images = []  # 儲存要找的圖片
     for index, image_path in enumerate(images_glob):
@@ -115,14 +111,10 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
 
     width, height = images[0].size  # 取出一張的寬高
 
-    grid_image = Image.new(
-        "RGB", size=(num_cols * width, num_rows * height)
-    )  # 建立一個空的grid image
+    grid_image = Image.new("RGB", size=(num_cols * width, num_rows * height))  # 建立一個空的grid image
 
     for index, image in enumerate(images):
-        grid_image.paste(
-            image, box=(index % num_cols * width, index // num_cols * height)
-        )  # 將圖片貼到grid image對應的位置
+        grid_image.paste(image, box=(index % num_cols * width, index // num_cols * height))  # 將圖片貼到grid image對應的位置
 
     filename = os.path.join(batch_folder, "grid_image.png")
     grid_image.save(filename)
