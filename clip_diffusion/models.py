@@ -18,8 +18,6 @@ from guided_diffusion.script_util import (
 from bsrgan.models import RRDBNet
 from clip_diffusion.utils.dir_utils import MODEL_PATH
 
-_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 # 下載網址
 GUIDED_DIFFUSION_MODEL_URL = (
     "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
@@ -65,7 +63,7 @@ def _download_model(url, model_name):
     return str(download_target)
 
 
-def load_clip_models_and_preprocessings(chosen_models):
+def load_clip_models_and_preprocessings(chosen_models, device=None):
     """
     選擇並載入要使用的Clip模型和preprocess function
     """
@@ -74,7 +72,7 @@ def load_clip_models_and_preprocessings(chosen_models):
     preprocessings = {}
 
     for model_name in chosen_models:
-        model, preprocess = clip.load(model_name, _device)
+        model, preprocess = clip.load(model_name, device=device)
         clip_models[model_name] = model.eval().requires_grad_(False)
         preprocessings[model_name] = preprocess
 
@@ -84,7 +82,7 @@ def load_clip_models_and_preprocessings(chosen_models):
     return clip_models, preprocessings
 
 
-def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True):
+def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, device=None):
     """
     載入guided diffusion model和diffusion
     """
@@ -116,7 +114,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True):
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(_device)
+    model.eval().requires_grad_(False).to(device)
 
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:
@@ -319,7 +317,7 @@ class SecondaryDiffusionImageNet2(nn.Module):
         return DiffusionOutput(v, pred, eps)
 
 
-def load_secondary_model():
+def load_secondary_model(device=None):
     """
     載入secondary model
     """
@@ -331,7 +329,7 @@ def load_secondary_model():
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(_device)
+    model.eval().requires_grad_(False).to(device)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -340,7 +338,7 @@ def load_secondary_model():
 
 
 # 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
-def load_latent_diffusion_model():
+def load_latent_diffusion_model(device=None):
     """
     載入latent diffusion模型
     """
@@ -355,7 +353,7 @@ def load_latent_diffusion_model():
         ),
         strict=False,
     )
-    model.half().eval().requires_grad_(False).to(_device)
+    model.half().eval().requires_grad_(False).to(device)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -363,7 +361,7 @@ def load_latent_diffusion_model():
     return model
 
 
-def load_bsrgan_model():
+def load_bsrgan_model(device=None):
     """
     載入bsrgan模型
     """
@@ -373,7 +371,7 @@ def load_bsrgan_model():
         torch.load(_download_model(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"),
         strict=True,
     )
-    model.eval().requires_grad_(False).to(_device)
+    model.eval().requires_grad_(False).to(device)
 
     gc.collect()
     torch.cuda.empty_cache()
