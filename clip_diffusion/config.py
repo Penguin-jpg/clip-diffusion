@@ -29,7 +29,6 @@ class Config:
         self.chosen_clip_models = ["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"]
 
         # Clip相關
-        self.clip_denoised = False  # clip是否要區分有噪音和沒有噪音的圖片
         self.clamp_grad = True  # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
         self.clamp_max = 0.05  # 限制的最大梯度
 
@@ -60,7 +59,6 @@ class Config:
         cut_gray_portion_schedule=(0.2,) * 400 + (0,) * 600,
         use_secondary_model=True,
         chosen_clip_models=["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"],
-        clip_denoised=False,
         clamp_grad=True,
         clamp_max=0.05,
         tv_scale=0,
@@ -81,7 +79,6 @@ class Config:
         self.cut_gray_portion_schedule = cut_gray_portion_schedule
         self.use_secondary_model = use_secondary_model
         self.chosen_clip_models = chosen_clip_models
-        self.clip_denoised = clip_denoised
         self.clamp_grad = clamp_grad
         self.clamp_max = clamp_max
         self.tv_scale = tv_scale

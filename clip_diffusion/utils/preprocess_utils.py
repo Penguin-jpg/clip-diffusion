@@ -124,7 +124,7 @@ def set_seed():
     torch.backends.cudnn.deterministic = True
 
 
-def get_embedding_and_weights(prompts, clip_models):
+def get_embeddings_and_weights(prompts, clip_models):
     """
     取得prompt的embedding及weight
     """
@@ -148,9 +148,11 @@ def get_embedding_and_weights(prompts, clip_models):
         clip_model_stat["text_embeddings"] = torch.cat(clip_model_stat["text_embeddings"])
         clip_model_stat["text_weights"] = torch.tensor(clip_model_stat["text_weights"], device=_device)
 
+        # 權重和不可為0
         if clip_model_stat["text_weights"].sum().abs() < 1e-3:
             raise RuntimeError("The text_weights must not sum to 0.")
 
+        # 正規化
         clip_model_stat["text_weights"] /= clip_model_stat["text_weights"].sum().abs()
         clip_model_stats.append(clip_model_stat)
 

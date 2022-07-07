@@ -17,7 +17,7 @@ from clip_diffusion.config import config
 from clip_diffusion.utils.preprocess_utils import (
     prompts_preprocessing,
     set_seed,
-    get_embedding_and_weights,
+    get_embeddings_and_weights,
     create_init_noise,
 )
 from clip_diffusion.utils.perlin_utils import regen_perlin
@@ -97,7 +97,7 @@ def guided_diffusion_generate(
     set_seed()
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embedding_and_weights(prompts, _clip_models)
+    clip_model_stats = get_embeddings_and_weights(prompts, _clip_models)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, use_perlin, perlin_mode)
@@ -161,13 +161,7 @@ def guided_diffusion_generate(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
                     )
-                    dists = dists.view(
-                        [
-                            config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value],
-                            n,
-                            -1,
-                        ]
-                    )
+                    dists = dists.view([config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], n, -1])
                     losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
                     x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / config.num_cutout_batches
@@ -203,14 +197,15 @@ def guided_diffusion_generate(
     gif_urls = []  # 生成過程的gif url
     images = []  # 最後一個timestep的圖片
 
-    for current_batch in range(num_batches):
+    for batch_index in range(num_batches):
         display.clear_output(wait=True)
         progress_bar = tqdm(range(num_batches), desc="Batches")
-        progress_bar.n = current_batch + 1
+        progress_bar.n = batch_index + 1
         progress_bar.refresh()
         display.display(image_display)
 
-        anvil.server.task_state["current_batch"] = current_batch + 1  # 儲存current_batch
+        # 將目前的batch index存到current_batch
+        anvil.server.task_state["current_batch"] = batch_index + 1
 
         gc.collect()
         torch.cuda.empty_cache()
@@ -225,7 +220,7 @@ def guided_diffusion_generate(
         samples = diffusion.ddim_sample_loop_progressive(
             model,
             (1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
-            clip_denoised=config.clip_denoised,
+            clip_denoised=False,
             model_kwargs={},
             cond_fn=cond_fn,
             progress=True,
@@ -242,7 +237,7 @@ def guided_diffusion_generate(
             with image_display:
                 # 更新、儲存圖片
                 for _, image in enumerate(sample["pred_xstart"]):
-                    filename = f"guided_{current_batch}-{step_index:04}.png"  # 圖片名稱
+                    filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
                     image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))  # 轉換為Pillow Image
                     image.save(image_path)
@@ -260,7 +255,7 @@ def guided_diffusion_generate(
                         gif_urls.append(
                             upload_gif(
                                 batch_folder,
-                                current_batch,
+                                batch_index,
                                 display_rate,
                                 gif_duration,
                                 append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
@@ -279,8 +274,8 @@ def guided_diffusion_generate(
         torch.cuda.empty_cache()
 
     if use_grid_image:
-        grid_image_url = images_to_grid_image(batch_folder, images, num_rows, num_cols)  # 儲存grid圖片的url到grid_image_url
-
+        # 儲存grid圖片的url到grid_image_url
+        grid_image_url = images_to_grid_image(batch_folder, images, num_rows, num_cols)
         return gif_urls, grid_image_url
 
     return gif_urls  # 回傳gif url
@@ -342,7 +337,7 @@ def latent_diffusion_generate(
                         torch.cuda.empty_cache()
 
                         conditioning = _latent_diffusion_model.get_learned_conditioning(num_samples * [prompts[0]])
-                        shape = [4, sample_height // 8, sample_width // 8]
+                        shape = (4, sample_height // 8, sample_width // 8)
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                         samples_ddim, _ = sampler.sample(

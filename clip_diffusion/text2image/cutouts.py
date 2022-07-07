@@ -24,7 +24,6 @@ class MakeCutouts(nn.Module):
         use_augmentations,
     ):
         super().__init__()
-        self.padargs = {}  # 提供給pad的額外參數
         self.cut_size = cut_size  # 要取的inner cut圖片大小(對應Clip模型的input resolution)
         self.overview = overview  # 要做的overview cut次數
         self.inner_cut = inner_cut  # 要做的inner cut次數
@@ -56,13 +55,7 @@ class MakeCutouts(nn.Module):
         output_shape = [1, 3, self.cut_size, self.cut_size]
         pad_input = F.pad(
             input,
-            (
-                (side_y - max_size) // 2,
-                (side_y - max_size) // 2,
-                (side_x - max_size) // 2,
-                (side_x - max_size) // 2,
-            ),
-            **self.padargs
+            ((side_y - max_size) // 2, (side_y - max_size) // 2, (side_x - max_size) // 2, (side_x - max_size) // 2),
         )
         cutout = resize(pad_input, out_shape=output_shape)
 
