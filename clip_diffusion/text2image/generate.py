@@ -240,6 +240,8 @@ def guided_diffusion_generate(
         progress_bar.refresh()
         display.display(image_display)
 
+        anvil.server.task_state["current_batch"] = current_batch + 1  # 儲存current_batch
+
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -294,9 +296,20 @@ def guided_diffusion_generate(
                         anvil.server.task_state["current_result"] = upload_png(
                             image_path
                         )
+                        # 儲存生成過程的gif url
+                        gif_urls.append(
+                            upload_gif(
+                                batch_folder,
+                                current_batch,
+                                display_rate,
+                                gif_duration,
+                                append_last_timestep=(steps - skip_timesteps - 1)
+                                % display_rate,
+                            )
+                        )
                         # 儲存最後一個timestep的圖片
                         images.append(Image.open(image_path))
-                    elif step_index % 15 == 0:  # 每15個timestep更新上傳一次圖片
+                    elif step_index % 10 == 0:  # 每10個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
                         anvil.server.task_state["current_result"] = upload_png(
                             image_path
@@ -307,17 +320,6 @@ def guided_diffusion_generate(
 
         gc.collect()
         torch.cuda.empty_cache()
-
-        # 儲存生成過程的gif url
-        gif_urls.append(
-            upload_gif(
-                batch_folder,
-                current_batch,
-                display_rate,
-                gif_duration,
-                append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
-            )
-        )
 
     if use_grid_image:
         grid_image_url = images_to_grid_image(
