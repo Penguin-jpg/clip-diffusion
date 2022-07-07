@@ -59,7 +59,7 @@ def guided_diffusion_generate(
     perlin_mode="mixed",
     steps=200,
     skip_timesteps=0,
-    clip_guidance_scale=5000,
+    clip_guidance_scale=8000,
     eta=0.8,
     init_scale=1000,
     num_batches=1,
