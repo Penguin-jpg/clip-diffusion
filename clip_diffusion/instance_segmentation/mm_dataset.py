@@ -1,24 +1,6 @@
-import os
 from mmdet import __version__
 from mmcv.utils import get_git_hash
 from mmdet.datasets import build_dataset, build_dataloader
-from labelme2coco import get_coco_from_labelme_folder, save_json
-
-
-def convert_dataset_to_coco_format(dataset_paths, output_dir):
-    """
-    將img2dataset轉為coco dataset格式
-    """
-
-    train_coco = get_coco_from_labelme_folder(dataset_path["train"])
-
-    for split, dataset_path in dataset_paths.items():
-        coco_format = get_coco_from_labelme_folder(
-            dataset_path, coco_category_list=train_coco.json_categories
-        )
-        save_json(
-            data=coco_format.json, save_path=os.path.join(output_dir, f"{split}.json")
-        )
 
 
 def build_mm_dataset(config, split="train"):
