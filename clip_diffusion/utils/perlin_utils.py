@@ -8,8 +8,6 @@ from clip_diffusion.config import config
 # 1. https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 # 2. disco diffusion
 
-_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 
 def fade_power_3(t):
     """
@@ -25,7 +23,7 @@ def fade_power_5(t):
     return 6 * t**5 - 15 * t**4 + 10 * t**3
 
 
-def perlin(power, width, height, scale=10):
+def perlin(power, width, height, scale=10, device=None):
     """
     計算二維的perlin noise
     """
@@ -35,10 +33,10 @@ def perlin(power, width, height, scale=10):
         fade = fade_power_3
 
     # 隨機展生的梯度
-    gx, gy = torch.randn(2, width + 1, height + 1, 1, 1).to(_device)
+    gx, gy = torch.randn(2, width + 1, height + 1, 1, 1, device=device)
     # 二維平面上的4個向量(噪音圖的4個頂點)，這些向量帶有高度
-    xs = torch.linspace(0, 1, scale + 1)[:-1, None].to(_device)
-    ys = torch.linspace(0, 1, scale + 1)[None, :-1].to(_device)
+    xs = torch.linspace(0, 1, scale + 1)[:-1, None].to(device)
+    ys = torch.linspace(0, 1, scale + 1)[None, :-1].to(device)
     # joint fade function(x, y皆參與影響)
     # 越接近1影響力要越大時就用x(或y)
     # 越接近0影響力越大時就用1-x(或1-y)
@@ -53,7 +51,7 @@ def perlin(power, width, height, scale=10):
     return dots.permute(0, 2, 1, 3).contiguous().view(width * scale, height * scale)
 
 
-def perlin_ms(octaves, width, height, grayscale):
+def perlin_ms(octaves, width, height, grayscale, device=None):
     """
     真正的perlin noise(透過疊加增進隨機性)
     """
@@ -66,7 +64,7 @@ def perlin_ms(octaves, width, height, grayscale):
         # 對每個生成的square都要做
         for oct in octaves:
             # 0~1之間的值，決定東西會多快減小
-            p = perlin(5, oct_width, oct_height, scale)
+            p = perlin(5, oct_width, oct_height, scale, device)
             out_array[i] += p * oct
             scale //= 2
             # 以每次兩倍的頻率上升
@@ -75,12 +73,12 @@ def perlin_ms(octaves, width, height, grayscale):
     return torch.cat(out_array)
 
 
-def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True):
+def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True, device=None):
     """
     整合上方的function
     """
 
-    out = perlin_ms(octaves, width, height, grayscale)
+    out = perlin_ms(octaves, width, height, grayscale, device)
 
     if grayscale:  # 灰階
         out = TF.resize(size=(config.height, config.width), img=out.unsqueeze(0))
@@ -94,7 +92,7 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     return out
 
 
-def regen_perlin(perlin_mode):
+def regen_perlin(perlin_mode, device=None):
     """
     重新生成perlin noise
     """
@@ -109,26 +107,26 @@ def regen_perlin(perlin_mode):
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
 
-    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(_device).unsqueeze(0).mul(2).sub(1)
+    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device).unsqueeze(0).mul(2).sub(1)
     del init2
     return init.expand(1, -1, -1, -1)
 
 
-def regen_perlin_no_expand(perlin_mode):
+def regen_perlin_no_expand(perlin_mode, device=None):
     """
     重新生成perlin noise，但不做expand
     """
 
     if perlin_mode == "color":
-        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
-        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, False)
+        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
+        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, False, device)
     elif perlin_mode == "gray":
-        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, True)
-        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
+        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, True, device)
+        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
     else:
-        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
-        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
+        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
+        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
 
-    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(_device).unsqueeze(0).mul(2).sub(1)
+    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device).unsqueeze(0).mul(2).sub(1)
     del init2
     return init
