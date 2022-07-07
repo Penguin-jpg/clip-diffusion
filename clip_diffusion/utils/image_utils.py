@@ -18,8 +18,8 @@ from bsrgan.utils_logger import logger_info
 from clip_diffusion.utils.dir_utils import make_dir
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-CLIENT_ID = "9bc11312c2c8b9a"
-imgur = pyimgur.Imgur(CLIENT_ID)
+***REMOVED***
+imgur = pyimgur.Imgur(_CLIENT_ID)
 
 
 def upload_png(image_path):
@@ -33,7 +33,7 @@ def upload_png(image_path):
 
 def upload_gif(
     batch_folder,
-    current_batch,
+    batch_index,
     display_rate=30,
     gif_duration=500,
     append_last_timestep=False,
@@ -43,7 +43,7 @@ def upload_gif(
     """
 
     # 選出目前batch的所有圖片
-    images_glob = sorted(glob(os.path.join(batch_folder, f"guided_{current_batch}*.png")))
+    images_glob = sorted(glob(os.path.join(batch_folder, f"guided_{batch_index}*.png")))
 
     images = []  # 儲存要找的圖片
     for index, image_path in enumerate(images_glob):
@@ -55,7 +55,7 @@ def upload_gif(
     if append_last_timestep:
         images.append(Image.open(images_glob[-1]))
 
-    filename = os.path.join(batch_folder, f"diffusion_{current_batch}.gif")
+    filename = os.path.join(batch_folder, f"diffusion_{batch_index}.gif")
 
     # 儲存成gif
     images[0].save(
@@ -68,7 +68,7 @@ def upload_gif(
     )
 
     # 將生成過程的gif上傳至Imgur
-    gif_image = imgur.upload_image(filename, title=f"diffusion_{current_batch}.gif")
+    gif_image = imgur.upload_image(filename, title=f"diffusion_{batch_index}.gif")
 
     return gif_image.link  # 回傳url
 
