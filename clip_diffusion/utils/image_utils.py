@@ -13,6 +13,23 @@ from clip_diffusion.utils.dir_utils import make_dir
 imgur = pyimgur.Imgur(_CLIENT_ID)
 
 
+def _get_image_paths(batch_folder, pattern, sort_paths=True):
+    """
+    找出batch_folder下符合pattern的圖片路徑
+    """
+
+    # 搜尋的pattern
+    targets = os.path.join(batch_folder, pattern)
+    # 找出符合pattern的圖片路徑
+    image_paths = glob(targets)
+
+    # 如果要排序
+    if sort_paths:
+        image_paths = sorted(image_paths)
+
+    return image_paths
+
+
 def upload_png(image_path):
     """
     將生成過程的png上傳至imgur並回傳該png的url
@@ -33,18 +50,18 @@ def upload_gif(
     用生成過程的圖片建成gif，上傳至imgur並回傳該gif的url
     """
 
-    # 選出目前batch的所有圖片
-    images_glob = sorted(glob(os.path.join(batch_folder, f"guided_{batch_index}*.png")))
+    # 選出目前batch的所有圖片路徑
+    image_paths = _get_image_paths(batch_folder, f"guided_{batch_index}*.png")
 
     images = []  # 儲存要找的圖片
-    for index, image_path in enumerate(images_glob):
+    for index, image_path in enumerate(image_paths):
         # 按照更新速率找出需要的圖片
         if index % display_rate == 0:
             images.append(Image.open(image_path))
 
     # 如果diffusion_steps無法被display_rate整除，就要手動補上最後一個timestep的圖片
     if append_last_timestep:
-        images.append(Image.open(images_glob[-1]))
+        images.append(Image.open(image_paths[-1]))
 
     filename = os.path.join(batch_folder, f"diffusion_{batch_index}.gif")
 
@@ -121,21 +138,27 @@ def super_resolution(upsampler, batch_folder, exception_paths=[]):
     result_path = os.path.join(batch_folder, "sr")  # 存放sr結果的路徑
     make_dir(result_path, remove_old=True)
 
+    # 找出batch_folder下的所有png圖片路徑
+    image_paths = _get_image_paths(batch_folder, "*.png")
+
     # 對batch_folder內的每張圖片做sr
-    for index, image_path in enumerate(batch_folder):
+    for index, image_path in enumerate(image_paths):
         # 如果圖片路徑不是例外路徑(不想做sr的圖片)
         if image_path not in exception_paths:
             # 取得圖片名稱和副檔名
             image_name = os.path.basename(image_path)
 
+            # 印出目前的圖片名稱
+            print(f"image {index}: {image_name}")
+
             # 讀取圖片
-            image = cv2.imread(image_name, cv2.IMREAD_UNCHANGED)
+            image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
             # SR
             output_image, _ = upsampler.enhance(image, outscale=4)
 
             # 寫出圖片
-            filename = os.path.join(result_path, image_name)
+            filename = os.path.join(result_path, f"{image_name}_sr")
             cv2.imwrite(filename, output_image)
 
             gc.collect()
