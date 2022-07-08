@@ -1,24 +1,33 @@
 import os
 import io
 import pyimgur
-import logging
+import cv2
 import torch
 import gc
 from glob import glob
 from PIL import Image
 from anvil import BlobMedia
-from bsrgan.utils_image import (
-    get_image_paths,
-    imread_uint,
-    uint2tensor4,
-    tensor2uint,
-    imsave,
-)
-from bsrgan.utils_logger import logger_info
 from clip_diffusion.utils.dir_utils import make_dir
 
 _CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(_CLIENT_ID)
+
+
+def _get_image_paths(batch_folder, pattern, sort_paths=True):
+    """
+    找出batch_folder下符合pattern的圖片路徑
+    """
+
+    # 搜尋的pattern
+    targets = os.path.join(batch_folder, pattern)
+    # 找出符合pattern的圖片路徑
+    image_paths = glob(targets)
+
+    # 如果要排序
+    if sort_paths:
+        image_paths = sorted(image_paths)
+
+    return image_paths
 
 
 def upload_png(image_path):
@@ -41,18 +50,18 @@ def upload_gif(
     用生成過程的圖片建成gif，上傳至imgur並回傳該gif的url
     """
 
-    # 選出目前batch的所有圖片
-    images_glob = sorted(glob(os.path.join(batch_folder, f"guided_{batch_index}*.png")))
+    # 選出目前batch的所有圖片路徑
+    image_paths = _get_image_paths(batch_folder, f"guided_{batch_index}*.png")
 
     images = []  # 儲存要找的圖片
-    for index, image_path in enumerate(images_glob):
+    for index, image_path in enumerate(image_paths):
         # 按照更新速率找出需要的圖片
         if index % display_rate == 0:
             images.append(Image.open(image_path))
 
     # 如果diffusion_steps無法被display_rate整除，就要手動補上最後一個timestep的圖片
     if append_last_timestep:
-        images.append(Image.open(images_glob[-1]))
+        images.append(Image.open(image_paths[-1]))
 
     filename = os.path.join(batch_folder, f"diffusion_{batch_index}.gif")
 
@@ -121,38 +130,36 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     return upload_png(filename)
 
 
-def super_resolution(model, batch_folder, exception_paths=[], device=None):
+def super_resolution(upsampler, batch_folder, exception_paths=[]):
     """
     將圖片解析度放大4倍
     """
 
-    logger_info("blind_sr_log", log_path="blind_sr_log.log")
-    logger = logging.getLogger("blind_sr_log")
-    result_path = f"{batch_folder}/sr"  # 存放sr結果的路徑
+    result_path = os.path.join(batch_folder, "sr")  # 存放sr結果的路徑
     make_dir(result_path, remove_old=True)
 
+    # 找出batch_folder下的所有png圖片路徑
+    image_paths = _get_image_paths(batch_folder, "*.png")
+
     # 對batch_folder內的每張圖片做sr
-    for index, image_path in enumerate(get_image_paths(batch_folder)):
+    for index, image_path in enumerate(image_paths):
         # 如果圖片路徑不是例外路徑(不想做sr的圖片)
         if image_path not in exception_paths:
             # 取得圖片名稱和副檔名
             image_name = os.path.basename(image_path)
-            logger.info(f"{index:4d} --> {image_name:<s}")
 
-            # 原圖轉tensor
-            original_image = imread_uint(image_path, n_channels=3)
-            original_image = uint2tensor4(original_image).to(device)
+            # 印出目前的圖片名稱
+            print(f"image {index}: {image_name}")
 
-            # 進行sr
-            result_image = model(original_image)
-            result_image = tensor2uint(result_image)
+            # 讀取圖片
+            image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
-            # 儲存圖片
-            imsave(
-                result_image,
-                os.path.join(result_path, image_name),
-            )
-            del original_image  # 刪除以釋放記憶體
+            # 將圖片解析度放大4倍
+            output_image, _ = upsampler.enhance(image, outscale=4)
+
+            # 寫出圖片
+            filename = os.path.join(result_path, image_name)
+            cv2.imwrite(filename, output_image)
 
             gc.collect()
             torch.cuda.empty_cache()

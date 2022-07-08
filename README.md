@@ -7,13 +7,13 @@ git clone https://github.com/crowsonkb/guided-diffusion
 git clone https://github.com/Penguin-jpg/ResizeRight.git
 git clone https://github.com/CompVis/latent-diffusion.git
 git clone https://github.com/Penguin-jpg/taming-transformers.git
-git clone https://github.com/Penguin-jpg/BSRGAN.git
+git clone https://github.com/xinntao/Real-ESRGAN.git
 pip install -e ./CLIP
 pip install -e ./guided-diffusion
 pip install -e ./resize-right
 pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
-pip install -e ./BSRGAN
+pip install -e ./Real-ESRGAN
 pip install -r requirements/generation.txt
 ```
 
@@ -25,7 +25,7 @@ pip install -r requirements/dataset_images.txt
 ### Dependency For Instance Segmentation
 ```
 pip install -r requirements/instance_segmentation.txt
-git clone https://github.com/Penguin-jpg/mmdetection.git
+git clone https://github.com/open-mmlab/mmdetection.git
 pip install -e ./mmdetection
 # 如果要訓練 Instaboost 模型才需額外安裝
 # pip install instaboostfast
