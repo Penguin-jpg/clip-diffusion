@@ -19,14 +19,18 @@ class Config:
 
         # cutout相關
         self.num_cutout_batches = 4  # 要做的cutout次數
-        self.overview_cut_schedule = (12,) * 400 + (4,) * 600  # 前400/1000個diffusion steps會做12個cut；後600/1000個steps會做4個cut
-        self.inner_cut_schedule = (4,) * 400 + (12,) * 600
-        self.inner_cut_size_pow = 1  # 控制生成圖片的景物豐富度(越高會有越多物件)
-        self.cut_gray_portion_schedule = (0.2,) * 400 + (0,) * 600  # 控制多少百分比的cut要取出做灰階化
+        self.overview_cut_schedule = (
+            (14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200
+        )  # overview cutout的schedule，以1000當作基準，前200/1000個step會做14次cutout中間200/1000個step會做12次cutout，以此類推(建議一開始高，隨著過程逐漸降低)
+        self.inner_cut_schedule = (2,) * 200 + (4,) * 200 + (2,) * 400 + (12,) * 200  # inner cutout的schedule(建議一開始低，隨著過程逐漸升高)
+        self.inner_cut_size_pow = 5  # 控制inner cutout的大小(越高會讓inner cutout圖片大小越接近Clip的解析度)
+        self.cut_gray_portion_schedule = (
+            (0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600
+        )  # 控制多少百分比的cut要取出做灰階化(建議剛開始高，隨著過程逐漸降低)
 
         # model相關
         self.use_secondary_model = True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
-        self.chosen_clip_models = ["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"]
+        self.chosen_clip_models = ("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101")  # 要選擇的Clip模型
 
         # Clip相關
         self.clamp_grad = True  # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
@@ -53,12 +57,12 @@ class Config:
         width=960,
         height=768,
         num_cutn_batches=4,
-        overview_cut_schedule=(12,) * 400 + (4,) * 600,
-        inner_cut_schedule=(4,) * 400 + (12,) * 600,
-        inner_cut_size_pow=1,
-        cut_gray_portion_schedule=(0.2,) * 400 + (0,) * 600,
+        overview_cut_schedule=(14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200,
+        inner_cut_schedule=(2,) * 200 + (4,) * 200 + (2,) * 400 + (12,) * 200,
+        inner_cut_size_pow=5,
+        cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
         use_secondary_model=True,
-        chosen_clip_models=["ViT-B/32", "ViT-B/16", "RN50", "RN50x4"],
+        chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
         clamp_grad=True,
         clamp_max=0.05,
         tv_scale=0,
