@@ -14,13 +14,13 @@ from ldm.models.diffusion.ddim import DDIMSampler
 from einops import rearrange
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
-from clip_diffusion.utils.preprocess_utils import (
+from clip_diffusion.utils.preprocessing import (
     prompts_preprocessing,
     set_seed,
     get_embeddings_and_weights,
     create_init_noise,
 )
-from clip_diffusion.utils.perlin_utils import regen_perlin
+from clip_diffusion.utils.perlin import regen_perlin
 from clip_diffusion.models import (
     load_clip_models_and_preprocessings,
     load_guided_diffusion_model,

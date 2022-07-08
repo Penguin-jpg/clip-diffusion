@@ -8,9 +8,8 @@ from opencc import OpenCC
 from PIL import Image
 from torchvision.transforms import functional as TF
 from clip_diffusion.config import config
-from clip_diffusion.utils.prompt_utils import parse_prompt
 from clip_diffusion.utils.image_utils import get_image_from_bytes
-from clip_diffusion.utils.perlin_utils import regen_perlin_no_expand
+from clip_diffusion.utils.perlin import regen_perlin_no_expand
 
 _translator = pipeline(
     "translation",
@@ -111,6 +110,17 @@ def prompts_preprocessing(prompts, styles=["自訂"]):
     return prompts
 
 
+# 參考並修改自：https://colab.research.google.com/drive/12a_Wrfi2_gwwAuN3VvMTwVMz9TfqctNj
+def _parse_prompt(prompt):
+    """
+    解析prompt(分離文字與權重)
+    """
+
+    parsed = prompt.split(":", 1)  # prompt的格式為"文字:權重"，所以透過":"進行切割
+    parsed = parsed + [1.0] if len(parsed) == 1 else parsed  # 如果原本未標示權重，就補上權重1
+    return parsed[0], parsed[1]  # 回傳文字與權重
+
+
 def set_seed():
     """
     設定種子
@@ -120,7 +130,7 @@ def set_seed():
     random.seed(config.seed)
     torch.manual_seed(config.seed)
     torch.cuda.manual_seed_all(config.seed)
-    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.deterministic = True  # 確保每次卷積演算法是固定的
 
 
 def get_embeddings_and_weights(prompts, clip_models, device=None):
@@ -138,7 +148,7 @@ def get_embeddings_and_weights(prompts, clip_models, device=None):
             "text_weights": [],  # text對應的權重
         }
         for prompt in prompts:
-            text, weight = parse_prompt(prompt)  # 取得text及weight
+            text, weight = _parse_prompt(prompt)  # 取得text及weight
             text = clip_model.encode_text(clip.tokenize(prompt).to(device)).float()
 
             clip_model_stat["text_embeddings"].append(text)
