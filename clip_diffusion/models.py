@@ -33,7 +33,7 @@ _REAL_ESRGAN_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/downlo
 _GUIDED_DIFFUSION_MODEL_NAME = "512x512_diffusion_uncond_finetune_008100.pt"
 _SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"
 _LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"
-_REAL_ESRGAN_MODEL_NAME = "RealESRGAN_x4plus"
+_REAL_ESRGAN_MODEL_NAME = "RealESRGAN_x4plus.pth"
 
 
 # 參考並修改自：https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
@@ -370,7 +370,7 @@ def load_real_esrgan_upsampler(device=None):
     model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
     upsampler = RealESRGANer(
         scale=4,
-        model_path=_download_model(_REAL_ESRGAN_MODEL_URL, os.path.join(MODEL_PATH, _REAL_ESRGAN_MODEL_NAME)),
+        model_path=_download_model(_REAL_ESRGAN_MODEL_URL, _REAL_ESRGAN_MODEL_NAME),
         model=model,
         half=True,
         device=device,
