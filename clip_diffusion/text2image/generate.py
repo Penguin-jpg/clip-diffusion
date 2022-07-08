@@ -26,8 +26,8 @@ from clip_diffusion.models import (
     load_guided_diffusion_model,
     load_secondary_model,
     alpha_sigma_to_t,
-    load_bsrgan_model,
     load_latent_diffusion_model,
+    load_real_esrgan_upsampler,
 )
 from clip_diffusion.text2image.cutouts import MakeCutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
@@ -45,7 +45,7 @@ _lpips_model = lpips.LPIPS(net="vgg").to(_device)
 _clip_models, _preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
 _secondary_model = load_secondary_model(_device)
 _latent_diffusion_model = load_latent_diffusion_model(_device)
-_bsrgan_model = load_bsrgan_model(_device)
+_real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
@@ -390,6 +390,6 @@ def latent_diffusion_generate(
                     torch.cuda.empty_cache()
 
     # 提高解析度
-    super_resolution(_bsrgan_model, batch_folder, exception_paths, _device)
+    super_resolution(_real_esrgan_upsampler, batch_folder, exception_paths)
 
     return urls  # 回傳每個Clip模型生成的grid image url

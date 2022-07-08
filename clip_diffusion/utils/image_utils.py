@@ -1,20 +1,12 @@
 import os
 import io
 import pyimgur
-import logging
+import cv2
 import torch
 import gc
 from glob import glob
 from PIL import Image
 from anvil import BlobMedia
-from bsrgan.utils_image import (
-    get_image_paths,
-    imread_uint,
-    uint2tensor4,
-    tensor2uint,
-    imsave,
-)
-from bsrgan.utils_logger import logger_info
 from clip_diffusion.utils.dir_utils import make_dir
 
 ***REMOVED***
@@ -121,38 +113,30 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     return upload_png(filename)
 
 
-def super_resolution(model, batch_folder, exception_paths=[], device=None):
+def super_resolution(upsampler, batch_folder, exception_paths=[]):
     """
     將圖片解析度放大4倍
     """
 
-    logger_info("blind_sr_log", log_path="blind_sr_log.log")
-    logger = logging.getLogger("blind_sr_log")
-    result_path = f"{batch_folder}/sr"  # 存放sr結果的路徑
+    result_path = os.path.join(batch_folder, "sr")  # 存放sr結果的路徑
     make_dir(result_path, remove_old=True)
 
     # 對batch_folder內的每張圖片做sr
-    for index, image_path in enumerate(get_image_paths(batch_folder)):
+    for index, image_path in enumerate(batch_folder):
         # 如果圖片路徑不是例外路徑(不想做sr的圖片)
         if image_path not in exception_paths:
             # 取得圖片名稱和副檔名
             image_name = os.path.basename(image_path)
-            logger.info(f"{index:4d} --> {image_name:<s}")
 
-            # 原圖轉tensor
-            original_image = imread_uint(image_path, n_channels=3)
-            original_image = uint2tensor4(original_image).to(device)
+            # 讀取圖片
+            image = cv2.imread(image_name, cv2.IMREAD_UNCHANGED)
 
-            # 進行sr
-            result_image = model(original_image)
-            result_image = tensor2uint(result_image)
+            # SR
+            output_image, _ = upsampler.enhance(image, outscale=4)
 
-            # 儲存圖片
-            imsave(
-                result_image,
-                os.path.join(result_path, image_name),
-            )
-            del original_image  # 刪除以釋放記憶體
+            # 寫出圖片
+            filename = os.path.join(result_path, image_name)
+            cv2.imwrite(filename, output_image)
 
             gc.collect()
             torch.cuda.empty_cache()
