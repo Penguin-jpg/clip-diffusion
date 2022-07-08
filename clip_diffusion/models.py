@@ -15,24 +15,25 @@ from guided_diffusion.script_util import (
     model_and_diffusion_defaults,
     create_model_and_diffusion,
 )
-from bsrgan.models import RRDBNet
+from basicsr.archs.rrdbnet_arch import RRDBNet
+from realesrgan import RealESRGANer
 from clip_diffusion.utils.dir_utils import MODEL_PATH
 
 # 下載網址
-GUIDED_DIFFUSION_MODEL_URL = (
+_GUIDED_DIFFUSION_MODEL_URL = (
     "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
 )
-SECONDARY_MODEL_URL = "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
-LATENT_DIFFUSION_MODEL_URL = (
+_SECONDARY_MODEL_URL = "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
+_LATENT_DIFFUSION_MODEL_URL = (
     "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
 )
-BSRGAN_MODEL_URL = "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
+_REAL_ESRGAN_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 
 # 模型名稱
-GUIDED_DIFFUSION_MODEL_NAME = "512x512_diffusion_uncond_finetune_008100.pt"
-SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"
-LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"
-BSRGAN_MODEL_NAME = "BSRGAN.pth"
+_GUIDED_DIFFUSION_MODEL_NAME = "512x512_diffusion_uncond_finetune_008100.pt"
+_SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"
+_LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"
+_REAL_ESRGAN_MODEL_NAME = "RealESRGAN_x4plus"
 
 
 # 參考並修改自：https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
@@ -110,7 +111,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, d
     model, diffusion = create_model_and_diffusion(**model_config)
     model.load_state_dict(
         torch.load(
-            _download_model(GUIDED_DIFFUSION_MODEL_URL, GUIDED_DIFFUSION_MODEL_NAME),
+            _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         )
     )
@@ -325,7 +326,7 @@ def load_secondary_model(device=None):
     model = SecondaryDiffusionImageNet2()
     model.load_state_dict(
         torch.load(
-            _download_model(SECONDARY_MODEL_URL, SECONDARY_MODEL_NAME),
+            _download_model(_SECONDARY_MODEL_URL, _SECONDARY_MODEL_NAME),
             map_location="cpu",
         )
     )
@@ -348,7 +349,7 @@ def load_latent_diffusion_model(device=None):
     model = instantiate_from_config(model_config.model)
     model.load_state_dict(
         torch.load(
-            _download_model(LATENT_DIFFUSION_MODEL_URL, LATENT_DIFFUSION_MODEL_NAME),
+            _download_model(_LATENT_DIFFUSION_MODEL_URL, _LATENT_DIFFUSION_MODEL_NAME),
             map_location="cpu",
         ),
         strict=False,
@@ -361,19 +362,17 @@ def load_latent_diffusion_model(device=None):
     return model
 
 
-def load_bsrgan_model(device=None):
+def load_real_esrgan_upsampler(device=None):
     """
-    載入bsrgan模型
+    載入real-esrgan模型
     """
 
-    model = RRDBNet(in_nc=3, out_nc=3, nf=64, nb=23, gc=32, sf=4)
-    model.load_state_dict(
-        torch.load(_download_model(BSRGAN_MODEL_URL, BSRGAN_MODEL_NAME), map_location="cpu"),
-        strict=True,
+    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+    upsampler = RealESRGANer(
+        scale=4,
+        model_path=_download_model(_REAL_ESRGAN_MODEL_URL, os.path.join(MODEL_PATH, _REAL_ESRGAN_MODEL_NAME)),
+        model=model,
+        half=True,
+        device=device,
     )
-    model.eval().requires_grad_(False).to(device)
-
-    gc.collect()
-    torch.cuda.empty_cache()
-
-    return model
+    return upsampler
