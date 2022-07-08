@@ -64,41 +64,39 @@ def _translate_zh_to_en(prompts):
     return prompts
 
 
-def _append_styles_to_prompts(prompts, styles=["自訂"]):
+def _append_styles_to_prompts(prompts, styles=[]):
     """
     根據對應的風格加上風格標籤
     """
 
-    for index, prompt in enumerate(prompts):
-        # 如果使用者想要自訂就不補上風格標籤就直接跳出
-        if "自訂" in styles:
-            break
+    # 如果使用者有選擇風格才做
+    if styles:
+        for index, prompt in enumerate(prompts):
+            # 從prompts中暫時移除句點
+            if prompt[-1] == ".":
+                append_period = True
+                prompt = prompt[:-1]
+            else:
+                append_period = False
 
-        # 從prompts中暫時移除句點
-        if prompt[-1] == ".":
-            append_period = True
-            prompt = prompt[:-1]
-        else:
-            append_period = False
+            # 一律加入artstation
+            prompt += ", artstation"
 
-        # 一律加入artstation
-        prompt += ", artstation"
+            # 從選定的風格中挑出一個選項
+            for style in styles:
+                prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
 
-        # 從選定的風格中挑出一個選項
-        for style in styles:
-            prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
+            # 需要時補回句點
+            if append_period:
+                prompt += "."
 
-        # 需要時補回句點
-        if append_period:
-            prompt += "."
+            # 更新prompts
+            prompts[index] = prompt
 
-        # 更新prompts
-        prompts[index] = prompt
-
-    return prompts
+        return prompts
 
 
-def prompts_preprocessing(prompts, styles=["自訂"]):
+def prompts_preprocessing(prompts, styles=[]):
     """
     對prompts做需要的前處理: 1. 中翻英 2. prompt engineering
     """
