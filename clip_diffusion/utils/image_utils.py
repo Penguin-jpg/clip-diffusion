@@ -154,11 +154,11 @@ def super_resolution(upsampler, batch_folder, exception_paths=[]):
             # 讀取圖片
             image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
-            # SR
+            # 將圖片解析度放大4倍
             output_image, _ = upsampler.enhance(image, outscale=4)
 
             # 寫出圖片
-            filename = os.path.join(result_path, f"{image_name}_sr")
+            filename = os.path.join(result_path, image_name)
             cv2.imwrite(filename, output_image)
 
             gc.collect()
