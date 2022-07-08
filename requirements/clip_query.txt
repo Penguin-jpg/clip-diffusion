@@ -1,0 +1,2 @@
+ipython
+clip-retrieval

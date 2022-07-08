@@ -17,9 +17,9 @@ pip install -e ./Real-ESRGAN
 pip install -r requirements/generation.txt
 ```
 
-### Dependency For Dataset Images
+### Dependency For CLIP Query
 ```
-pip install -r requirements/dataset_images.txt
+pip install -r requirements/clip_query.txt
 ```
 
 ### Dependency For Instance Segmentation
