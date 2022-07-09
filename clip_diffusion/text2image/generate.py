@@ -33,9 +33,11 @@ from clip_diffusion.text2image.cutouts import MakeCutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
-    images_to_grid_image,
+    unnormalize_image_zero_to_one,
+    tensor_to_pillow_image,
     upload_png,
     upload_gif,
+    images_to_grid_image,
     super_resolution,
 )
 
@@ -78,7 +80,7 @@ def guided_diffusion_generate(
     steps: 每個batch要跑的step數
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
-    eta: 調整每個timestep混入的噪音量(0: 無噪音; 1.0: 最多噪音)
+    eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
     init_scale: 增強init_image的效果
     num_batches: 要生成的圖片數量
     use_grid_iamge: 是否要生成grid圖片
@@ -236,10 +238,11 @@ def guided_diffusion_generate(
 
             with image_display:
                 # 更新、儲存圖片
-                for _, image in enumerate(sample["pred_xstart"]):
+                for _, image_tensor in enumerate(sample["pred_xstart"]):
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
-                    image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))  # 轉換為Pillow Image
+                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(0, 1)  # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
+                    image = tensor_to_pillow_image(unnormalized_image)  # 轉換為Pillow Image
                     image.save(image_path)
                     display.clear_output(wait=True)
                     display.display(display.Image(image_path))
@@ -366,7 +369,7 @@ def latent_diffusion_generate(
                             with torch.no_grad():
                                 image_embeddings = _clip_models[model_name].encode_image(image_preprocess)
 
-                            image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)
+                            image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)  # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
                             image_vector.save(filename)
                             count += 1
 

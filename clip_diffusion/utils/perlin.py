@@ -2,6 +2,7 @@ import torch
 from torchvision.transforms import functional as TF
 from PIL import ImageOps
 from clip_diffusion.config import config
+from clip_diffusion.utils.image_utils import normalize_image_neg_one_to_one, image_to_tensor, tensor_to_pillow_image
 
 # 維持disco diffusion所採用的二維perlin noise
 # 參考並修改自
@@ -82,11 +83,11 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True,
 
     if grayscale:  # 灰階
         out = TF.resize(size=(config.height, config.width), img=out.unsqueeze(0))
-        out = TF.to_pil_image(out.clamp(0, 1)).convert("RGB")
+        out = tensor_to_pillow_image(out.clamp(0, 1)).convert("RGB")
     else:  # 有顏色
         out = out.reshape(-1, 3, out.shape[0] // 3, out.shape[1])
         out = TF.resize(size=(config.height, config.width), img=out)
-        out = TF.to_pil_image(out.clamp(0, 1).squeeze())
+        out = tensor_to_pillow_image(out.clamp(0, 1).squeeze())
 
     out = ImageOps.autocontrast(out)
     return out
@@ -107,7 +108,8 @@ def regen_perlin(perlin_mode, device=None):
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
 
-    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device).unsqueeze(0).mul(2).sub(1)
+    init = image_to_tensor(init).add(image_to_tensor(init2)).div(2).to(device).unsqueeze(0)
+    init = normalize_image_neg_one_to_one(init)  # 將範圍normalize到[-1, 1]
     del init2
     return init.expand(1, -1, -1, -1)
 
@@ -127,6 +129,7 @@ def regen_perlin_no_expand(perlin_mode, device=None):
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
 
-    init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device).unsqueeze(0).mul(2).sub(1)
+    init = image_to_tensor(init).add(image_to_tensor(init2)).div(2).to(device).unsqueeze(0)
+    init = normalize_image_neg_one_to_one(init)
     del init2
     return init

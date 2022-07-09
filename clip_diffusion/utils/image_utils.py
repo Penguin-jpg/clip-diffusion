@@ -6,6 +6,7 @@ import torch
 import gc
 from glob import glob
 from PIL import Image
+from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir
 
@@ -28,6 +29,38 @@ def _get_image_paths(batch_folder, pattern, sort_paths=True):
         image_paths = sorted(image_paths)
 
     return image_paths
+
+
+def image_to_tensor(pillow_image_or_ndarray, device=None):
+    """
+    將Pillow Image或numpy ndarray轉成tensor
+    """
+
+    return TF.to_tensor(pillow_image_or_ndarray).to(device)
+
+
+def tensor_to_pillow_image(image_tensor):
+    """
+    將image_tensor轉為Pillow Image
+    """
+
+    return TF.to_pil_image(image_tensor)
+
+
+def normalize_image_neg_one_to_one(image_tensor):
+    """
+    將image_tensor的元素範圍從[0, 1]normalize到[-1, 1](因為DDPM預期輸入的image tensor的元素範圍是-1 ~ 1)
+    """
+
+    return image_tensor.mul(2).sub(1)
+
+
+def unnormalize_image_zero_to_one(image_tensor):
+    """
+    將image_tensor的元素範圍從[-1, 1]轉回[0, 1]
+    """
+
+    return image_tensor.add(1).div(2)
 
 
 def upload_png(image_path):
