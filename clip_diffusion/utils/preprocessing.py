@@ -6,9 +6,8 @@ import random
 from transformers import pipeline
 from opencc import OpenCC
 from PIL import Image
-from torchvision.transforms import functional as TF
 from clip_diffusion.config import config
-from clip_diffusion.utils.image_utils import get_image_from_bytes
+from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
 from clip_diffusion.utils.perlin import regen_perlin_no_expand
 
 _translator = pipeline(
@@ -175,9 +174,10 @@ def create_init_noise(init_image=None, use_perlin=False, perlin_mode="mixed", de
 
     # 如果初始圖片不為空
     if init_image is not None:
-        init_noise = get_image_from_bytes(init_image.get_bytes()).convert("RGB")  # 透過anvil傳來的圖片的bytes開啟圖片
-        init_noise = init_noise.resize((config.width, config.height), Image.LANCZOS)
-        init_noise = TF.to_tensor(init_noise).to(device).unsqueeze(0).mul(2).sub(1)
+        image = get_image_from_bytes(init_image.get_bytes()).convert("RGB")  # 將anvil傳來的image bytes轉成Pillow Image
+        image = image.resize((config.width, config.height), Image.LANCZOS)  # resize
+        image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor
+        init_noise = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
     elif use_perlin:  # 使用perlin noise
         init_noise = regen_perlin_no_expand(perlin_mode, device)
 
