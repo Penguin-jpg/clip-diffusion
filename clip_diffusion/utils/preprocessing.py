@@ -91,7 +91,7 @@ def _append_styles_to_prompts(prompts, styles=[]):
             # 更新prompts
             prompts[index] = prompt
 
-        return prompts
+    return prompts
 
 
 def prompts_preprocessing(prompts, styles=[]):
@@ -176,7 +176,7 @@ def create_init_noise(init_image=None, use_perlin=False, perlin_mode="mixed", de
     if init_image is not None:
         image = get_image_from_bytes(init_image.get_bytes()).convert("RGB")  # 將anvil傳來的image bytes轉成Pillow Image
         image = image.resize((config.width, config.height), Image.LANCZOS)  # resize
-        image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor
+        image_tensor = image_to_tensor(image).to(device).unsqueeze(0)  # 轉tensor
         init_noise = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
     elif use_perlin:  # 使用perlin noise
         init_noise = regen_perlin_no_expand(perlin_mode, device)

@@ -55,7 +55,7 @@ def guided_diffusion_generate(
     prompts=[
         "A cute golden retriever.",
     ],
-    styles=["自訂"],
+    styles=[],
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
