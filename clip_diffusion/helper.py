@@ -48,7 +48,7 @@ class Helper:
         for repo in repos:
             subprocess.run(["git", "clone", repo])
 
-        print("successfully cloned all dependencies")
+        print("successfully cloned all repos")
 
     def _install_dependencies_from_repos(self, repo_folders):
         """
