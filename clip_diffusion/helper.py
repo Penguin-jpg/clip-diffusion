@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import os
+from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH, MODEL_PATH
 
 
 class Helper:
@@ -37,6 +38,8 @@ class Helper:
             self._clone_dependencies(repos)
             self._install_dependencies_from_repos(repo_folders)
             self._append_paths(repo_folders)
+            make_dir(OUTPUT_PATH)
+            make_dir(MODEL_PATH)
 
         self._install_dependencies_from_requirements(os.path.join("clip-diffusion", "requirements", f"{mode}.txt"))
 
