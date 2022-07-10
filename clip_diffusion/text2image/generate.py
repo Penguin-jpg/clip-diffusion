@@ -42,10 +42,10 @@ from clip_diffusion.utils.image_utils import (
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 lpips_model = lpips.LPIPS(net="vgg").to(_device)
-clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
-secondary_model = load_secondary_model(_device)
-latent_diffusion_model = load_latent_diffusion_model(_device)
-real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
+clip_models = preprocessings = None
+secondary_model = None
+latent_diffusion_model = None
+real_esrgan_upsampler = None
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
@@ -87,6 +87,15 @@ def guided_diffusion_generate(
     display_rate: 生成過程的gif多少個step要更新一次
     gif_duration: gif的播放時間
     """
+
+    # 使用全域變數
+    global clip_models, preprocessings, secondary_model
+
+    if clip_models is None:
+        clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+
+    if secondary_model is None:
+        secondary_model = load_secondary_model(_device)
 
     prompts = prompts_preprocessing(prompts, styles)  # prompts的前處理
     model, diffusion = load_guided_diffusion_model(steps, device=_device)  # 載入diffusion model和diffusion
@@ -309,6 +318,14 @@ def latent_diffusion_generate(
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
     """
+
+    global latent_diffusion_model, real_esrgan_upsampler
+
+    if latent_diffusion_model is None:
+        latent_diffusion_model = load_latent_diffusion_model(_device)
+
+    if real_esrgan_upsampler is None:
+        real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
 
     prompts = prompts_preprocessing(prompts)  # 將prompts翻成英文
     sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
