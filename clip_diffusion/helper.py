@@ -1,4 +1,3 @@
-import anvil.server
 import sys
 import subprocess
 import os
@@ -15,7 +14,7 @@ class Helper:
         uplink_key: anvil的uplink key(只在generation_mode需要)
         """
 
-        assert mode not in ("generation", "clip_query", "instance_segmentation"), "unsupported mode"
+        assert mode in ("generation", "clip_query", "instance_segmentation"), "unsupported mode"
 
         if mode == "generation":
             repos = (
@@ -37,7 +36,7 @@ class Helper:
 
             self._clone_dependencies(repos)
             self._install_dependencies_from_repos(repo_folders)
-            self._append_paths()
+            self._append_paths(repo_folders)
 
         self._install_dependencies_from_requirements(os.path.join("clip-diffusion", "requirements", f"{mode}.txt"))
 
@@ -90,12 +89,16 @@ class Helper:
         連線到anvil
         """
 
+        import anvil.server  # 避免dependency問題
+
         anvil.server.connect(uplink_key)
 
     def start_server(self):
         """
         server開始等到呼叫
         """
+
+        import anvil.server
 
         print("start server!")
         anvil.server.wait_forever()
