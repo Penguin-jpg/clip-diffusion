@@ -4,8 +4,6 @@ import gc
 import lpips
 import anvil
 import numpy as np
-from torchvision import transforms as T
-from torchvision.transforms import functional as TF
 from PIL import Image
 from tqdm.notebook import tqdm, trange
 from ipywidgets import Output
@@ -33,6 +31,7 @@ from clip_diffusion.text2image.cutouts import MakeCutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
+    CLIP_NORMALIZE,
     unnormalize_image_zero_to_one,
     tensor_to_pillow_image,
     upload_png,
@@ -42,12 +41,11 @@ from clip_diffusion.utils.image_utils import (
 )
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-_normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])  # Clip用到的normalize
-_lpips_model = lpips.LPIPS(net="vgg").to(_device)
-_clip_models, _preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
-_secondary_model = load_secondary_model(_device)
-_latent_diffusion_model = load_latent_diffusion_model(_device)
-_real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
+lpips_model = lpips.LPIPS(net="vgg").to(_device)
+clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+secondary_model = load_secondary_model(_device)
+latent_diffusion_model = load_latent_diffusion_model(_device)
+real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
@@ -99,7 +97,7 @@ def guided_diffusion_generate(
     set_seed()
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embeddings_and_weights(prompts, _clip_models, _device)
+    clip_model_stats = get_embeddings_and_weights(prompts, clip_models, _device)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, use_perlin, perlin_mode, _device)
@@ -117,7 +115,7 @@ def guided_diffusion_generate(
         with torch.enable_grad():
             x_is_NaN = False  # x是否為NaN
             x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
-            n = x.shape[0]  # batch size
+            batch_size = x.shape[0]
 
             # 使用secondary_model加速生成
             if config.use_secondary_model:
@@ -132,12 +130,12 @@ def guided_diffusion_generate(
                     device=_device,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
-                out = _secondary_model(x, cosine_t[None].repeat([n])).pred
+                out = secondary_model(x, cosine_t[None].repeat([batch_size])).pred
                 fac = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
                 x_in = out * fac + x * (1 - fac)
                 x_in_grad = torch.zeros_like(x_in)
             else:
-                my_t = torch.ones([n], device=_device, dtype=torch.long) * current_timestep
+                my_t = torch.ones([batch_size], device=_device, dtype=torch.long) * current_timestep
                 out = diffusion.p_mean_variance(model, x, my_t, clip_denoised=False, model_kwargs={"y": y})
                 fac = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
                 x_in = out["pred_xstart"] * fac + x * (1 - fac)
@@ -150,20 +148,20 @@ def guided_diffusion_generate(
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
                     cuts = MakeCutouts(
-                        cut_size=_clip_models[clip_model_stat["clip_model_name"]].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
+                        cut_size=clip_models[clip_model_stat["clip_model_name"]].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[1000 - t_value],
                         inner_cut=config.inner_cut_schedule[1000 - t_value],
                         inner_cut_size_pow=config.inner_cut_size_pow,
                         cut_gray_portion=config.cut_gray_portion_schedule[1000 - t_value],
                         use_augmentations=config.use_augmentations,
                     )
-                    clip_in = _normalize(cuts(x_in.add(1).div(2)))
-                    image_embeddings = _clip_models[clip_model_stat["clip_model_name"]].encode_image(clip_in).float()
+                    clip_in = CLIP_NORMALIZE(cuts(unnormalize_image_zero_to_one(x_in)))
+                    image_embeddings = clip_models[clip_model_stat["clip_model_name"]].encode_image(clip_in).float()
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
                     )
-                    dists = dists.view([config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], n, -1])
+                    dists = dists.view([config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], batch_size, -1])
                     losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
                     x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / config.num_cutout_batches
@@ -179,7 +177,7 @@ def guided_diffusion_generate(
 
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
-                init_losses = _lpips_model(x_in, init)
+                init_losses = lpips_model(x_in, init)
                 loss = loss + init_losses.sum() * init_scale
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
 
@@ -313,7 +311,7 @@ def latent_diffusion_generate(
     """
 
     prompts = prompts_preprocessing(prompts)  # 將prompts翻成英文
-    sampler = DDIMSampler(_latent_diffusion_model)  # 建立DDIM sampler
+    sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -325,11 +323,11 @@ def latent_diffusion_generate(
 
     with torch.no_grad():
         with torch.cuda.amp.autocast():
-            with _latent_diffusion_model.ema_scope():
+            with latent_diffusion_model.ema_scope():
                 uncoditional_conditioning = None
                 if latent_diffusion_guidance_scale > 0:
                     # ""代表不考慮的prompt
-                    uncoditional_conditioning = _latent_diffusion_model.get_learned_conditioning(num_samples * [""])
+                    uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(num_samples * [""])
 
                 for model_name in chosen_models:
                     samples = []  # 儲存所有sample
@@ -339,7 +337,7 @@ def latent_diffusion_generate(
                         gc.collect()
                         torch.cuda.empty_cache()
 
-                        conditioning = _latent_diffusion_model.get_learned_conditioning(num_samples * [prompts[0]])
+                        conditioning = latent_diffusion_model.get_learned_conditioning(num_samples * [prompts[0]])
                         shape = (4, sample_height // 8, sample_width // 8)
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
@@ -354,7 +352,7 @@ def latent_diffusion_generate(
                             eta=eta,
                         )
 
-                        x_samples_ddim = _latent_diffusion_model.decode_first_stage(samples_ddim)
+                        x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
                         x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
 
                         for x_sample in x_samples_ddim:
@@ -364,10 +362,10 @@ def latent_diffusion_generate(
                                 f"latent_{model_name.replace('/', '-')}_{count}.png",
                             )  # 將"/"替換為"-"避免誤認為路徑
                             image_vector = Image.fromarray(x_sample.astype(np.uint8))
-                            image_preprocess = _preprocessings[model_name](image_vector).unsqueeze(0).to(_device)
+                            image_preprocess = preprocessings[model_name](image_vector).unsqueeze(0).to(_device)
 
                             with torch.no_grad():
-                                image_embeddings = _clip_models[model_name].encode_image(image_preprocess)
+                                image_embeddings = clip_models[model_name].encode_image(image_preprocess)
 
                             image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)  # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
                             image_vector.save(filename)
@@ -393,6 +391,6 @@ def latent_diffusion_generate(
                     torch.cuda.empty_cache()
 
     # 提高解析度
-    super_resolution(_real_esrgan_upsampler, batch_folder, exception_paths)
+    super_resolution(real_esrgan_upsampler, batch_folder, exception_paths)
 
     return urls  # 回傳每個Clip模型生成的grid image url
