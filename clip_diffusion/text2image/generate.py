@@ -42,7 +42,7 @@ from clip_diffusion.utils.image_utils import (
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 lpips_model = lpips.LPIPS(net="vgg").to(_device)
-clip_models = preprocessings = None
+clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
@@ -89,10 +89,7 @@ def guided_diffusion_generate(
     """
 
     # 使用全域變數
-    global clip_models, preprocessings, secondary_model
-
-    if clip_models is None:
-        clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+    global secondary_model
 
     if secondary_model is None:
         secondary_model = load_secondary_model(_device)
