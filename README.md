@@ -2,8 +2,8 @@
 
 ### Dependency For Generation
 ```
-git clone https://github.com/openai/CLIP
-git clone https://github.com/crowsonkb/guided-diffusion
+git clone https://github.com/openai/CLIP.git
+git clone https://github.com/crowsonkb/guided-diffusion.git
 git clone https://github.com/Penguin-jpg/ResizeRight.git
 git clone https://github.com/CompVis/latent-diffusion.git
 git clone https://github.com/Penguin-jpg/taming-transformers.git
