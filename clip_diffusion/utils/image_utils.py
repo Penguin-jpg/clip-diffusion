@@ -5,7 +5,7 @@ import cv2
 import torch
 import gc
 from glob import glob
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
@@ -165,6 +165,21 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     grid_image.save(filename)
 
     return upload_png(filename)
+
+
+def draw_index_on_grid_image(image, num_rows, num_cols, row_offset, col_offset, font_size=35, text_color="#f5f5f5"):
+    """
+    將index畫在格狀圖片上
+    """
+
+    font = ImageFont.truetype(os.path.join("assets", "fonts", "BebasNeue-Regular.ttf"), font_size)
+    index_draw = ImageDraw.Draw(image)
+
+    for row in range(num_rows):
+        for col in range(num_cols):
+            index_draw.text((col_offset * col + 8, row_offset * row + 3), str((col + 1) + row * num_cols), font=font, fill=text_color)
+
+    return image
 
 
 def super_resolution(upsampler, batch_folder, exception_paths=[]):
