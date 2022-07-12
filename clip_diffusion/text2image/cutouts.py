@@ -30,7 +30,7 @@ class MakeCutouts(nn.Module):
         self.inner_cut_size_pow = inner_cut_size_pow  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
         self.use_augmentations = use_augmentations  # 是否要對cutout圖片使用augmentations
-        self._augmentations = T.Compose(
+        self.augmentations = T.Compose(
             [
                 T.RandomHorizontalFlip(p=0.5),
                 T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
@@ -87,10 +87,10 @@ class MakeCutouts(nn.Module):
                 cutout = resize(cutout, out_shape=output_shape)
                 cutouts.append(cutout)
 
-        cutouts = torch.cat(cutouts)
+        cutouts = torch.cat(cutouts)  # shape=(num_cuts, num_channels, cut_size, cut_size)
 
         # 對cutout的圖片做augmentation
         if self.use_augmentations:
-            cutouts = self._augmentations(cutouts)
+            cutouts = self.augmentations(cutouts)
 
         return cutouts
