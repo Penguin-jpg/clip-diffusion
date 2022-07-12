@@ -9,15 +9,10 @@ from tqdm.notebook import tqdm, trange
 from ipywidgets import Output
 from IPython import display
 from ldm.models.diffusion.ddim import DDIMSampler
-from einops import rearrange
+from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
-from clip_diffusion.utils.preprocessing import (
-    prompts_preprocessing,
-    set_seed,
-    get_embeddings_and_weights,
-    create_init_noise,
-)
+from clip_diffusion.utils.preprocessing import prompts_preprocessing, set_seed, get_embeddings_and_weights, create_init_noise, preprocess_mask_image
 from clip_diffusion.utils.perlin import regen_perlin
 from clip_diffusion.models import (
     load_clip_models_and_preprocessings,
@@ -106,7 +101,7 @@ def guided_diffusion_generate(
     clip_model_stats = get_embeddings_and_weights(prompts, clip_models, _device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, use_perlin, perlin_mode, _device)
+    init = create_init_noise(init_image, True, use_perlin, perlin_mode, _device)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -245,7 +240,7 @@ def guided_diffusion_generate(
                 for _, image_tensor in enumerate(sample["pred_xstart"]):
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
-                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(0, 1)  # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
+                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)  # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
                     image = tensor_to_pillow_image(unnormalized_image)  # 轉換為Pillow Image
                     image.save(image_path)
                     display.clear_output(wait=True)
@@ -288,17 +283,19 @@ def guided_diffusion_generate(
     return gif_urls  # 回傳gif url
 
 
-# 參考並修改自：https://huggingface.co/spaces/multimodalart/latentdiffusion/blob/main/app.py
+# 參考並修改自： https://github.com/CompVis/latent-diffusion/blob/main/scripts/txt2img.py
 @anvil.server.background_task
 def latent_diffusion_generate(
     prompts=[
         "A cute golden retriever.",
     ],
+    init_image=None,
+    mask_image=None,
     diffusion_steps=50,
     eta=0.0,
     latent_diffusion_guidance_scale=5,
     num_iterations=3,
-    num_samples=3,
+    num_batches=3,
     chosen_models=["ViT-B/32", "ViT-B/16"],
     sample_width=256,
     sample_height=256,
@@ -306,11 +303,13 @@ def latent_diffusion_generate(
     """
     使用latent diffusion生成圖片
     prompts: 要生成的東西
+    init_image: 要配合inpaint使用的圖片
+    mask_image: inpaint用的遮罩
     diffusion_steps: latent diffusion要跑的step數
     eta: latent diffusion的eta
     latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
     num_iterations: 做幾次latent diffusion生成
-    num_samples: 要生成的圖片數
+    num_batches: 要生成的圖片數
     chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
@@ -332,6 +331,24 @@ def latent_diffusion_generate(
     # 設定種子
     set_seed()
 
+    # sample的shape
+    shape = (4, sample_height // 8, sample_width // 8)
+    # encode過的init_image
+    encoded_init = None
+    # 遮罩tensor
+    mask = None
+
+    # 處理inpaint的參數
+    if init_image is not None:
+        init = create_init_noise(init_image, False, device=_device)  # 將init_image當成初始雜訊
+        init = repeat(init, "c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
+        encoder_posterior = latent_diffusion_model.encode_first_stage(init)  # 使用encoder對init encode
+        encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior)  # 取出encode的結果
+
+        mask = preprocess_mask_image(mask_image, shape[2], shape[1], _device)  # 處理mask
+        # 將shape變成(batch_size, num_channels, height, width)，黑白圖片的num_channels=1
+        mask = mask.expand(num_batches, -1, -1).unsqueeze(1)
+
     urls = {}  # grid圖片的url
     exception_paths = []  # 不做sr的圖片路徑
 
@@ -341,7 +358,7 @@ def latent_diffusion_generate(
                 uncoditional_conditioning = None
                 if latent_diffusion_guidance_scale > 0:
                     # ""代表不考慮的prompt
-                    uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(num_samples * [""])
+                    uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [""])
 
                 for model_name in chosen_models:
                     samples = []  # 儲存所有sample
@@ -351,14 +368,15 @@ def latent_diffusion_generate(
                         gc.collect()
                         torch.cuda.empty_cache()
 
-                        conditioning = latent_diffusion_model.get_learned_conditioning(num_samples * [prompts[0]])
-                        shape = (4, sample_height // 8, sample_width // 8)
+                        conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [prompts[0]])
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                         samples_ddim, _ = sampler.sample(
                             S=diffusion_steps,
-                            batch_size=num_samples,
+                            batch_size=num_batches,
                             conditioning=conditioning,
+                            x0=encoded_init,
+                            mask=mask,
                             shape=shape,
                             verbose=False,
                             unconditional_guidance_scale=latent_diffusion_guidance_scale,
@@ -367,7 +385,8 @@ def latent_diffusion_generate(
                         )
 
                         x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
-                        x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                        x_samples_ddim = unnormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
+                        # x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
 
                         for x_sample in x_samples_ddim:
                             x_sample = 255.0 * rearrange(x_sample.cpu().numpy(), "c h w -> h w c")
@@ -393,7 +412,7 @@ def latent_diffusion_generate(
                     # 轉成grid形式
                     grid = torch.stack(samples, 0)
                     grid = rearrange(grid, "n b c h w -> (n b) c h w")
-                    grid = make_grid(grid, nrow=num_samples)
+                    grid = make_grid(grid, nrow=num_batches)
                     grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
                     grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
                     exception_paths.append(os.path.join(batch_folder, grid_filename))
