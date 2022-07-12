@@ -37,6 +37,7 @@ from clip_diffusion.utils.image_utils import (
     upload_png,
     upload_gif,
     images_to_grid_image,
+    draw_index_on_grid_image,
     super_resolution,
 )
 
@@ -351,7 +352,7 @@ def latent_diffusion_generate(
                         gc.collect()
                         torch.cuda.empty_cache()
 
-                        conditioning = latent_diffusion_model.get_learned_conditioning(num_samples * [prompts[0]])
+                        conditioning = latent_diffusion_model.get_learned_conditioning(num_samples * prompts)
                         shape = (4, sample_height // 8, sample_width // 8)
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
@@ -381,7 +382,8 @@ def latent_diffusion_generate(
                             with torch.no_grad():
                                 image_embeddings = clip_models[model_name].encode_image(image_preprocess)
 
-                            image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)  # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
+                            # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
+                            image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)
                             image_vector.save(filename)
                             count += 1
 
@@ -397,7 +399,11 @@ def latent_diffusion_generate(
                     grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
                     grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
                     exception_paths.append(os.path.join(batch_folder, grid_filename))
-                    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(batch_folder, grid_filename))  # 儲存grid圖片
+
+                    grid_image = Image.fromarray(grid.astype(np.uint8))
+                    # 畫上index
+                    grid_image = draw_index_on_grid_image(grid_image, num_iterations, num_samples, sample_height, sample_width)
+                    grid_image.save(os.path.join(batch_folder, grid_filename))  # 儲存grid圖片
 
                     urls[model_name] = upload_png(os.path.join(batch_folder, grid_filename))  # 儲存url
 
