@@ -172,7 +172,7 @@ def draw_index_on_grid_image(image, num_rows, num_cols, row_offset, col_offset, 
     將index畫在格狀圖片上
     """
 
-    font = ImageFont.truetype(os.path.join("assets", "fonts", "BebasNeue-Regular.ttf"), font_size)
+    font = ImageFont.truetype(os.path.join(os.getcwd(), "clip-diffusion", "assets", "fonts", "BebasNeue-Regular.ttf"), font_size)
     index_draw = ImageDraw.Draw(image)
 
     for row in range(num_rows):
