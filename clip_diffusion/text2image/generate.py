@@ -12,7 +12,13 @@ from ldm.models.diffusion.ddim import DDIMSampler
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
-from clip_diffusion.utils.preprocessing import prompts_preprocessing, set_seed, get_embeddings_and_weights, create_init_noise, preprocess_mask_image
+from clip_diffusion.utils.preprocessing import (
+    prompts_preprocessing,
+    set_seed,
+    get_embeddings_and_weights,
+    create_init_noise,
+    create_mask_tensor,
+)
 from clip_diffusion.utils.perlin import regen_perlin
 from clip_diffusion.models import (
     load_clip_models_and_preprocessings,
@@ -101,7 +107,7 @@ def guided_diffusion_generate(
     clip_model_stats = get_embeddings_and_weights(prompts, clip_models, _device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, True, use_perlin, perlin_mode, _device)
+    init = create_init_noise(init_image, True, None, use_perlin, perlin_mode, _device)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -340,14 +346,16 @@ def latent_diffusion_generate(
 
     # 處理inpaint的參數
     if init_image is not None:
-        init = create_init_noise(init_image, False, device=_device)  # 將init_image當成初始雜訊
+        resize_shape = (sample_width, sample_height)  # resize成(sample_width, sample_height)
+        # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
+        init = create_init_noise(init_image, False, resize_shape, device=_device).half()
         init = repeat(init, "c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
         encoder_posterior = latent_diffusion_model.encode_first_stage(init)  # 使用encoder對init encode
         encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior)  # 取出encode的結果
 
-        mask = preprocess_mask_image(mask_image, shape[2], shape[1], _device)  # 處理mask
-        # 將shape變成(batch_size, num_channels, height, width)，黑白圖片的num_channels=1
-        mask = mask.expand(num_batches, -1, -1).unsqueeze(1)
+        # mask為黑白圖片的tensor(shape=(1, height, width)，黑白圖片的num_channels=1)，並多加入一個維度給batch_size
+        mask = create_mask_tensor(mask_image, resize_shape, _device).unsqueeze(0)
+        mask = repeat(mask, "c h w -> b c h w", b=num_batches)
 
     urls = {}  # grid圖片的url
     exception_paths = []  # 不做sr的圖片路徑
