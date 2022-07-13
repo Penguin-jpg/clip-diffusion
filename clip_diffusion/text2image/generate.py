@@ -346,16 +346,15 @@ def latent_diffusion_generate(
 
     # 處理inpaint的參數
     if init_image is not None:
-        resize_shape = (sample_width, sample_height)  # resize成(sample_width, sample_height)
         # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
-        init = create_init_noise(init_image, False, resize_shape, device=_device).half()
-        init = repeat(init, "c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
+        init = create_init_noise(init_image, False, (sample_width, sample_height), device=_device).half()
+        init = repeat(init, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
         encoder_posterior = latent_diffusion_model.encode_first_stage(init)  # 使用encoder對init encode
         encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior)  # 取出encode的結果
 
-        # mask為黑白圖片的tensor(shape=(1, height, width)，黑白圖片的num_channels=1)，並多加入一個維度給batch_size
-        mask = create_mask_tensor(mask_image, resize_shape, _device).unsqueeze(0)
-        mask = repeat(mask, "c h w -> b c h w", b=num_batches)
+        # mask為黑白圖片的tensor(shape=(1, num_channels, height, width)，黑白圖片的num_channels=1)
+        mask = create_mask_tensor(mask_image, (shape[2], shape[1]), _device)
+        mask = repeat(mask, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
 
     urls = {}  # grid圖片的url
     exception_paths = []  # 不做sr的圖片路徑
@@ -376,7 +375,7 @@ def latent_diffusion_generate(
                         gc.collect()
                         torch.cuda.empty_cache()
 
-                        conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [prompts[0]])
+                        conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * prompts)
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                         samples_ddim, _ = sampler.sample(

@@ -180,7 +180,7 @@ def create_init_noise(init_image=None, resize=True, resize_shape=None, use_perli
                 image = image.resize((config.width, config.height), Image.LANCZOS)
             else:
                 image = image.resize(resize_shape, Image.LANCZOS)
-        image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor
+        image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
         init_noise = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
     elif use_perlin:  # 使用perlin noise
         init_noise = regen_perlin_no_expand(perlin_mode, device)
@@ -195,5 +195,5 @@ def create_mask_tensor(mask_image, resize_shape, device=None):
 
     mask = get_image_from_bytes(mask_image.get_bytes()).convert("1")  # 轉成二值化(黑白)圖片
     mask = mask.resize(resize_shape, Image.LANCZOS)  # resize
-    mask_tensor = image_to_tensor(mask, device)  # 轉tensor
+    mask_tensor = image_to_tensor(mask, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
     return mask_tensor
