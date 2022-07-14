@@ -101,13 +101,13 @@ def guided_diffusion_generate(
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
-    set_seed()
+    set_seed(config.seed)
 
     # 取得prompt的embedding及weight
     clip_model_stats = get_embeddings_and_weights(prompts, clip_models, _device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, True, None, use_perlin, perlin_mode, _device)
+    init = create_init_noise(init_image, (config.width, config.height), use_perlin, perlin_mode, _device)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -335,7 +335,7 @@ def latent_diffusion_generate(
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
-    set_seed()
+    set_seed(config.seed)
 
     # sample的shape
     shape = (4, sample_height // 8, sample_width // 8)
@@ -345,12 +345,12 @@ def latent_diffusion_generate(
     mask = None
 
     # 處理inpaint的參數
-    if init_image is not None:
+    if init_image is not None and mask_image is not None:
         # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
-        init = create_init_noise(init_image, False, (sample_width, sample_height), device=_device).half()
+        init = create_init_noise(init_image, (sample_width, sample_height), device=_device).half()
         init = repeat(init, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
         encoder_posterior = latent_diffusion_model.encode_first_stage(init)  # 使用encoder對init encode
-        encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior)  # 取出encode的結果
+        encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior).detach()  # 取出encode的結果
 
         # mask為黑白圖片的tensor(shape=(1, num_channels, height, width)，黑白圖片的num_channels=1)
         mask = create_mask_tensor(mask_image, (shape[2], shape[1]), _device)
