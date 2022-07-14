@@ -191,8 +191,8 @@ def create_mask_tensor(mask_image, resize_shape, device=None):
     mask = get_image_from_bytes(mask_image.get_bytes())
     # 建立一個白色的背景(因為anvil傳來的圖片會去背，如果直接二值化會導致全部變成黑色)
     background = Image.new("RGB", mask.size, "WHITE")
-    mask = mask.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
     background.paste(mask, box=(0, 0), mask=mask)  # 將mask貼到background上
     mask = background.convert("1")  # 將background轉黑白圖片
+    mask = mask.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
     mask_tensor = image_to_tensor(mask, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
     return mask_tensor
