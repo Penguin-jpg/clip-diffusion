@@ -7,7 +7,7 @@ from transformers import pipeline
 from opencc import OpenCC
 from PIL import Image
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
-from clip_diffusion.utils.perlin import regen_perlin_no_expand
+from clip_diffusion.utils.perlin import generate_perlin_noise
 
 _translator = pipeline(
     "translation",
@@ -178,7 +178,7 @@ def create_init_noise(init_image=None, resize_shape=None, use_perlin=False, perl
         image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
         init_noise = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
     elif use_perlin:  # 使用perlin noise
-        init_noise = regen_perlin_no_expand(perlin_mode, device)
+        init_noise = generate_perlin_noise(perlin_mode, device)
 
     return init_noise
 

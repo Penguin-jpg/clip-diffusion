@@ -19,7 +19,6 @@ from clip_diffusion.utils.preprocessing import (
     create_init_noise,
     create_mask_tensor,
 )
-from clip_diffusion.utils.perlin import regen_perlin
 from clip_diffusion.models import (
     load_clip_models_and_preprocessings,
     load_guided_diffusion_model,
@@ -156,7 +155,9 @@ def guided_diffusion_generate(
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
                     cuts = MakeCutouts(
-                        cut_size=clip_models[clip_model_stat["clip_model_name"]].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
+                        cut_size=clip_models[
+                            clip_model_stat["clip_model_name"]
+                        ].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[1000 - t_value],
                         inner_cut=config.inner_cut_schedule[1000 - t_value],
                         inner_cut_size_pow=config.inner_cut_size_pow,
@@ -169,7 +170,9 @@ def guided_diffusion_generate(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
                     )
-                    dists = dists.view([config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], batch_size, -1])
+                    dists = dists.view(
+                        [config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], batch_size, -1]
+                    )
                     losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
                     x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / config.num_cutout_batches
@@ -181,7 +184,9 @@ def guided_diffusion_generate(
                 range_losses = range_loss(out["pred_xstart"])
 
             sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = tv_losses.sum() * config.tv_scale + range_losses.sum() * config.range_scale + sat_losses.sum() * config.sat_scale
+            loss = (
+                tv_losses.sum() * config.tv_scale + range_losses.sum() * config.range_scale + sat_losses.sum() * config.sat_scale
+            )
 
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
@@ -221,8 +226,9 @@ def guided_diffusion_generate(
         # 將目前timestep的值初始化為總timestep數-1
         current_timestep = diffusion.num_timesteps - skip_timesteps - 1
 
+        # 如果使用perlin noise，要記得每個batch都重新生成一次初始雜訊
         if use_perlin:
-            init = regen_perlin(perlin_mode, _device)
+            init = create_init_noise(None, None, use_perlin, perlin_mode, _device)
 
         # 使用DDIM進行sample
         samples = diffusion.ddim_sample_loop_progressive(
@@ -247,7 +253,8 @@ def guided_diffusion_generate(
                 for _, image_tensor in enumerate(sample["pred_xstart"]):
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
-                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)  # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
+                    # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
+                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
                     image = tensor_to_pillow_image(unnormalized_image)  # 轉換為Pillow Image
                     image.save(image_path)
                     display.clear_output(wait=True)
