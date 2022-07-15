@@ -62,7 +62,7 @@ class Config:
         inner_cut_size_pow=5,
         cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
         use_secondary_model=True,
-        chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
+        chosen_clip_models=("ViT-B/32", "ViT-B/16", "RN50x4", "RN101"),
         clamp_grad=True,
         clamp_max=0.05,
         tv_scale=0,
