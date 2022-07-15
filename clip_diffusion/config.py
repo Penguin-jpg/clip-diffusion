@@ -56,7 +56,7 @@ class Config:
         self,
         width=960,
         height=768,
-        num_cutn_batches=4,
+        num_cutout_batches=4,
         overview_cut_schedule=(14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200,
         inner_cut_schedule=(2,) * 200 + (4,) * 200 + (2,) * 400 + (12,) * 200,
         inner_cut_size_pow=5,
@@ -76,7 +76,7 @@ class Config:
 
         self.width = (width // 64) * 64  # 調整成64的倍數
         self.height = (height // 64) * 64
-        self.num_cutout_batches = num_cutn_batches
+        self.num_cutout_batches = num_cutout_batches
         self.overview_cut_schedule = overview_cut_schedule
         self.inner_cut_schedule = inner_cut_schedule
         self.inner_cut_size_pow = inner_cut_size_pow
