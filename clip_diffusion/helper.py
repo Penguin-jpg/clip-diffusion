@@ -19,20 +19,14 @@ class Helper:
 
         if mode == "generation":
             repos = (
-                "https://github.com/openai/CLIP.git",
                 "https://github.com/crowsonkb/guided-diffusion.git",
-                "https://github.com/Penguin-jpg/ResizeRight.git",
                 "https://github.com/CompVis/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
-                "https://github.com/xinntao/Real-ESRGAN.git",
             )
             repo_folders = (
-                "CLIP",
                 "guided-diffusion",
-                "ResizeRight",
                 "latent-diffusion",
                 "taming-transformers",
-                "Real-ESRGAN",
             )
 
             self._clone_dependencies(repos)

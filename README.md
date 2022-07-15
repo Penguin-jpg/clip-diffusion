@@ -2,18 +2,12 @@
 
 ### Dependency For Generation
 ```
-git clone https://github.com/openai/CLIP.git
 git clone https://github.com/crowsonkb/guided-diffusion.git
-git clone https://github.com/Penguin-jpg/ResizeRight.git
 git clone https://github.com/CompVis/latent-diffusion.git
 git clone https://github.com/Penguin-jpg/taming-transformers.git
-git clone https://github.com/xinntao/Real-ESRGAN.git
-pip install -e ./CLIP
 pip install -e ./guided-diffusion
-pip install -e ./resize-right
 pip install -e ./latent-diffusion
 pip install -e ./taming-transformers
-pip install -e ./Real-ESRGAN
 pip install -r requirements/generation.txt
 ```
 
