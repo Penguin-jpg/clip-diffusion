@@ -133,7 +133,7 @@ def get_embeddings_and_weights(prompts, clip_models, device=None):
         }
         for prompt in prompts:
             text, weight = _parse_prompt(prompt)  # 取得text及weight
-            text_embedding = get_text_embedding(clip_model, tokenize(text, device), device)  # 取得text embedding
+            text_embedding = get_text_embedding(clip_model, tokenize(text, device))  # 取得text embedding
             clip_model_stat["text_embeddings"].append(text_embedding)
             clip_model_stat["text_weights"].append(weight)
 
