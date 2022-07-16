@@ -24,25 +24,31 @@ def get_num_model_parameters(model, grad=True):
     return sum(param.numel() for param in model.paramarameters())
 
 
-def get_text_embedding(clip_model, text, device=None):
+def tokenize(text, device=None):
     """
-    取得text embedding
+    將text tokenize成clip需要的格式
     """
 
     if isinstance(text, str):
         text = [text]
 
-    return clip_model.encode_text(clip.tokenize(text).to(device)).float()
+    return clip.tokenize(text).to(device)
 
 
-def get_image_embedding(clip_model, image, preprocess=None, device=None):
+def get_text_embedding(clip_model, text):
+    """
+    取得text embedding
+    """
+
+    return clip_model.encode_text(text).float()
+
+
+def get_image_embedding(clip_model, image):
     """
     取得image embedding
     """
 
-    if preprocess is not None:
-        image = preprocess(image).unsqueeze(0).to(device)
-
+    image = CLIP_NORMALIZE(image)
     return clip_model.encode_image(image).float()
 
 
