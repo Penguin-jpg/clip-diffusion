@@ -18,15 +18,12 @@ from guided_diffusion.script_util import (
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from realesrgan import RealESRGANer
 from clip_diffusion.utils.dir_utils import MODEL_PATH
+from clip_diffusion.utils.functional import clear_gpu_cache
 
 # 下載網址
-_GUIDED_DIFFUSION_MODEL_URL = (
-    "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
-)
+_GUIDED_DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
 _SECONDARY_MODEL_URL = "https://the-eye.eu/public/AI/models/v-diffusion/secondary_model_imagenet_2.pth"
-_LATENT_DIFFUSION_MODEL_URL = (
-    "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
-)
+_LATENT_DIFFUSION_MODEL_URL = "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
 _REAL_ESRGAN_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 
 # 模型名稱
@@ -64,23 +61,34 @@ def _download_model(url, model_name):
     return str(download_target)
 
 
+def _to_eval_and_freeze_layers(model, half=False, device=None):
+    """
+    將model換成eval模式並凍結所有layer
+    """
+
+    if half:
+        model.half()
+
+    model.eval().requires_grad_(False).to(device)
+
+
 def load_clip_models_and_preprocessings(chosen_models, device=None):
     """
     選擇並載入要使用的Clip模型和preprocess function
     """
 
-    clip_models = {}
+    models = {}
     preprocessings = {}
 
     for model_name in chosen_models:
         model, preprocess = clip.load(model_name, device=device)
-        clip_models[model_name] = model.eval().requires_grad_(False)
+        _to_eval_and_freeze_layers(model, False, device)
+        models[model_name] = model
         preprocessings[model_name] = preprocess
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
-    return clip_models, preprocessings
+    return models, preprocessings
 
 
 def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, device=None):
@@ -93,7 +101,9 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, d
         {
             "attention_resolutions": "32, 16, 8",
             "class_cond": False,
-            "diffusion_steps": ((1000 // steps) * steps if steps < 1000 else steps),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
+            "diffusion_steps": (
+                (1000 // steps) * steps if steps < 1000 else steps
+            ),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
             "rescale_timesteps": True,
             "timestep_respacing": f"ddim{steps}",  # 調整diffusion的timestep數量(使用DDIM sample)
             "image_size": 512,
@@ -115,7 +125,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, d
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(device)
+    _to_eval_and_freeze_layers(model, False, device)
 
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:
@@ -124,8 +134,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, d
     if use_fp16:
         model.convert_to_fp16()
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return model, diffusion
 
@@ -330,10 +339,9 @@ def load_secondary_model(device=None):
             map_location="cpu",
         )
     )
-    model.eval().requires_grad_(False).to(device)
+    _to_eval_and_freeze_layers(model, False, device)
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return model
 
@@ -354,10 +362,9 @@ def load_latent_diffusion_model(device=None):
         ),
         strict=False,
     )
-    model.half().eval().requires_grad_(False).to(device)
+    _to_eval_and_freeze_layers(model, True, device)
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return model
 

@@ -117,18 +117,6 @@ def _parse_prompt(prompt):
     return parsed[0], parsed[1]  # 回傳文字與權重
 
 
-def set_seed(seed):
-    """
-    設定種子
-    """
-
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True  # 確保每次卷積演算法是固定的
-
-
 def get_embeddings_and_weights(prompts, clip_models, device=None):
     """
     取得prompt的embedding及weight
