@@ -18,6 +18,7 @@ from guided_diffusion.script_util import (
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from realesrgan import RealESRGANer
 from clip_diffusion.utils.dir_utils import MODEL_PATH
+from clip_diffusion.utils.functional import clear_gpu_cache
 
 # 下載網址
 _GUIDED_DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
@@ -85,8 +86,7 @@ def load_clip_models_and_preprocessings(chosen_models, device=None):
         models[model_name] = model
         preprocessings[model_name] = preprocess
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return models, preprocessings
 
@@ -134,8 +134,7 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, d
     if use_fp16:
         model.convert_to_fp16()
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return model, diffusion
 
@@ -342,8 +341,7 @@ def load_secondary_model(device=None):
     )
     _to_eval_and_freeze_layers(model, False, device)
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return model
 
@@ -366,8 +364,7 @@ def load_latent_diffusion_model(device=None):
     )
     _to_eval_and_freeze_layers(model, True, device)
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_gpu_cache()
 
     return model
 
