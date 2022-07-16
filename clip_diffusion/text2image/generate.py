@@ -1,20 +1,16 @@
 import torch
 import os
-import gc
 import lpips
 import anvil
 import numpy as np
 from PIL import Image
-from tqdm.notebook import tqdm, trange
 from ipywidgets import Output
 from IPython import display
-from ldm.models.diffusion.ddim import DDIMSampler
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
 from clip_diffusion.utils.preprocessing import (
     prompts_preprocessing,
-    set_seed,
     get_embeddings_and_weights,
     create_init_noise,
     create_mask_tensor,
@@ -27,6 +23,17 @@ from clip_diffusion.models import (
     alpha_sigma_to_t,
     load_latent_diffusion_model,
     load_real_esrgan_upsampler,
+)
+from clip_diffusion.utils.functional import (
+    clear_output,
+    set_seed,
+    clear_gpu_cache,
+    get_sample_function,
+    get_sampler,
+    set_display_widget,
+    display_image,
+    ProgressBar,
+    store_task_state,
 )
 from clip_diffusion.text2image.cutouts import MakeCutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
@@ -156,7 +163,9 @@ def guided_diffusion_generate(
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
                     cuts = MakeCutouts(
-                        cut_size=clip_models[clip_model_stat["clip_model_name"]].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
+                        cut_size=clip_models[
+                            clip_model_stat["clip_model_name"]
+                        ].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[1000 - t_value],
                         inner_cut=config.inner_cut_schedule[1000 - t_value],
                         inner_cut_size_pow=config.inner_cut_size_pow,
@@ -169,7 +178,9 @@ def guided_diffusion_generate(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
                     )
-                    dists = dists.view([config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], batch_size, -1])
+                    dists = dists.view(
+                        [config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], batch_size, -1]
+                    )
                     losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
                     x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / config.num_cutout_batches
@@ -181,7 +192,9 @@ def guided_diffusion_generate(
                 range_losses = range_loss(out["pred_xstart"])
 
             sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = tv_losses.sum() * config.tv_scale + range_losses.sum() * config.range_scale + sat_losses.sum() * config.sat_scale
+            loss = (
+                tv_losses.sum() * config.tv_scale + range_losses.sum() * config.range_scale + sat_losses.sum() * config.sat_scale
+            )
 
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
@@ -202,21 +215,17 @@ def guided_diffusion_generate(
         return grad
 
     image_display = Output()  # 在server端顯示圖片
+    progess_bar = ProgressBar(length=num_batches, description="Batches")  # 進度條
     gif_urls = []  # 生成過程的gif url
     images = []  # 最後一個timestep的圖片
 
     for batch_index in range(num_batches):
         display.clear_output(wait=True)
-        progress_bar = tqdm(range(num_batches), desc="Batches")
-        progress_bar.n = batch_index + 1
-        progress_bar.refresh()
-        display.display(image_display)
+        progess_bar.update_progress(batch_index)
+        set_display_widget(image_display)
+        store_task_state("current_batch", batch_index)  # 將目前的batch index存到current_batch
 
-        # 將目前的batch index存到current_batch
-        anvil.server.task_state["current_batch"] = batch_index + 1
-
-        gc.collect()
-        torch.cuda.empty_cache()
+        clear_gpu_cache()
 
         # 將目前timestep的值初始化為總timestep數-1
         current_timestep = diffusion.num_timesteps - skip_timesteps - 1
@@ -225,7 +234,8 @@ def guided_diffusion_generate(
             init = regen_perlin(perlin_mode, _device)
 
         # 使用DDIM進行sample
-        samples = diffusion.ddim_sample_loop_progressive(
+        sample_function = get_sample_function(diffusion, mode="ddim")
+        samples = sample_function(
             model,
             (1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
             clip_denoised=False,
@@ -247,19 +257,21 @@ def guided_diffusion_generate(
                 for _, image_tensor in enumerate(sample["pred_xstart"]):
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
-                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)  # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
+                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(
+                        min=0.0, max=1.0
+                    )  # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
                     image = tensor_to_pillow_image(unnormalized_image)  # 轉換為Pillow Image
                     image.save(image_path)
-                    display.clear_output(wait=True)
-                    display.display(display.Image(image_path))
+                    clear_output(widget=image_display, wait=True)
+                    display_image(image_path=image_path)
 
                     # 生成結束
                     if current_timestep == -1:
                         image.save(image_path)
-                        display.display(display.Image(image_path))
-                        display.clear_output()
+                        display_image(image_path=image_path)
+                        clear_output()
                         # 將最後一個timestep的url存到current_result
-                        anvil.server.task_state["current_result"] = upload_png(image_path)
+                        store_task_state("current_result", upload_png(image_path))
                         # 儲存生成過程的gif url
                         gif_urls.append(
                             upload_gif(
@@ -274,13 +286,12 @@ def guided_diffusion_generate(
                         images.append(Image.open(image_path))
                     elif step_index % 10 == 0:  # 每10個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
-                        anvil.server.task_state["current_result"] = upload_png(image_path)
+                        store_task_state("current_result", upload_png(image_path))
 
-            # 紀錄目前的step
-            anvil.server.task_state["current_step"] = step_index + 1
+            store_task_state("current_step", step_index + 1)  # 紀錄目前的step
 
-        gc.collect()
-        torch.cuda.empty_cache()
+        progess_bar.update_progress(num_batches)
+        clear_gpu_cache()
 
     if use_grid_image:
         # 儲存grid圖片的url到grid_image_url
@@ -331,7 +342,7 @@ def latent_diffusion_generate(
         real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
 
     prompts = prompts_preprocessing(prompts)  # 將prompts翻成英文
-    sampler = DDIMSampler(latent_diffusion_model)  # 建立DDIM sampler
+    sampler = get_sampler(latent_diffusion_model, mode="ddim")  # 建立DDIM sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -371,11 +382,9 @@ def latent_diffusion_generate(
                 for model_name in chosen_models:
                     samples = []  # 儲存所有sample
                     count = 0  # 圖片編號
-                    anvil.server.task_state["current_clip_model"] = model_name
-                    for current_iteration in trange(num_iterations, desc="Sampling"):
-                        gc.collect()
-                        torch.cuda.empty_cache()
-
+                    store_task_state("current_clip_model", model_name)
+                    for current_iteration in range(num_iterations):
+                        clear_gpu_cache()
                         conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * prompts)
 
                         # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
@@ -394,11 +403,10 @@ def latent_diffusion_generate(
 
                         x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
                         x_samples_ddim = unnormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
-                        # x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
 
                         for x_sample in x_samples_ddim:
                             x_sample = 255.0 * rearrange(x_sample.cpu().numpy(), "c h w -> h w c")
-                            filename = os.path.join(
+                            image_path = os.path.join(
                                 batch_folder,
                                 f"latent_{model_name.replace('/', '-')}_{count}.png",
                             )  # 將"/"替換為"-"避免誤認為路徑
@@ -410,11 +418,12 @@ def latent_diffusion_generate(
 
                             # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
                             image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)
-                            image_vector.save(filename)
+                            image_vector.save(image_path)
+                            display_image(image_path)
                             count += 1
 
                             # 做完時才記錄current_iteration
-                            anvil.server.task_state["current_iteration"] = current_iteration + 1
+                            store_task_state("current_iteration", current_iteration + 1)
 
                         samples.append(x_samples_ddim)
 
@@ -433,10 +442,10 @@ def latent_diffusion_generate(
 
                     urls[model_name] = upload_png(os.path.join(batch_folder, grid_filename))  # 儲存url
 
-                    gc.collect()
-                    torch.cuda.empty_cache()
+                    clear_gpu_cache()
 
     # 提高解析度
     super_resolution(real_esrgan_upsampler, batch_folder, exception_paths)
+    clear_output()
 
     return urls  # 回傳每個Clip模型生成的grid image url

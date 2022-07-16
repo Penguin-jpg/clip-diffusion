@@ -10,6 +10,7 @@ from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir
+from clip_diffusion.utils.functional import clear_gpu_cache
 
 _CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(_CLIENT_ID)
@@ -213,5 +214,4 @@ def super_resolution(upsampler, batch_folder, exception_paths=[]):
             filename = os.path.join(result_path, image_name)
             cv2.imwrite(filename, output_image)
 
-            gc.collect()
-            torch.cuda.empty_cache()
+            clear_gpu_cache()
