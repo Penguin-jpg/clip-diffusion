@@ -1,11 +1,11 @@
 import re
 import clip
 import torch
-import numpy as np
 import random
 from transformers import pipeline
 from opencc import OpenCC
 from PIL import Image
+from clip_diffusion.utils.functional import tokenize, get_text_embedding
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
 from clip_diffusion.utils.perlin import generate_perlin_noise
 
@@ -133,9 +133,8 @@ def get_embeddings_and_weights(prompts, clip_models, device=None):
         }
         for prompt in prompts:
             text, weight = _parse_prompt(prompt)  # 取得text及weight
-            text = clip_model.encode_text(clip.tokenize(prompt).to(device)).float()
-
-            clip_model_stat["text_embeddings"].append(text)
+            text_embedding = get_text_embedding(clip_model, tokenize(text, device), device)  # 取得text embedding
+            clip_model_stat["text_embeddings"].append(text_embedding)
             clip_model_stat["text_weights"].append(weight)
 
         clip_model_stat["text_embeddings"] = torch.cat(clip_model_stat["text_embeddings"])

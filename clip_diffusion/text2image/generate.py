@@ -27,9 +27,10 @@ from clip_diffusion.utils.functional import (
     clear_output,
     set_seed,
     clear_gpu_cache,
-    CLIP_NORMALIZE,
     get_sample_function,
     get_sampler,
+    CLIP_NORMALIZE,
+    get_image_embedding,
     set_display_widget,
     display_image,
     ProgressBar,
@@ -119,7 +120,7 @@ def guided_diffusion_generate(
     loss_values = []
     current_timestep = None  # 目前的timestep
 
-    def cond_fn(x, t, y=None):
+    def conditon_function(x, t, y=None):
         """
         透過clip引導guided diffusion(計算grad(log(p(y|x))))
         x: 上一個timestep的圖片tensor
@@ -158,10 +159,10 @@ def guided_diffusion_generate(
             for clip_model_stat in clip_model_stats:
                 # 做cutout
                 for _ in range(config.num_cutout_batches):
-                    # 將t的值從tensor取出(t每次進入cond_fn時會減掉(1000/steps))
+                    # 將t的值從tensor取出(t每次進入condition_function時會減掉(1000/steps))
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
-                    cuts = MakeCutouts(
+                    cutouts = MakeCutouts(
                         cut_size=clip_models[
                             clip_model_stat["clip_model_name"]
                         ].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
@@ -171,8 +172,9 @@ def guided_diffusion_generate(
                         cut_gray_portion=config.cut_gray_portion_schedule[1000 - t_value],
                         use_augmentations=config.use_augmentations,
                     )
-                    clip_in = CLIP_NORMALIZE(cuts(unnormalize_image_zero_to_one(x_in)))
-                    image_embeddings = clip_models[clip_model_stat["clip_model_name"]].encode_image(clip_in).float()
+
+                    cuts = cutouts(unnormalize_image_zero_to_one(x_in))
+                    image_embeddings = get_image_embedding(clip_models[clip_model_stat["clip_model_name"]], cuts)
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
@@ -240,7 +242,7 @@ def guided_diffusion_generate(
             (1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
             clip_denoised=False,
             model_kwargs={},
-            cond_fn=cond_fn,
+            cond_fn=conditon_function,
             progress=True,
             skip_timesteps=skip_timesteps,
             init_image=init,
@@ -258,8 +260,8 @@ def guided_diffusion_generate(
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
                     # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
-                    unnormalized_image = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
-                    image = tensor_to_pillow_image(unnormalized_image)  # 轉換為Pillow Image
+                    image_tensor = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
+                    image = tensor_to_pillow_image(image_tensor)  # 轉換為Pillow Image
                     image.save(image_path)
                     clear_output(widget=image_display, wait=True)
                     display_image(image_path=image_path)

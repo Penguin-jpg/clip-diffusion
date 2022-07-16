@@ -1,6 +1,6 @@
 import os
-from IPython.display import Image, display
 from clip_retrieval.clip_client import ClipClient, Modality
+from clip_diffusion.utils.functional import display_image
 from clip_diffusion.utils.dir_utils import make_dir
 
 
@@ -15,7 +15,7 @@ def _show_result(result):
     print(f"caption: {caption}")
     print(f"url: {url}")
     print(f"similarity: {similarity}")
-    display(Image(url=url, unconfined=True))
+    display_image(url=url, unconfined=True)
 
 
 def _results_to_json(results, output_path):
