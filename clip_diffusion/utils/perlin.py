@@ -77,7 +77,7 @@ def _perlin_ms(octaves, width, height, grayscale, device=None):
     return torch.cat(out_array)
 
 
-def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True, device=None):
+def _perlin_noise_wrapper(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True, device=None):
     """
     整合上方的function
     """
@@ -102,14 +102,14 @@ def generate_perlin_noise(perlin_mode, device=None):
     """
 
     if perlin_mode == "color":
-        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
-        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, False, device)
+        init = _perlin_noise_wrapper([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
+        init2 = _perlin_noise_wrapper([1.5**-i * 0.5 for i in range(8)], 4, 4, False, device)
     elif perlin_mode == "gray":
-        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, True, device)
-        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
+        init = _perlin_noise_wrapper([1.5**-i * 0.5 for i in range(12)], 1, 1, True, device)
+        init2 = _perlin_noise_wrapper([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
     else:
-        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
-        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
+        init = _perlin_noise_wrapper([1.5**-i * 0.5 for i in range(12)], 1, 1, False, device)
+        init2 = _perlin_noise_wrapper([1.5**-i * 0.5 for i in range(8)], 4, 4, True, device)
 
     init = image_to_tensor(init).add(image_to_tensor(init2)).div(2).to(device).unsqueeze(0)
     init = normalize_image_neg_one_to_one(init)
