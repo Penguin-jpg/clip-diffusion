@@ -1,21 +1,6 @@
 import os
 from clip_retrieval.clip_client import ClipClient, Modality
-from clip_diffusion.utils.functional import display_image
 from clip_diffusion.utils.dir_utils import make_dir
-
-
-def _show_result(result):
-    id, caption, url, similarity = (
-        result["id"],
-        result["caption"],
-        result["url"],
-        result["similarity"],
-    )
-    print(f"id: {id}")
-    print(f"caption: {caption}")
-    print(f"url: {url}")
-    print(f"similarity: {similarity}")
-    display_image(url=url, unconfined=True)
 
 
 def _results_to_json(results, output_path):
@@ -63,8 +48,7 @@ def get_query_results(
     client,
     text=None,
     image_url=None,
-    num_results=1000,
-    show_first_result=True,
+    num_results=500,
     to_json=False,
     output_path=None,
 ):
@@ -82,9 +66,6 @@ def get_query_results(
         print("excceeds max number of results! automatically shorten to match max length")
     else:
         results = results[:num_results]
-
-    if show_first_result:
-        _show_result(results[0])
 
     if to_json:
         _results_to_json(results, output_path)
