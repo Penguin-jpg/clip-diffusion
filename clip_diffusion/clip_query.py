@@ -3,6 +3,7 @@ import torch
 import clip
 import requests
 import io
+from PIL import Image
 from clip_retrieval.clip_client import ClipClient, Modality
 from clip_diffusion.utils.dir_utils import make_dir
 from clip_diffusion.utils.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
@@ -70,7 +71,7 @@ class QueryClient:
 
     # 參考並修改自：https://colab.research.google.com/drive/1V66mUeJbXrTuQITvJunvnWVn96FEbSI3#scrollTo=YHOj78Yvx8jP
     def _fetch_image(self, url):
-        if not url.startswith("http://") or not url.startswith("https://"):
+        if not url.startswith("http://") and not url.startswith("https://"):
             print("not a valid url")
             return
         else:
@@ -78,8 +79,8 @@ class QueryClient:
             request.raise_for_status()
             output = io.BytesIO()
             output.write(request.content)
-            output.seek(0)
-            return output
+            output.seek(0)  # 回到檔案開頭
+            return Image.open(output)
 
     def _merge_embeddings(self, embedding1, embedding2):
         """
