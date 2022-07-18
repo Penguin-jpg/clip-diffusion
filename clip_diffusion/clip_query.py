@@ -1,6 +1,15 @@
 import os
+import torch
+import clip
+import requests
+import io
 from clip_retrieval.clip_client import ClipClient, Modality
 from clip_diffusion.utils.dir_utils import make_dir
+from clip_diffusion.utils.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
+
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+_model, _preprocess = clip.load("ViT-L/14", device=_device)
+_model.eval().requires_grad_(False)
 
 
 def _results_to_json(results, output_path):
@@ -44,10 +53,44 @@ def create_clip_client(
     )
 
 
+# 參考並修改自：https://colab.research.google.com/drive/1V66mUeJbXrTuQITvJunvnWVn96FEbSI3#scrollTo=YHOj78Yvx8jP
+def _fetch_image(url):
+    if not url.startswith("http://") or not url.startswith("https://"):
+        print("not a valid url")
+        return
+    else:
+        request = requests.get(url)
+        request.raise_for_status()
+        output = io.BytesIO()
+        output.write(request.content)
+        output.seek(0)
+        return output
+
+
+def _get_embedding(text=None, image_url=None):
+    """
+    根據輸入決定要使用的embedding
+    """
+
+    assert text or image_url, "need to specify text or image_url"
+
+    if text:
+        return get_text_embedding(_model, tokenize(text, _device), divided_by_norm=True)[0].tolist()
+    else:
+        image = _fetch_image(image_url)
+        return get_image_embedding(
+            _model,
+            to_clip_image(_preprocess, image, _device),
+            use_normalize=False,
+            divided_by_norm=True,
+        )[0].tolist()
+
+
 def get_query_results(
     client,
     text=None,
     image_url=None,
+    use_embedding=False,
     num_results=500,
     to_json=False,
     output_path=None,
@@ -56,11 +99,12 @@ def get_query_results(
     透過文字或圖片進行query
     """
 
-    if num_results < 0:
-        print("number of results cannot be zero")
-        return
+    assert num_results >= 0, "number of results cannot be zero"
 
-    results = client.query(text=text, image=image_url)
+    if use_embedding:
+        results = client.query(embedding_input=_get_embedding(text, image_url))
+    else:
+        results = client.query(text=text, image=image_url)
 
     if num_results > len(results):
         print("excceeds max number of results! automatically shorten to match max length")
