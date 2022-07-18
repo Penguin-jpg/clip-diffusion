@@ -155,16 +155,14 @@ def guided_diffusion_generate(
                 x_in = out["pred_xstart"] * fac + x * (1 - fac)
                 x_in_grad = torch.zeros_like(x_in)
 
-            for clip_model_stat in clip_model_stats:
+            for index, clip_model_stat in enumerate(clip_model_stats):
                 # 做cutout
                 for _ in range(config.num_cutout_batches):
                     # 將t的值從tensor取出(t每次進入condition_function時會減掉(1000/steps))
                     t_value = int(t.item()) + 1
                     # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
                     cutouts = MakeCutouts(
-                        cut_size=clip_models[
-                            clip_model_stat["clip_model_name"]
-                        ].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
+                        cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[1000 - t_value],
                         inner_cut=config.inner_cut_schedule[1000 - t_value],
                         inner_cut_size_pow=config.inner_cut_size_pow,
@@ -173,9 +171,7 @@ def guided_diffusion_generate(
                     )
 
                     cuts = cutouts(unnormalize_image_zero_to_one(x_in))
-                    image_embeddings = get_image_embedding(
-                        clip_models[clip_model_stat["clip_model_name"]], cuts, use_normalize=True
-                    )
+                    image_embeddings = get_image_embedding(clip_models[index], cuts, use_normalize=True)
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
