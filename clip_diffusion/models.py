@@ -1,22 +1,12 @@
 import torch
-import clip
 import math
 import os
-import gc
 from urllib import request
 from pathlib import Path
 from tqdm import tqdm
 from torch import nn
 from dataclasses import dataclass
 from functools import partial
-from ldm.util import instantiate_from_config
-from omegaconf import OmegaConf
-from guided_diffusion.script_util import (
-    model_and_diffusion_defaults,
-    create_model_and_diffusion,
-)
-from basicsr.archs.rrdbnet_arch import RRDBNet
-from realesrgan import RealESRGANer
 from clip_diffusion.utils.dir_utils import MODEL_PATH
 from clip_diffusion.utils.functional import clear_gpu_cache
 
@@ -77,6 +67,8 @@ def load_clip_models_and_preprocessings(chosen_models, device=None):
     選擇並載入要使用的Clip模型和preprocess function
     """
 
+    import clip
+
     models = []
     preprocessings = []
 
@@ -95,6 +87,11 @@ def load_guided_diffusion_model(steps=200, use_checkpoint=True, use_fp16=True, d
     """
     載入guided diffusion model和diffusion
     """
+
+    from guided_diffusion.script_util import (
+        model_and_diffusion_defaults,
+        create_model_and_diffusion,
+    )
 
     model_config = model_and_diffusion_defaults()
     model_config.update(
@@ -352,6 +349,9 @@ def load_latent_diffusion_model(device=None):
     載入latent diffusion模型
     """
 
+    from ldm.util import instantiate_from_config
+    from omegaconf import OmegaConf
+
     model_config = OmegaConf.load("./latent-diffusion/configs/latent-diffusion/txt2img-1p4B-eval.yaml")
 
     model = instantiate_from_config(model_config.model)
@@ -373,6 +373,9 @@ def load_real_esrgan_upsampler(device=None):
     """
     載入real-esrgan模型
     """
+
+    from basicsr.archs.rrdbnet_arch import RRDBNet
+    from realesrgan import RealESRGANer
 
     model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
     upsampler = RealESRGANer(
