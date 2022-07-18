@@ -9,7 +9,6 @@ from clip_diffusion.utils.dir_utils import make_dir
 from clip_diffusion.utils.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
 
 
-# 參考並改寫自：https://colab.research.google.com/github/rom1504/clip-retrieval/blob/master/notebook/clip-client-query-api.ipynb?hl=zh-tw#scrollTo=1YSHcuCPgHhY
 class QueryClient:
     """
     負責進行query的client
@@ -82,6 +81,7 @@ class QueryClient:
             output.seek(0)  # 回到檔案開頭
             return Image.open(output)
 
+    # 參考並改寫自：https://colab.research.google.com/github/rom1504/clip-retrieval/blob/master/notebook/clip-client-query-api.ipynb?hl=zh-tw#scrollTo=1YSHcuCPgHhY
     def _merge_embeddings(self, embedding1, embedding2):
         """
         合併兩個embedding
@@ -89,7 +89,7 @@ class QueryClient:
 
         merged = embedding1 + embedding2  # 兩個embedding相加
         l2_norm = torch.norm(merged, p=2, dim=-1, keepdim=True)  # 算出相加後的L2 norm
-        return merged / l2_norm  # L2 normalize
+        return (merged / l2_norm).tolist()  # L2 normalize
 
     def get_query_results(
         self,
@@ -107,13 +107,13 @@ class QueryClient:
 
         # 如果text和image_url都有值就透過embedding組合
         if text and image_url:
-            text_embedding = get_text_embedding(self._model, tokenize(text, self._device), divided_by_norm=True)[0].tolist()
+            text_embedding = get_text_embedding(self._model, tokenize(text, self._device), divided_by_norm=True)[0]
             image_embedding = get_image_embedding(
                 self._model,
                 to_clip_image(self._preprocess, self._fetch_image(image_url), self._device),
                 use_normalize=False,
                 divided_by_norm=True,
-            )[0].tolist()
+            )[0]
             results = self.client.query(embedding_input=self._merge_embeddings(text_embedding, image_embedding))
         else:
             results = self.client.query(text=text, image=image_url)
