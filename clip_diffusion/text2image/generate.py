@@ -29,7 +29,7 @@ from clip_diffusion.utils.functional import (
     clear_gpu_cache,
     get_sample_function,
     get_sampler,
-    CLIP_NORMALIZE,
+    to_clip_image,
     get_image_embedding,
     set_display_widget,
     display_image,
@@ -51,7 +51,7 @@ from clip_diffusion.utils.image_utils import (
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 lpips_model = lpips.LPIPS(net="vgg").to(_device)
-clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+clip_models, preprocess = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
@@ -174,7 +174,9 @@ def guided_diffusion_generate(
                     )
 
                     cuts = cutouts(unnormalize_image_zero_to_one(x_in))
-                    image_embeddings = get_image_embedding(clip_models[clip_model_stat["clip_model_name"]], cuts)
+                    image_embeddings = get_image_embedding(
+                        clip_models[clip_model_stat["clip_model_name"]], cuts, use_normalize=True
+                    )
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
@@ -412,13 +414,10 @@ def latent_diffusion_generate(
                                 f"latent_{model_name.replace('/', '-')}_{count}.png",
                             )  # 將"/"替換為"-"避免誤認為路徑
                             image_vector = Image.fromarray(x_sample.astype(np.uint8))
-                            image_preprocess = preprocessings[model_name](image_vector).unsqueeze(0).to(_device)
-
-                            with torch.no_grad():
-                                image_embeddings = clip_models[model_name].encode_image(image_preprocess)
-
-                            # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
-                            image_embeddings /= image_embeddings.norm(dim=-1, keepdim=True)
+                            clip_image_vector = to_clip_image(preprocess[model_name], image_vector, _device)
+                            image_embeddings = get_image_embedding(
+                                clip_models[model_name], clip_image_vector, use_normalize=False, divided_by_norm=True
+                            )  # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
                             image_vector.save(image_path)
                             display_image(image_path)
                             count += 1

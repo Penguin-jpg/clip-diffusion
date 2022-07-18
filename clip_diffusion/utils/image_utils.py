@@ -2,11 +2,8 @@ import os
 import io
 import pyimgur
 import cv2
-import torch
-import gc
 from glob import glob
 from PIL import Image, ImageFont, ImageDraw
-from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir
