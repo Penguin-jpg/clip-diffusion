@@ -77,14 +77,14 @@ def load_clip_models_and_preprocessings(chosen_models, device=None):
     選擇並載入要使用的Clip模型和preprocess function
     """
 
-    models = {}
-    preprocessings = {}
+    models = []
+    preprocessings = []
 
     for model_name in chosen_models:
         model, preprocess = clip.load(model_name, device=device)
         _to_eval_and_freeze_layers(model, False, device)
-        models[model_name] = model
-        preprocessings[model_name] = preprocess
+        models.append(model)
+        preprocessings.append(preprocess)
 
     clear_gpu_cache()
 
