@@ -1,5 +1,4 @@
 import re
-import clip
 import torch
 import random
 from transformers import pipeline

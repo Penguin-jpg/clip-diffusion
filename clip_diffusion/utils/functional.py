@@ -5,9 +5,7 @@ import gc
 import torch
 import anvil.server
 from torchvision import transforms as T
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
-from tqdm.notebook import trange, tqdm
+from tqdm.notebook import trange
 from IPython import display
 
 # Clip用到的normalize
@@ -35,21 +33,43 @@ def tokenize(text, device=None):
     return clip.tokenize(text).to(device)
 
 
-def get_text_embedding(clip_model, text):
+def to_clip_image(preprocess, image, device=None):
+    """
+    預設的Clip圖片處理方式
+    """
+
+    return preprocess(image).unsqueeze(0).to(device)
+
+
+def get_text_embedding(clip_model, text, divided_by_norm=False):
     """
     取得text embedding
     """
 
-    return clip_model.encode_text(text).float()
+    text_embedding = clip_model.encode_text(text).float()
+
+    # 不考慮維度，只保留特徵
+    if divided_by_norm:
+        text_embedding /= text_embedding.norm(dim=-1, keepdim=True)
+
+    return text_embedding
 
 
-def get_image_embedding(clip_model, image):
+def get_image_embedding(clip_model, image, use_normalize=True, divided_by_norm=False):
     """
     取得image embedding
     """
 
-    image = CLIP_NORMALIZE(image)
-    return clip_model.encode_image(image).float()
+    if use_normalize:
+        image = CLIP_NORMALIZE(image)
+
+    image_embedding = clip_model.encode_image(image).float()
+
+    # 不考慮維度，只保留特徵
+    if divided_by_norm:
+        image_embedding /= image_embedding.norm(dim=-1, keepdim=True)
+
+    return image_embedding
 
 
 def set_seed(seed):
@@ -83,6 +103,9 @@ def get_sampler(latent_diffusion_model, mode="ddim"):
     """
 
     assert mode in ("ddim", "plms"), "unsupported sampler mode"
+
+    from ldm.models.diffusion.ddim import DDIMSampler
+    from ldm.models.diffusion.plms import PLMSSampler
 
     if mode == "ddim":
         return DDIMSampler(latent_diffusion_model)
