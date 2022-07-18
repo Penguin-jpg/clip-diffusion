@@ -1,2 +1,5 @@
 ipython
+git+https://github.com/openai/CLIP
+anvil-uplink
 clip-retrieval
+requests
