@@ -29,7 +29,6 @@ from clip_diffusion.utils.functional import (
     clear_gpu_cache,
     get_sample_function,
     get_sampler,
-    to_clip_image,
     get_image_embedding,
     set_display_widget,
     display_image,
@@ -51,7 +50,7 @@ from clip_diffusion.utils.image_utils import (
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 lpips_model = lpips.LPIPS(net="vgg").to(_device)
-clip_models, preprocess = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
@@ -317,7 +316,6 @@ def latent_diffusion_generate(
     latent_diffusion_guidance_scale=5,
     num_iterations=3,
     num_batches=3,
-    chosen_models=["ViT-B/32", "ViT-B/16"],
     sample_width=256,
     sample_height=256,
 ):
@@ -331,7 +329,6 @@ def latent_diffusion_generate(
     latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
     num_iterations: 做幾次latent diffusion生成
     num_batches: 要生成的圖片數
-    chosen_models: 要用來引導的Clip模型名稱
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
     """
@@ -382,65 +379,58 @@ def latent_diffusion_generate(
                     # ""代表不考慮的prompt
                     uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [""])
 
-                for model_name in chosen_models:
-                    samples = []  # 儲存所有sample
-                    count = 0  # 圖片編號
-                    store_task_state("current_clip_model", model_name)
-                    for current_iteration in range(num_iterations):
-                        clear_gpu_cache()
-                        conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * prompts)
+                samples = []  # 儲存所有sample
+                count = 0  # 圖片編號
+                for current_iteration in range(num_iterations):
+                    clear_gpu_cache()
+                    conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * prompts)
 
-                        # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
-                        samples_ddim, _ = sampler.sample(
-                            S=diffusion_steps,
-                            batch_size=num_batches,
-                            conditioning=conditioning,
-                            x0=encoded_init,
-                            mask=mask,
-                            shape=shape,
-                            verbose=False,
-                            unconditional_guidance_scale=latent_diffusion_guidance_scale,
-                            unconditional_conditioning=uncoditional_conditioning,
-                            eta=eta,
-                        )
+                    # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
+                    samples_ddim, _ = sampler.sample(
+                        S=diffusion_steps,
+                        batch_size=num_batches,
+                        conditioning=conditioning,
+                        x0=encoded_init,
+                        mask=mask,
+                        shape=shape,
+                        verbose=False,
+                        unconditional_guidance_scale=latent_diffusion_guidance_scale,
+                        unconditional_conditioning=uncoditional_conditioning,
+                        eta=eta,
+                    )
 
-                        x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
-                        x_samples_ddim = unnormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
+                    x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
+                    x_samples_ddim = unnormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
 
-                        for x_sample in x_samples_ddim:
-                            x_sample = 255.0 * rearrange(x_sample.cpu().numpy(), "c h w -> h w c")
-                            image_path = os.path.join(
-                                batch_folder,
-                                f"latent_{model_name.replace('/', '-')}_{count}.png",
-                            )  # 將"/"替換為"-"避免誤認為路徑
-                            image_vector = Image.fromarray(x_sample.astype(np.uint8))
-                            clip_image_vector = to_clip_image(preprocess[model_name], image_vector, _device)
-                            image_embeddings = get_image_embedding(
-                                clip_models[model_name], clip_image_vector, use_normalize=False, divided_by_norm=True
-                            )  # 對image_embeddings做L2 normalization，因為不在乎長度，只看特徵
-                            image_vector.save(image_path)
-                            display_image(image_path)
-                            count += 1
+                    for x_sample in x_samples_ddim:
+                        x_sample = 255.0 * rearrange(x_sample.cpu().numpy(), "c h w -> h w c")
+                        image_path = os.path.join(
+                            batch_folder,
+                            f"latent_{count}.png",
+                        )  # 將"/"替換為"-"避免誤認為路徑
+                        image_vector = Image.fromarray(x_sample.astype(np.uint8))
+                        image_vector.save(image_path)
+                        display_image(image_path)
+                        count += 1
 
-                            # 做完時才記錄current_iteration
-                            store_task_state("current_iteration", current_iteration + 1)
+                        # 做完時才記錄current_iteration
+                        store_task_state("current_iteration", current_iteration + 1)
 
-                        samples.append(x_samples_ddim)
+                    samples.append(x_samples_ddim)
 
                     # 轉成grid形式
                     grid = torch.stack(samples, 0)
                     grid = rearrange(grid, "n b c h w -> (n b) c h w")
                     grid = make_grid(grid, nrow=num_batches)
                     grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-                    grid_filename = f"{model_name.replace('/', '-')}_grid_image.png"
+                    grid_filename = f"latent_grid_image.png"
                     exception_paths.append(os.path.join(batch_folder, grid_filename))
 
-                    grid_image = Image.fromarray(grid.astype(np.uint8))
                     # 畫上index
+                    grid_image = Image.fromarray(grid.astype(np.uint8))
                     grid_image = draw_index_on_grid_image(grid_image, num_iterations, num_batches, sample_height, sample_width)
                     grid_image.save(os.path.join(batch_folder, grid_filename))  # 儲存grid圖片
-
-                    urls[model_name] = upload_png(os.path.join(batch_folder, grid_filename))  # 儲存url
+                    grid_image_url = upload_png(os.path.join(batch_folder, grid_filename))  # 儲存url
 
                     clear_gpu_cache()
 
@@ -448,4 +438,4 @@ def latent_diffusion_generate(
     super_resolution(real_esrgan_upsampler, batch_folder, exception_paths)
     clear_output()
 
-    return urls  # 回傳每個Clip模型生成的grid image url
+    return grid_image_url  # 格狀圖片的url
