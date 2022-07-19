@@ -65,6 +65,7 @@ def guided_diffusion_generate(
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
+    sample_mode="ddim",
     steps=200,
     skip_timesteps=0,
     clip_guidance_scale=8000,
@@ -83,6 +84,7 @@ def guided_diffusion_generate(
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
+    sample_mode: 使用的sample模式(ddim, plms)
     steps: 每個batch要跑的step數
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
@@ -232,20 +234,36 @@ def guided_diffusion_generate(
         if use_perlin:
             init = create_init_noise(None, None, use_perlin, perlin_mode, _device)
 
-        # 使用DDIM進行sample
-        sample_function = get_sample_function(diffusion, mode="ddim")
-        samples = sample_function(
-            model,
-            (1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
-            clip_denoised=False,
-            model_kwargs={},
-            cond_fn=conditon_function,
-            progress=True,
-            skip_timesteps=skip_timesteps,
-            init_image=init,
-            randomize_class=True,
-            eta=eta,
-        )
+        # 根據sample_mode選擇sample_function
+        sample_function = get_sample_function(diffusion, mode=sample_mode)
+
+        # 根據不同function傳入參數
+        if sample_mode == "ddim":  # ddim
+            samples = sample_function(
+                model=model,
+                shape=(1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
+                clip_denoised=False,
+                model_kwargs={},
+                cond_fn=conditon_function,
+                progress=True,
+                skip_timesteps=skip_timesteps,
+                init_image=init,
+                randomize_class=True,
+                eta=eta,
+            )
+        else:  # plms
+            samples = sample_function(
+                model=model,
+                shape=(1, 3, config.height, config.width),
+                clip_denoised=True,
+                model_kwargs={},
+                cond_fn=conditon_function,
+                progress=True,
+                skip_timesteps=skip_timesteps,
+                init_image=init,
+                randomize_class=True,
+                order=2,
+            )
 
         # current_timestep從總timestep數開始；step_index從0開始
         for step_index, sample in enumerate(samples):
@@ -307,6 +325,7 @@ def latent_diffusion_generate(
     ],
     init_image=None,
     mask_image=None,
+    sample_mode="ddim",
     diffusion_steps=50,
     eta=0.0,
     latent_diffusion_guidance_scale=5,
@@ -320,6 +339,7 @@ def latent_diffusion_generate(
     prompts: 要生成的東西
     init_image: 要配合inpaint使用的圖片
     mask_image: inpaint用的遮罩
+    sample_mode: 使用的sample模式(ddim, plms)
     diffusion_steps: latent diffusion要跑的step數
     eta: latent diffusion的eta
     latent_diffusion_guidance_scale: latent diffusion unconditional的引導強度(介於0~15，多樣性隨著數值升高)
@@ -338,12 +358,16 @@ def latent_diffusion_generate(
         real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
 
     prompts = prompts_preprocessing(prompts)  # 將prompts翻成英文
-    sampler = get_sampler(latent_diffusion_model, mode="ddim")  # 建立DDIM sampler
+    sampler = get_sampler(latent_diffusion_model, mode=sample_mode)  # 根據sample_mode選擇sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
     set_seed(config.seed)
+
+    # 當使用plms時，eta沒有作用
+    if sample_mode == "plms":
+        eta = 0.0
 
     # sample的shape
     shape = (4, sample_height // 8, sample_width // 8)
@@ -364,7 +388,6 @@ def latent_diffusion_generate(
         mask = create_mask_tensor(mask_image, (shape[2], shape[1]), _device)
         mask = repeat(mask, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
 
-    urls = {}  # grid圖片的url
     exception_paths = []  # 不做sr的圖片路徑
 
     with torch.no_grad():
