@@ -58,7 +58,7 @@ class Config:
         height=768,
         num_cutout_batches=4,
         overview_cut_schedule=(14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200,
-        inner_cut_schedule=(2,) * 200 + (4,) * 200 + (2,) * 400 + (12,) * 200,
+        inner_cut_schedule=(2,) * 200 + (4,) * 200 + (12,) * 400 + (12,) * 200,
         inner_cut_size_pow=5,
         cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
         use_secondary_model=True,
