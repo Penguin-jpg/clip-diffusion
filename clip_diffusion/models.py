@@ -119,6 +119,13 @@ def load_guided_diffusion_model(
                 "use_scale_shift_norm": True,
             }
         )
+        model, diffusion = create_model_and_diffusion(**model_config)
+        model.load_state_dict(
+            torch.load(
+                _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME),
+                map_location="cpu",
+            )
+        )
     else:
         assert custom_model_path is not None, "need to specify custom_model_path"
         # 由於自己訓練的模型是調整過參數的，所以要額外處理
@@ -140,14 +147,9 @@ def load_guided_diffusion_model(
                 "use_scale_shift_norm": False,
             }
         )
+        model, diffusion = create_model_and_diffusion(**model_config)
+        model.load_state_dict(torch.load(custom_model_path, map_location="cpu"))
 
-    model, diffusion = create_model_and_diffusion(**model_config)
-    model.load_state_dict(
-        torch.load(
-            _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME),
-            map_location="cpu",
-        )
-    )
     _to_eval_and_freeze_layers(model, False, device)
 
     for name, param in model.named_parameters():
