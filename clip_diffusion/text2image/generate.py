@@ -105,7 +105,7 @@ def guided_diffusion_generate(
         secondary_model = load_secondary_model(_device)
 
     prompts = prompts_preprocessing(prompts, styles)  # prompts的前處理
-    model, diffusion = load_guided_diffusion_model(steps, device=_device)  # 載入diffusion model和diffusion
+    model, diffusion = load_guided_diffusion_model(steps=steps, device=_device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
