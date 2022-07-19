@@ -18,8 +18,8 @@ def get_num_model_parameters(model, grad=True):
     """
 
     if grad:
-        return sum(param.numel() for param in model.paramarameters() if param.requires_grad)
-    return sum(param.numel() for param in model.paramarameters())
+        return sum(param.numel() for param in model.parameters() if param.requires_grad)
+    return sum(param.numel() for param in model.parameters())
 
 
 def tokenize(text, device=None):
