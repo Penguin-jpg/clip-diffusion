@@ -5,7 +5,7 @@ ipywidgets
 ipython
 lpips 
 anvil-uplink
-pyimgur
+pyimgbox
 transformers
 sentencepiece
 sacremoses
