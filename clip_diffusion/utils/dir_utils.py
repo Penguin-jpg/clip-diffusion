@@ -1,5 +1,6 @@
 import os
 import shutil
+from glob import glob
 
 
 OUTPUT_PATH = "output_images"  # 儲存輸出圖片的資料夾
@@ -39,3 +40,20 @@ def make_dir(dir_path, remove_old=False):
                 _remove_old_dirs_and_files(dir_path)
     else:
         print("path cannot be empty")
+
+
+def get_file_paths(dir_path, pattern, sort_paths=True):
+    """
+    找出dir_path下符合pattern的檔案路徑
+    """
+
+    # 搜尋的pattern
+    targets = os.path.join(dir_path, pattern)
+    # 找出符合pattern的圖片路徑
+    file_paths = glob(targets)
+
+    # 如果要排序
+    if sort_paths:
+        file_paths = sorted(file_paths)
+
+    return file_paths

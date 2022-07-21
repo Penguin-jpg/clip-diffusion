@@ -2,32 +2,14 @@ import os
 import io
 import pyimgur
 import cv2
-from glob import glob
 from PIL import Image
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
-from clip_diffusion.utils.dir_utils import make_dir
+from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.functional import clear_gpu_cache
 
 _CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(_CLIENT_ID)
-
-
-def _get_image_paths(batch_folder, pattern, sort_paths=True):
-    """
-    找出batch_folder下符合pattern的圖片路徑
-    """
-
-    # 搜尋的pattern
-    targets = os.path.join(batch_folder, pattern)
-    # 找出符合pattern的圖片路徑
-    image_paths = glob(targets)
-
-    # 如果要排序
-    if sort_paths:
-        image_paths = sorted(image_paths)
-
-    return image_paths
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -83,7 +65,7 @@ def upload_gif(
     """
 
     # 選出目前batch的所有圖片路徑
-    image_paths = _get_image_paths(batch_folder, f"guided_{batch_index}*.png")
+    image_paths = get_file_paths(batch_folder, f"guided_{batch_index}*.png")
 
     images = []  # 儲存要找的圖片
     for index, image_path in enumerate(image_paths):
@@ -171,7 +153,7 @@ def super_resolution(upsampler, batch_folder, exception_paths=[]):
     make_dir(result_path, remove_old=True)
 
     # 找出batch_folder下的所有png圖片路徑
-    image_paths = _get_image_paths(batch_folder, "*.png")
+    image_paths = get_file_paths(batch_folder, "*.png")
 
     # 對batch_folder內的每張圖片做sr
     for index, image_path in enumerate(image_paths):
