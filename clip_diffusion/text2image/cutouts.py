@@ -7,7 +7,7 @@ from resize_right import resize
 
 # 參考並修改自：disco diffusion
 # 作者： Dango233(https://github.com/Dango233)
-class MakeCutouts(nn.Module):
+class Cutouts(nn.Module):
     """
     在Clip引導時取出圖片(cutout)做處理，讓引導效果更好
     overview cut: 取出整張圖片，有助於整體線條
