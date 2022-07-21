@@ -35,7 +35,7 @@ from clip_diffusion.utils.functional import (
     ProgressBar,
     store_task_state,
 )
-from clip_diffusion.text2image.cutouts import MakeCutouts
+from clip_diffusion.text2image.cutouts import Cutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
@@ -162,13 +162,14 @@ def guided_diffusion_generate(
                 for _ in range(config.num_cutout_batches):
                     # 將t的值從tensor取出(t每次進入condition_function時會減掉(1000/steps))
                     t_value = int(t.item()) + 1
-                    # 做cutouts(用(1000-t_value)是因為MakeCutouts以1000當做基準線)
-                    cutouts = MakeCutouts(
+                    current_diffusion_timestep = 1000 - t_value  # 目前的diffusion timestep
+                    # 做cutouts(用Cutouts以1000當做基準線)
+                    cutouts = Cutouts(
                         cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
-                        overview=config.overview_cut_schedule[1000 - t_value],
-                        inner_cut=config.inner_cut_schedule[1000 - t_value],
-                        inner_cut_size_pow=config.inner_cut_size_pow,
-                        cut_gray_portion=config.cut_gray_portion_schedule[1000 - t_value],
+                        overview=config.overview_cut_schedule[current_diffusion_timestep],
+                        inner_cut=config.inner_cut_schedule[current_diffusion_timestep],
+                        inner_cut_size_power_schedule=config.inner_cut_size_power_schedule[current_diffusion_timestep],
+                        cut_gray_portion=config.cut_gray_portion_schedule[current_diffusion_timestep],
                         use_augmentations=config.use_augmentations,
                     )
 
@@ -179,7 +180,12 @@ def guided_diffusion_generate(
                         clip_model_stat["text_embeddings"].unsqueeze(0),
                     )
                     dists = dists.view(
-                        [config.overview_cut_schedule[1000 - t_value] + config.inner_cut_schedule[1000 - t_value], batch_size, -1]
+                        [
+                            config.overview_cut_schedule[current_diffusion_timestep]
+                            + config.inner_cut_schedule[current_diffusion_timestep],
+                            batch_size,
+                            -1,
+                        ]
                     )
                     losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
