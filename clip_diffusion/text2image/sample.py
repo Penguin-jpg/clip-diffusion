@@ -57,7 +57,7 @@ real_esrgan_upsampler = None
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
-def guided_diffusion_generate(
+def guided_diffusion_sample(
     prompts=[
         "A cute golden retriever.",
     ],
@@ -328,7 +328,7 @@ def guided_diffusion_generate(
 
 # 參考並修改自： https://github.com/CompVis/latent-diffusion/blob/main/scripts/txt2img.py
 @anvil.server.background_task
-def latent_diffusion_generate(
+def latent_diffusion_sample(
     prompts=[
         "A cute golden retriever.",
     ],
