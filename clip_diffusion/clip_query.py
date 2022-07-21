@@ -111,7 +111,7 @@ class QueryClient:
             image_embedding = get_image_embedding(
                 self._model,
                 to_clip_image(self._preprocess, self._fetch_image(image_url), self._device),
-                use_normalize=False,
+                use_clip_normalize=False,
                 divided_by_norm=True,
             )[0]
             results = self.client.query(embedding_input=self._merge_embeddings(text_embedding, image_embedding))
