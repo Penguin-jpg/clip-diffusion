@@ -175,7 +175,7 @@ def guided_diffusion_generate(
                     )
 
                     cuts = cutouts(unnormalize_image_zero_to_one(x_in))
-                    image_embeddings = get_image_embedding(clip_models[index], cuts, use_normalize=True)
+                    image_embeddings = get_image_embedding(clip_models[index], cuts, use_clip_normalize=True)
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
                         clip_model_stat["text_embeddings"].unsqueeze(0),
