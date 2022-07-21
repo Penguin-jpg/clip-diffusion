@@ -4,7 +4,7 @@ import os
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH, MODEL_PATH
 
 
-class Helper:
+class ColabHelper:
     """
     幫忙包裝、簡化anvil和colab準備工作
     """
