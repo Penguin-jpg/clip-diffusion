@@ -215,8 +215,10 @@ def guided_diffusion_generate(
                 x_is_NaN = True
                 grad = torch.zeros_like(x)
 
-        if config.clamp_grad and not x_is_NaN:
+        if not x_is_NaN:
+            # 使用RMS當作調整用的強度
             magnitude = grad.square().mean().sqrt()
+            # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
             return grad * magnitude.clamp(min=-config.clamp_max, max=config.clamp_max) / magnitude
 
         return grad
