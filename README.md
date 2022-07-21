@@ -16,15 +16,6 @@ pip install -r requirements/generation.txt
 pip install -r requirements/clip_query.txt
 ```
 
-### Dependency For Instance Segmentation
-```
-pip install -r requirements/instance_segmentation.txt
-git clone https://github.com/open-mmlab/mmdetection.git
-pip install -e ./mmdetection
-# 如果要訓練 Instaboost 模型才需額外安裝
-# pip install instaboostfast
-```
-
 ### 簡介
 - 使用 CLIP 引導 Guided Diffusion 進行 text-to-image generation，並且
   融合 Latent Diffusion 生成初始圖片
