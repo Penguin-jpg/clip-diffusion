@@ -4,9 +4,9 @@ import random
 from transformers import pipeline
 from opencc import OpenCC
 from PIL import Image
-from clip_diffusion.utils.functional import tokenize, get_text_embedding
+from clip_diffusion.functional import tokenize, get_text_embedding
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
-from clip_diffusion.utils.perlin import generate_perlin_noise
+from clip_diffusion.perlin import generate_perlin_noise
 
 _translator = pipeline(
     "translation",
@@ -106,9 +106,9 @@ def prompts_preprocessing(prompts, styles=[]):
 
 
 # 參考並修改自：https://colab.research.google.com/drive/12a_Wrfi2_gwwAuN3VvMTwVMz9TfqctNj
-def _parse_prompt(prompt):
+def _get_text_and_weight(prompt):
     """
-    解析prompt(分離文字與權重)
+    分離prompt的文字與權重
     """
 
     parsed = prompt.split(":", 1)  # prompt的格式為"文字:權重"，所以透過":"進行切割
@@ -130,7 +130,7 @@ def get_embeddings_and_weights(prompts, clip_models, device=None):
             "text_weights": [],  # text對應的權重
         }
         for prompt in prompts:
-            text, weight = _parse_prompt(prompt)  # 取得text及weight
+            text, weight = _get_text_and_weight(prompt)  # 取得text及weight
             text_embedding = get_text_embedding(clip_model, tokenize(text, device))  # 取得text embedding
             clip_model_stat["text_embeddings"].append(text_embedding)
             clip_model_stat["text_weights"].append(weight)

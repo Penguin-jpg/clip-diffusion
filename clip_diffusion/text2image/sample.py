@@ -9,7 +9,7 @@ from IPython import display
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.config import config
-from clip_diffusion.utils.preprocessing import (
+from clip_diffusion.preprocessing import (
     prompts_preprocessing,
     get_embeddings_and_weights,
     create_init_noise,
@@ -23,7 +23,7 @@ from clip_diffusion.models import (
     load_latent_diffusion_model,
     load_real_esrgan_upsampler,
 )
-from clip_diffusion.utils.functional import (
+from clip_diffusion.functional import (
     clear_output,
     set_seed,
     clear_gpu_cache,
@@ -34,6 +34,7 @@ from clip_diffusion.utils.functional import (
     display_image,
     ProgressBar,
     store_task_state,
+    draw_index_on_grid_image,
 )
 from clip_diffusion.text2image.cutouts import Cutouts
 from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
@@ -44,7 +45,6 @@ from clip_diffusion.utils.image_utils import (
     upload_png,
     upload_gif,
     images_to_grid_image,
-    draw_index_on_grid_image,
     super_resolution,
 )
 

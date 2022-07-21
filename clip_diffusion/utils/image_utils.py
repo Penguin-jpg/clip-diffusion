@@ -3,11 +3,11 @@ import io
 import pyimgur
 import cv2
 from glob import glob
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir
-from clip_diffusion.utils.functional import clear_gpu_cache
+from clip_diffusion.functional import clear_gpu_cache
 
 _CLIENT_ID = "9bc11312c2c8b9a"
 imgur = pyimgur.Imgur(_CLIENT_ID)
@@ -160,21 +160,6 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     grid_image.save(filename)
 
     return upload_png(filename)
-
-
-def draw_index_on_grid_image(image, num_rows, num_cols, row_offset, col_offset, font_size=35, text_color="#c80815"):
-    """
-    將index畫在格狀圖片上
-    """
-
-    font = ImageFont.truetype(os.path.join(os.getcwd(), "clip-diffusion", "assets", "fonts", "BebasNeue-Regular.ttf"), font_size)
-    index_draw = ImageDraw.Draw(image)
-
-    for row in range(num_rows):
-        for col in range(num_cols):
-            index_draw.text((col_offset * col + 8, row_offset * row + 3), str((col) + row * num_cols), font=font, fill=text_color)
-
-    return image
 
 
 def super_resolution(upsampler, batch_folder, exception_paths=[]):
