@@ -169,7 +169,7 @@ def guided_diffusion_generate(
                         cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[current_diffusion_timestep],
                         inner_cut=config.inner_cut_schedule[current_diffusion_timestep],
-                        inner_cut_size_power_schedule=config.inner_cut_size_power_schedule[current_diffusion_timestep],
+                        inner_cut_size_power=config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=config.cut_gray_portion_schedule[current_diffusion_timestep],
                         use_augmentations=config.use_augmentations,
                     )

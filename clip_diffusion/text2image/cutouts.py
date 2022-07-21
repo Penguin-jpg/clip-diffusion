@@ -19,7 +19,7 @@ class Cutouts(nn.Module):
         cut_size,
         overview,
         inner_cut,
-        inner_cut_size_pow,
+        inner_cut_size_power,
         cut_gray_portion,
         use_augmentations,
     ):
@@ -27,7 +27,7 @@ class Cutouts(nn.Module):
         self.cut_size = cut_size  # 要取的inner cut圖片大小(對應Clip模型的input resolution)
         self.overview = overview  # 要做的overview cut次數
         self.inner_cut = inner_cut  # 要做的inner cut次數
-        self.inner_cut_size_pow = inner_cut_size_pow  # inner cut size的指數
+        self.inner_cut_size_power = inner_cut_size_power  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
         self.use_augmentations = use_augmentations  # 是否要對cutout圖片使用augmentations
         self.augmentations = T.Compose(
@@ -78,7 +78,7 @@ class Cutouts(nn.Module):
         # 做inner cut
         if self.inner_cut > 0:
             for i in range(self.inner_cut):
-                size = int(torch.rand([]) ** self.inner_cut_size_pow * (max_size - min_size) + min_size)
+                size = int(torch.rand([]) ** self.inner_cut_size_power * (max_size - min_size) + min_size)
                 offsetx = torch.randint(0, side_x - size + 1, ())
                 offsety = torch.randint(0, side_y - size + 1, ())
                 cutout = input[:, :, offsety : offsety + size, offsetx : offsetx + size]
