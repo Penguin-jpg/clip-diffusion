@@ -32,9 +32,8 @@ class Config:
         self.use_secondary_model = True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
         self.chosen_clip_models = ("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101")  # 要選擇的Clip模型
 
-        # Clip相關
-        self.clamp_grad = True  # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
-        self.clamp_max = 0.05  # 限制的最大梯度
+        # 梯度相關
+        self.clamp_max = 0.05  # 限制的最大梯度(越高顏色會越明亮、增加對比與細節，但同時會提高出現極端結果的可能)
 
         # loss相關
         self.tv_scale = 0  # 控制最後輸出的平滑程度
@@ -63,7 +62,6 @@ class Config:
         cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
         use_secondary_model=True,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
-        clamp_grad=True,
         clamp_max=0.05,
         tv_scale=0,
         range_scale=150,
@@ -83,7 +81,6 @@ class Config:
         self.cut_gray_portion_schedule = cut_gray_portion_schedule
         self.use_secondary_model = use_secondary_model
         self.chosen_clip_models = chosen_clip_models
-        self.clamp_grad = clamp_grad
         self.clamp_max = clamp_max
         self.tv_scale = tv_scale
         self.range_scale = range_scale
