@@ -6,7 +6,7 @@ import io
 from PIL import Image
 from clip_retrieval.clip_client import ClipClient, Modality
 from clip_diffusion.utils.dir_utils import make_dir
-from clip_diffusion.utils.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
+from clip_diffusion.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
 
 
 class QueryClient:

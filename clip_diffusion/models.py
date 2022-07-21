@@ -8,7 +8,7 @@ from torch import nn
 from dataclasses import dataclass
 from functools import partial
 from clip_diffusion.utils.dir_utils import MODEL_PATH
-from clip_diffusion.utils.functional import clear_gpu_cache
+from clip_diffusion.functional import clear_gpu_cache
 
 # 下載網址
 _GUIDED_DIFFUSION_MODEL_URL = "https://huggingface.co/lowlevelware/512x512_diffusion_unconditional_ImageNet/resolve/main/512x512_diffusion_uncond_finetune_008100.pt"
