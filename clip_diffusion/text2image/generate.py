@@ -158,12 +158,13 @@ def guided_diffusion_generate(
                 x_in_grad = torch.zeros_like(x_in)
 
             for index, clip_model_stat in enumerate(clip_model_stats):
-                # 做cutout
                 for _ in range(config.num_cutout_batches):
-                    # 將t的值從tensor取出(t每次進入condition_function時會減掉(1000/steps))
-                    t_value = int(t.item()) + 1
-                    current_diffusion_timestep = 1000 - t_value  # 目前的diffusion timestep
-                    # 做cutouts(用Cutouts以1000當做基準線)
+                    # 將t的值從tensor取出
+                    # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
+                    total_diffusion_timesteps_minus_passed_timesteps = int(t.item()) + 1
+                    # 目前的diffusion timestep
+                    current_diffusion_timestep = 1000 - total_diffusion_timesteps_minus_passed_timesteps
+                    # 做cutouts
                     cutouts = Cutouts(
                         cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
                         overview=config.overview_cut_schedule[current_diffusion_timestep],
