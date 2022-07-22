@@ -22,11 +22,13 @@ class ColabHelper:
                 "https://github.com/crowsonkb/guided-diffusion.git",
                 "https://github.com/CompVis/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
+                "https://github.com/Penguin-jpg/pyimgbox.git",
             )
             repo_folders = (
                 "guided-diffusion",
                 "latent-diffusion",
                 "taming-transformers",
+                "pyimgbox",
             )
 
             self._clone_dependencies(repos)

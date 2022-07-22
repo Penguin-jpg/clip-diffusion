@@ -9,6 +9,7 @@ from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.functional import clear_gpu_cache
 
 _STATIC_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png")
+_gallery = pyimgbox.Gallery(title="Diffusion")
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -84,19 +85,18 @@ def _create_gif(
     return filename
 
 
-async def upload_static_image(image_path, extension="png"):
+def upload_static_image(image_path, extension="png"):
     """
     將靜態圖片上傳至imgbox並回傳該圖片的url
     """
 
     assert extension in _STATIC_IMAGE_EXTENSIONS, "not a valid static image extension"
 
-    async with pyimgbox.Gallery(title="Diffusion") as gallery:
-        submission = await gallery.upload(image_path)
+    submission = _gallery.upload(image_path)
     return submission.web_url  # 回傳url
 
 
-async def upload_animated_image(
+def upload_animated_image(
     batch_folder,
     batch_index,
     display_rate=30,
@@ -109,8 +109,7 @@ async def upload_animated_image(
 
     image_path = _create_gif(batch_folder, batch_index, display_rate, gif_duration, append_last_timestep)
 
-    async with pyimgbox.Gallery(title="Diffusion") as gallery:
-        submission = await gallery.upload(image_path)
+    submission = _gallery.upload(image_path)
     return submission.web_url  # 回傳url
 
 
