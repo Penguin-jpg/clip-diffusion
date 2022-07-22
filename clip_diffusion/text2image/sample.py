@@ -233,6 +233,7 @@ def guided_diffusion_sample(
         progess_bar.update_progress(batch_index)
         set_display_widget(image_display)
         store_task_state("current_batch", batch_index)  # 將目前的batch index存到current_batch
+        store_task_state("current_result", None)  # 初始化
 
         clear_gpu_cache()
 
@@ -309,7 +310,7 @@ def guided_diffusion_sample(
                         )
                         # 儲存最後一個timestep的圖片
                         images.append(Image.open(image_path))
-                    elif step_index % 10 == 0:  # 每10個timestep更新上傳一次圖片
+                    elif step_index % 5 == 0:  # 每10個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
                         store_task_state("current_result", upload_static_image(image_path, "png"))
 

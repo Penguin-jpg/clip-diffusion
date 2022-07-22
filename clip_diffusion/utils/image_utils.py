@@ -93,7 +93,7 @@ def upload_static_image(image_path, extension="png"):
     assert extension in _STATIC_IMAGE_EXTENSIONS, "not a valid static image extension"
 
     submission = _gallery.upload(image_path)
-    return submission.web_url  # 回傳url
+    return submission.image_url  # 回傳url
 
 
 def upload_animated_image(
@@ -110,7 +110,7 @@ def upload_animated_image(
     image_path = _create_gif(batch_folder, batch_index, display_rate, gif_duration, append_last_timestep)
 
     submission = _gallery.upload(image_path)
-    return submission.web_url  # 回傳url
+    return submission.image_url  # 回傳url
 
 
 def get_image_from_bytes(image_bytes):
