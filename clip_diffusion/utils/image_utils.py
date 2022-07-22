@@ -1,6 +1,6 @@
 import os
 import io
-import pyimgur
+import pyimgbox
 import cv2
 from PIL import Image
 from torchvision.transforms import functional as TF
@@ -8,8 +8,8 @@ from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.functional import clear_gpu_cache
 
-***REMOVED***
-imgur = pyimgur.Imgur(_CLIENT_ID)
+_STATIC_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png")
+_gallery = pyimgbox.Gallery(title="Diffusion")
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -44,16 +44,7 @@ def unnormalize_image_zero_to_one(image_tensor):
     return image_tensor.add(1).div(2)
 
 
-def upload_png(image_path):
-    """
-    將生成過程的png上傳至imgur並回傳該png的url
-    """
-
-    image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")  # 上傳至imgur
-    return image.link  # 回傳url
-
-
-def upload_gif(
+def _create_gif(
     batch_folder,
     batch_index,
     display_rate=30,
@@ -61,8 +52,10 @@ def upload_gif(
     append_last_timestep=False,
 ):
     """
-    用生成過程的圖片建成gif，上傳至imgur並回傳該gif的url
+    建立一張gif
     """
+
+    assert batch_folder is not None, "batch_folder cannot be None"
 
     # 選出目前batch的所有圖片路徑
     image_paths = get_file_paths(batch_folder, f"guided_{batch_index}*.png")
@@ -89,10 +82,35 @@ def upload_gif(
         loop=0,
     )
 
-    # 將生成過程的gif上傳至Imgur
-    gif_image = imgur.upload_image(filename, title=f"diffusion_{batch_index}.gif")
+    return filename
 
-    return gif_image.link  # 回傳url
+
+def upload_static_image(image_path, extension="png"):
+    """
+    將靜態圖片上傳至imgbox並回傳該圖片的url
+    """
+
+    assert extension in _STATIC_IMAGE_EXTENSIONS, "not a valid static image extension"
+
+    submission = _gallery.upload(image_path)
+    return submission.image_url  # 回傳url
+
+
+def upload_animated_image(
+    batch_folder,
+    batch_index,
+    display_rate=30,
+    gif_duration=500,
+    append_last_timestep=False,
+):
+    """
+    將動畫圖片上傳至imgbox並回傳該圖片的url
+    """
+
+    image_path = _create_gif(batch_folder, batch_index, display_rate, gif_duration, append_last_timestep)
+
+    submission = _gallery.upload(image_path)
+    return submission.image_url  # 回傳url
 
 
 def get_image_from_bytes(image_bytes):
@@ -141,7 +159,7 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     filename = os.path.join(batch_folder, "grid_image.png")
     grid_image.save(filename)
 
-    return upload_png(filename)
+    return upload_static_image(filename, "png")
 
 
 def super_resolution(upsampler, batch_folder, exception_paths=[]):
