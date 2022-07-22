@@ -310,7 +310,7 @@ def guided_diffusion_sample(
                         )
                         # 儲存最後一個timestep的圖片
                         images.append(Image.open(image_path))
-                    elif step_index % 5 == 0:  # 每10個timestep更新上傳一次圖片
+                    elif step_index % 5 == 0:  # 每5個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
                         store_task_state("current_result", upload_static_image(image_path, "png"))
 
