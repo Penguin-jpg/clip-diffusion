@@ -1,5 +1,4 @@
-git+https://github.com/openai/CLIP
-git+https://github.com/xinntao/Real-ESRGAN
+realesrgan
 resize-right
 ipywidgets
 ipython
