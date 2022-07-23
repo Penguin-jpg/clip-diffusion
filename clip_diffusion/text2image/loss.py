@@ -22,12 +22,12 @@ def spherical_dist_loss(x, y):
 
 
 def tv_loss(input):
-    """計算L2 total variation loss，用來做總變差去躁"""
+    """計算L2 total variation loss，用來做總變差去噪"""
 
     input = F.pad(input, (0, 1, 0, 1), "replicate")
     x_diff = input[..., :-1, 1:] - input[..., :-1, :-1]
     y_diff = input[..., 1:, :-1] - input[..., :-1, :-1]
-    return (x_diff**2 + y_diff**2).mean([1, 2, 3])
+    return (x_diff.pow(2) + y_diff.pow(2)).mean([1, 2, 3])
 
 
 def range_loss(input):
