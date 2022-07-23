@@ -39,7 +39,7 @@ class TestConfig(unittest.TestCase):
 
         print("testing seed")
 
-        self.assertIsNone(self.config.seed, "seed is None")
+        self.assertIsNotNone(self.config.seed, "seed is None")
 
     def test_chosen_clip_models(self):
         """
