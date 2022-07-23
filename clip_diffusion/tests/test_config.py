@@ -46,7 +46,7 @@ class TestConfig(unittest.TestCase):
         測試chosen_clip_models是否有正常判斷
         """
 
-        print("testing chosen_clip_models")
+        print("testing chosen clip models")
 
         with self.assertRaises(AssertionError):
             self.config.adjust_settings(chosen_clip_models=("ABC"))
