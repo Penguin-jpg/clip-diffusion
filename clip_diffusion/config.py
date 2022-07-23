@@ -1,11 +1,12 @@
 import random
+import clip
 
 _INT_MAX = 2**32
 
 
 class Config:
     """
-    將生成設定統整在這個class
+    儲存全域設定
     """
 
     def __init__(self):
@@ -19,14 +20,14 @@ class Config:
 
         # cutout相關
         self.num_cutout_batches = 4  # 要做的cutout次數
-        self.overview_cut_schedule = (
-            (14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200
-        )  # overview cutout的schedule，以1000當作基準，前200/1000個step會做14次cutout中間200/1000個step會做12次cutout，以此類推(建議一開始高，隨著過程逐漸降低)
-        self.inner_cut_schedule = (2,) * 200 + (4,) * 200 + (2,) * 400 + (12,) * 200  # inner cutout的schedule(建議一開始低，隨著過程逐漸升高)
-        self.inner_cut_size_power_schedule = (5,) * 1000  # 控制inner cutout大小的schedule(越高會讓inner cutout圖片大小越接近Clip的解析度)
-        self.cut_gray_portion_schedule = (
-            (0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600
-        )  # 控制多少百分比的cut要取出做灰階化(建議剛開始高，隨著過程逐漸降低)
+        # overview cutout的schedule，以1000當作基準，前200/1000個step會做14次cutout中間200/1000個step會做12次cutout，以此類推(建議一開始高，隨著過程逐漸降低)
+        self.overview_cut_schedule = self.create_schedule(values=(14, 12, 4, 0), steps=(200, 200, 400, 200))
+        # inner cutout的schedule(建議一開始低，隨著過程逐漸升高)
+        self.inner_cut_schedule = self.create_schedule(values=(2, 4, 2, 12), steps=(200, 200, 400, 200))
+        # 控制inner cutout大小的schedule(越高會讓inner cutout圖片大小越接近Clip的解析度)
+        self.inner_cut_size_power_schedule = self.create_schedule(values=(5,), steps=(1000,))
+        # 控制多少百分比的cut要取出做灰階化(建議剛開始高，隨著過程逐漸降低)
+        self.cut_gray_portion_schedule = self.create_schedule(values=(0.7, 0.6, 0.45, 0.3, 0), steps=(100, 100, 100, 100, 600))
 
         # model相關
         self.use_secondary_model = True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
@@ -68,6 +69,8 @@ class Config:
         調整設定
         """
 
+        assert chosen_clip_models in clip.available_models(), "an invalid clip model chosen"
+
         self.width = (width // 64) * 64  # 調整成64的倍數
         self.height = (height // 64) * 64
         self.num_cutout_batches = num_cutout_batches
@@ -79,21 +82,20 @@ class Config:
         self.sat_scale = sat_scale
         self.use_augmentations = use_augmentations
 
-    def create_schedules(
-        self,
-        overview_cut_schedule=(14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200,
-        inner_cut_schedule=(2,) * 200 + (4,) * 200 + (12,) * 400 + (12,) * 200,
-        inner_cut_size_power_schedule=(5,) * 1000,
-        cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
-    ):
+    def create_schedule(self, values, steps):
         """
-        建立新的cutout schedule
+        建立schedule:
+        (values[0],) * steps[0] + (values[1],) * steps[1]...
         """
 
-        self.overview_cut_schedule = overview_cut_schedule
-        self.inner_cut_schedule = inner_cut_schedule
-        self.inner_cut_size_power_schedule = inner_cut_size_power_schedule
-        self.cut_gray_portion_schedule = cut_gray_portion_schedule
+        assert len(values) == len(steps), "length of values and steps must be the same"
+
+        schedule = ()
+
+        for value, num_steps in zip(values, steps):
+            schedule += (value,) * num_steps
+
+        return schedule
 
 
 config = Config()
