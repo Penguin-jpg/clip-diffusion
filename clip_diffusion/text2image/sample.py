@@ -147,14 +147,15 @@ def guided_diffusion_sample(
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
                 out = secondary_model(x, cosine_t[None].repeat([batch_size])).pred
-                fac = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-                x_in = out * fac + x * (1 - fac)
+                factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
+                x_in = out * factor + x * (1 - factor)
                 x_in_grad = torch.zeros_like(x_in)
             else:
-                my_t = torch.ones([batch_size], device=_device, dtype=torch.long) * current_timestep
-                out = diffusion.p_mean_variance(model, x, my_t, clip_denoised=False, model_kwargs={"y": y})
-                fac = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-                x_in = out["pred_xstart"] * fac + x * (1 - fac)
+                # 目前timestep轉tensor
+                current_timestep_tensor = torch.ones([batch_size], device=_device, dtype=torch.long) * current_timestep
+                out = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
+                factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
+                x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
                 x_in_grad = torch.zeros_like(x_in)
 
             for index, clip_model_stat in enumerate(clip_model_stats):
