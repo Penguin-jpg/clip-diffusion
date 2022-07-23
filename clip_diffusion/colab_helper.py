@@ -19,6 +19,7 @@ class ColabHelper:
 
         if mode == "generation":
             repos = (
+                "https://github.com/openai/CLIP.git",
                 "https://github.com/crowsonkb/guided-diffusion.git",
                 "https://github.com/CompVis/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
@@ -26,6 +27,7 @@ class ColabHelper:
                 "https://github.com/Penguin-jpg/clip-diffusion.git",
             )
             repo_folders = (
+                "CLIP",
                 "guided-diffusion",
                 "latent-diffusion",
                 "taming-transformers",

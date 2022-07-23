@@ -8,7 +8,7 @@ setup(
     install_requires=[
         str(requirement)
         for requirement in pkg_resources.parse_requirements(
-            open(os.path.join(os.path.dirname(__file__), "requirements/generation.txt"))
+            open(os.path.join(os.path.dirname(__file__), "requirements", "generation.txt"))
         )
     ],
 )
