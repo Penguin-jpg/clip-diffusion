@@ -56,10 +56,6 @@ class Config:
         width=960,
         height=768,
         num_cutout_batches=4,
-        overview_cut_schedule=(14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200,
-        inner_cut_schedule=(2,) * 200 + (4,) * 200 + (12,) * 400 + (12,) * 200,
-        inner_cut_size_power_schedule=(5,) * 1000,
-        cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
         use_secondary_model=True,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
         clamp_max=0.05,
@@ -75,10 +71,6 @@ class Config:
         self.width = (width // 64) * 64  # 調整成64的倍數
         self.height = (height // 64) * 64
         self.num_cutout_batches = num_cutout_batches
-        self.overview_cut_schedule = overview_cut_schedule
-        self.inner_cut_schedule = inner_cut_schedule
-        self.inner_cut_size_power_schedule = inner_cut_size_power_schedule
-        self.cut_gray_portion_schedule = cut_gray_portion_schedule
         self.use_secondary_model = use_secondary_model
         self.chosen_clip_models = chosen_clip_models
         self.clamp_max = clamp_max
@@ -86,6 +78,22 @@ class Config:
         self.range_scale = range_scale
         self.sat_scale = sat_scale
         self.use_augmentations = use_augmentations
+
+    def create_schedules(
+        self,
+        overview_cut_schedule=(14,) * 200 + (12,) * 200 + (4,) * 400 + (0,) * 200,
+        inner_cut_schedule=(2,) * 200 + (4,) * 200 + (12,) * 400 + (12,) * 200,
+        inner_cut_size_power_schedule=(5,) * 1000,
+        cut_gray_portion_schedule=(0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600,
+    ):
+        """
+        建立新的cutout schedule
+        """
+
+        self.overview_cut_schedule = overview_cut_schedule
+        self.inner_cut_schedule = inner_cut_schedule
+        self.inner_cut_size_power_schedule = inner_cut_size_power_schedule
+        self.cut_gray_portion_schedule = cut_gray_portion_schedule
 
 
 config = Config()
