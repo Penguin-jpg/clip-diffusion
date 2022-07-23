@@ -1,4 +1,3 @@
-realesrgan
 resize-right
 ipywidgets
 ipython
