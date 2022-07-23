@@ -11,24 +11,27 @@ class ColabHelper:
 
     def __init__(self, mode="generation"):
         """
-        mode: helper會根據選擇的模式來安裝dependency(generation, clip_query, instance_segmentation)
+        mode: helper會根據選擇的模式來安裝dependency(generation, clip_query)
         uplink_key: anvil的uplink key(只在generation_mode需要)
         """
 
-        assert mode in ("generation", "clip_query", "instance_segmentation"), "unsupported mode"
+        assert mode in ("generation", "clip_query"), "unsupported mode"
 
         if mode == "generation":
             repos = (
+                "https://github.com/openai/CLIP.git",
                 "https://github.com/crowsonkb/guided-diffusion.git",
                 "https://github.com/CompVis/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
                 "https://github.com/Penguin-jpg/pyimgbox.git",
             )
             repo_folders = (
+                "CLIP",
                 "guided-diffusion",
                 "latent-diffusion",
                 "taming-transformers",
                 "pyimgbox",
+                "clip-diffusion",
             )
 
             self._clone_dependencies(repos)
@@ -36,8 +39,8 @@ class ColabHelper:
             self._append_paths(repo_folders)
             make_dir(OUTPUT_PATH)
             make_dir(MODEL_PATH)
-
-        self._install_dependencies_from_requirements(os.path.join("clip-diffusion", "requirements", f"{mode}.txt"))
+        else:
+            self._install_dependencies_from_requirements(os.path.join("clip-diffusion", "requirements", f"{mode}.txt"))
 
     def _clone_dependencies(self, repos):
         """
