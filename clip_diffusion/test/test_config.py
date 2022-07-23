@@ -49,5 +49,5 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(AssertionError, self.config.adjust_settings(chosen_clip_models=("ABC")))
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     unittest.main()
