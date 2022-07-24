@@ -113,7 +113,7 @@ def _get_text_and_weight(prompt):
 
     parsed = prompt.split(":", 1)  # prompt的格式為"文字:權重"，所以透過":"進行切割
     parsed = parsed + [1.0] if len(parsed) == 1 else parsed  # 如果原本未標示權重，就補上權重1
-    return parsed[0], parsed[1]  # 回傳文字與權重
+    return parsed[0], float(parsed[1])  # 回傳文字與權重
 
 
 def get_embeddings_and_weights(prompts, clip_models, device=None):
