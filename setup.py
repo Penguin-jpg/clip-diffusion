@@ -1,10 +1,11 @@
 import pkg_resources
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="clip-diffusion",
     py_modules=["clip_diffusion"],
+    packages=find_packages(exclude=["tests*"]),
     install_requires=[
         str(requirement)
         for requirement in pkg_resources.parse_requirements(

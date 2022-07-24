@@ -24,6 +24,7 @@ class ColabHelper:
                 "https://github.com/CompVis/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
                 "https://github.com/Penguin-jpg/pyimgbox.git",
+                "https://github.com/xinntao/Real-ESRGAN.git",
             )
             repo_folders = (
                 "CLIP",
@@ -31,6 +32,7 @@ class ColabHelper:
                 "latent-diffusion",
                 "taming-transformers",
                 "pyimgbox",
+                "Real-ESRGAN",
                 "clip-diffusion",
             )
 
