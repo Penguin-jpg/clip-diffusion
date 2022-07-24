@@ -27,12 +27,3 @@ def test_seed():
     """
 
     assert config.seed is not None, "seed is None"
-
-
-def test_chosen_clip_models():
-    """
-    測試chosen_clip_models是否有正常判斷
-    """
-
-    with pytest.raises(AssertionError):
-        config.adjust_settings(chosen_clip_models=("ABC"))
