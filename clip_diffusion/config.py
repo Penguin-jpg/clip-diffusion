@@ -69,8 +69,6 @@ class Config:
         調整設定
         """
 
-        assert chosen_clip_models in clip.available_models(), "an invalid clip model chosen"
-
         self.width = (width // 64) * 64  # 調整成64的倍數
         self.height = (height // 64) * 64
         self.num_cutout_batches = num_cutout_batches
