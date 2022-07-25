@@ -1,3 +1,4 @@
+import pytest
 from clip_diffusion.config import Config
 
 
@@ -18,6 +19,9 @@ def test_schedules():
     assert config.inner_cut_schedule == inner_cut_schedule, "diff found at inner_cut_schedule"
     assert config.inner_cut_size_power_schedule == inner_cut_size_power_schedule, "diff found at inner_cut_size_power_schedule"
     assert config.cut_gray_portion_schedule == cut_gray_portion_schedule, "diff found at cut_gray_portion_schedule"
+
+    with pytest.raises(AssertionError):
+        config.create_schedule(values=(1, 2, 3), steps=(100, 500))
 
 
 def test_seed():
