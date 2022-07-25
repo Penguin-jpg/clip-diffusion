@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
-from clip_diffusion.functional import clear_gpu_cache
+from clip_diffusion.utils.functional import clear_gpu_cache
 
 _STATIC_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png")
 _gallery = pyimgbox.Gallery(title="Diffusion")

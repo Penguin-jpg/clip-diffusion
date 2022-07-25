@@ -4,9 +4,9 @@ import random
 from transformers import pipeline
 from opencc import OpenCC
 from PIL import Image
-from clip_diffusion.functional import tokenize, get_text_embedding
+from clip_diffusion.utils.functional import tokenize, get_text_embedding
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
-from clip_diffusion.perlin import generate_perlin_noise
+from clip_diffusion.text2image.perlin import generate_perlin_noise
 
 _translator = pipeline(
     "translation",

@@ -1,7 +1,7 @@
 import torch
 from torchvision.transforms import functional as TF
 from PIL import ImageOps
-from clip_diffusion.config import config
+from clip_diffusion.text2image.config import config
 from clip_diffusion.utils.image_utils import normalize_image_neg_one_to_one, image_to_tensor, tensor_to_pillow_image
 
 # 維持disco diffusion所採用的二維perlin noise

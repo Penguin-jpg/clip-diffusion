@@ -8,14 +8,14 @@ from ipywidgets import Output
 from IPython import display
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
-from clip_diffusion.config import config
-from clip_diffusion.preprocessing import (
+from clip_diffusion.text2image.config import config
+from clip_diffusion.text2image.preprocessing import (
     prompts_preprocessing,
     get_embeddings_and_weights,
     create_init_noise,
     create_mask_tensor,
 )
-from clip_diffusion.models import (
+from clip_diffusion.text2image.models import (
     load_clip_models_and_preprocessings,
     load_guided_diffusion_model,
     load_secondary_model,
@@ -23,7 +23,7 @@ from clip_diffusion.models import (
     load_latent_diffusion_model,
     load_real_esrgan_upsampler,
 )
-from clip_diffusion.functional import (
+from clip_diffusion.utils.functional import (
     clear_output,
     set_seed,
     clear_gpu_cache,
