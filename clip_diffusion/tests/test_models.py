@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 from realesrgan.utils import RealESRGANer
-from clip_diffusion.config import config
-from clip_diffusion.models import (
+from clip_diffusion.text2image.config import config
+from clip_diffusion.text2image.models import (
     load_clip_models_and_preprocessings,
     load_guided_diffusion_model,
     load_secondary_model,

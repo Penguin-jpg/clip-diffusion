@@ -1,4 +1,4 @@
-from clip_diffusion.preprocessing import _get_text_and_weight, prompts_preprocessing
+from clip_diffusion.text2image.preprocessing import _get_text_and_weight, prompts_preprocessing
 
 
 def test_text_and_weight():

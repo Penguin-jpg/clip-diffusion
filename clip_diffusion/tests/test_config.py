@@ -1,5 +1,5 @@
 import pytest
-from clip_diffusion.config import Config
+from clip_diffusion.text2image.config import Config
 
 
 config = Config()
