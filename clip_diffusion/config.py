@@ -1,5 +1,4 @@
 import random
-import clip
 
 _INT_MAX = 2**32
 
