@@ -1,4 +1,3 @@
-import pytest
 from clip_diffusion.config import Config
 
 
