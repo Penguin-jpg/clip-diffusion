@@ -30,3 +30,33 @@ def test_seed():
     Config.random_seed()
 
     assert Config.seed is not None, "seed is None"
+
+
+def test_adjust_settings():
+    """
+    測試是否有改動設定
+    """
+
+    Config.adjust_settings(
+        width=512,
+        height=512,
+        num_cutout_batches=1,
+        use_secondary_model=False,
+        chosen_clip_models=("ViT-B/32",),
+        clamp_max=0.007,
+        tv_scale=50,
+        range_scale=100,
+        sat_scale=20,
+        use_augmentations=False,
+    )
+
+    assert Config.width == 512, "width not set"
+    assert Config.height == 512, "height not set"
+    assert Config.num_cutout_batches == 1, "num_cutout_batches not set"
+    assert Config.use_secondary_model == False, "use_secondary_model not set"
+    assert Config.chosen_clip_models == ("ViT-B/32",), "chosen_clip_models not set"
+    assert Config.clamp_max == 0.007, "clamp_max not set"
+    assert Config.tv_scale == 50, "tv_scale not set"
+    assert Config.range_scale == 100, "range_scale not set"
+    assert Config.sat_scale == 20, "sat_scale not set"
+    assert Config.use_augmentations == False, "use_augmentations not set"
