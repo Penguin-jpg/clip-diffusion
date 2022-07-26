@@ -14,6 +14,22 @@ from PIL import ImageFont, ImageDraw
 CLIP_NORMALIZE = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
 
 
+def create_schedule(values, steps):
+    """
+    建立schedule:
+    (values[0],) * steps[0] + (values[1],) * steps[1]...
+    """
+
+    assert len(values) == len(steps), "length of values and steps must be the same"
+
+    schedule = ()
+
+    for value, num_steps in zip(values, steps):
+        schedule += (value,) * num_steps
+
+    return schedule
+
+
 def get_num_model_parameters(model, grad=True):
     """
     取得模型參數量

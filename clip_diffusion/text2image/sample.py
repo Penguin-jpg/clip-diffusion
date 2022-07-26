@@ -8,7 +8,7 @@ from ipywidgets import Output
 from IPython import display
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
-from clip_diffusion.text2image.config import config
+from clip_diffusion.text2image.config import Config
 from clip_diffusion.text2image.preprocessing import (
     prompts_preprocessing,
     get_embeddings_and_weights,
@@ -50,7 +50,7 @@ from clip_diffusion.utils.image_utils import (
 
 _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 lpips_model = lpips.LPIPS(net="vgg").to(_device)
-clip_models, preprocessings = load_clip_models_and_preprocessings(config.chosen_clip_models, _device)
+clip_models, preprocessings = load_clip_models_and_preprocessings(Config.chosen_clip_models, _device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
@@ -110,13 +110,16 @@ def guided_diffusion_sample(
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
-    set_seed(config.seed)
+    if Config.seed:
+        set_seed(Config.seed)
+    else:
+        set_seed(Config.random_seed())
 
     # 取得prompt的embedding及weight
     clip_model_stats = get_embeddings_and_weights(prompts, clip_models, _device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, (config.width, config.height), use_perlin, perlin_mode, _device)
+    init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, _device)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -134,7 +137,7 @@ def guided_diffusion_sample(
             batch_size = x.shape[0]
 
             # 使用secondary_model加速生成
-            if config.use_secondary_model:
+            if Config.use_secondary_model:
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[current_timestep],
                     dtype=torch.float32,
@@ -159,7 +162,7 @@ def guided_diffusion_sample(
                 x_in_grad = torch.zeros_like(x_in)
 
             for index, clip_model_stat in enumerate(clip_model_stats):
-                for _ in range(config.num_cutout_batches):
+                for _ in range(Config.num_cutout_batches):
                     # 將t的值從tensor取出
                     # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
                     total_diffusion_timesteps_minus_passed_timesteps = int(t.item()) + 1
@@ -168,11 +171,11 @@ def guided_diffusion_sample(
                     # 做cutouts
                     cutouts = Cutouts(
                         cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
-                        overview=config.overview_cut_schedule[current_diffusion_timestep],
-                        inner_cut=config.inner_cut_schedule[current_diffusion_timestep],
-                        inner_cut_size_power=config.inner_cut_size_power_schedule[current_diffusion_timestep],
-                        cut_gray_portion=config.cut_gray_portion_schedule[current_diffusion_timestep],
-                        use_augmentations=config.use_augmentations,
+                        overview=Config.overview_cut_schedule[current_diffusion_timestep],
+                        inner_cut=Config.inner_cut_schedule[current_diffusion_timestep],
+                        inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
+                        cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
+                        use_augmentations=Config.use_augmentations,
                     )
 
                     cuts = cutouts(unnormalize_image_zero_to_one(x_in))
@@ -183,25 +186,25 @@ def guided_diffusion_sample(
                     )
                     dists = dists.view(
                         [
-                            config.overview_cut_schedule[current_diffusion_timestep]
-                            + config.inner_cut_schedule[current_diffusion_timestep],
+                            Config.overview_cut_schedule[current_diffusion_timestep]
+                            + Config.inner_cut_schedule[current_diffusion_timestep],
                             batch_size,
                             -1,
                         ]
                     )
                     losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
-                    x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / config.num_cutout_batches
+                    x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
             tv_losses = tv_loss(x_in)
 
-            if config.use_secondary_model:
+            if Config.use_secondary_model:
                 range_losses = range_loss(out)
             else:
                 range_losses = range_loss(out["pred_xstart"])
 
             sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
             loss = (
-                tv_losses.sum() * config.tv_scale + range_losses.sum() * config.range_scale + sat_losses.sum() * config.sat_scale
+                tv_losses.sum() * Config.tv_scale + range_losses.sum() * Config.range_scale + sat_losses.sum() * Config.sat_scale
             )
 
             # 透過LPIPS計算初始圖片的loss
@@ -220,7 +223,7 @@ def guided_diffusion_sample(
             # 使用RMS當作調整用的強度
             magnitude = grad.square().mean().sqrt()
             # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
-            return grad * magnitude.clamp(min=-config.clamp_max, max=config.clamp_max) / magnitude
+            return grad * magnitude.clamp(min=-Config.clamp_max, max=Config.clamp_max) / magnitude
 
         return grad
 
@@ -252,7 +255,7 @@ def guided_diffusion_sample(
         if sample_mode == "ddim":  # ddim
             samples = sample_function(
                 model=model,
-                shape=(1, 3, config.height, config.width),  # shape=(batch_size, num_channels, height, width)
+                shape=(1, 3, Config.height, Config.width),  # shape=(batch_size, num_channels, height, width)
                 clip_denoised=False,
                 model_kwargs={},
                 cond_fn=conditon_function,
@@ -265,7 +268,7 @@ def guided_diffusion_sample(
         else:  # plms
             samples = sample_function(
                 model=model,
-                shape=(1, 3, config.height, config.width),
+                shape=(1, 3, Config.height, Config.width),
                 clip_denoised=True,
                 model_kwargs={},
                 cond_fn=conditon_function,
@@ -374,7 +377,10 @@ def latent_diffusion_sample(
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
-    set_seed(config.seed)
+    if Config.seed:
+        set_seed(Config.seed)
+    else:
+        set_seed(Config.random_seed())
 
     # 當使用plms時，eta沒有作用
     if sample_mode == "plms":
