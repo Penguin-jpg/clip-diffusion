@@ -24,6 +24,14 @@ def get_num_model_parameters(model, grad=True):
     return sum(param.numel() for param in model.parameters())
 
 
+def get_device():
+    """
+    取得要使用的device
+    """
+
+    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 def tokenize(text, device=None):
     """
     將text tokenize成clip需要的格式
