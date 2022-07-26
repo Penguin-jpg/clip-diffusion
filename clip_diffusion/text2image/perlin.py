@@ -1,7 +1,7 @@
 import torch
 from torchvision.transforms import functional as TF
 from PIL import ImageOps
-from clip_diffusion.text2image.config import config
+from clip_diffusion.text2image.config import Config
 from clip_diffusion.utils.image_utils import normalize_image_neg_one_to_one, image_to_tensor, tensor_to_pillow_image
 
 # 維持disco diffusion所採用的二維perlin noise
@@ -85,11 +85,11 @@ def _perlin_noise_wrapper(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=Tru
     out = _perlin_ms(octaves, width, height, grayscale, device)
 
     if grayscale:  # 灰階
-        out = TF.resize(size=(config.height, config.width), img=out.unsqueeze(0))
+        out = TF.resize(size=(Config.height, Config.width), img=out.unsqueeze(0))
         out = tensor_to_pillow_image(out.clamp(0, 1)).convert("RGB")
     else:  # 有顏色
         out = out.reshape(-1, 3, out.shape[0] // 3, out.shape[1])
-        out = TF.resize(size=(config.height, config.width), img=out)
+        out = TF.resize(size=(Config.height, Config.width), img=out)
         out = tensor_to_pillow_image(out.clamp(0, 1).squeeze())
 
     out = ImageOps.autocontrast(out)
