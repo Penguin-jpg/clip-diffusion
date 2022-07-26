@@ -126,7 +126,6 @@ def get_embeddings_and_weights(prompts, clip_models, device=None):
     for clip_model in clip_models:
         clip_model_stat = {
             "text_embeddings": [],  # text的embedding
-            "make_cutouts": None,  # 後續用來儲存cutout
             "text_weights": [],  # text對應的權重
         }
         for prompt in prompts:
