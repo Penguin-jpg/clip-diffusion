@@ -1,8 +1,6 @@
 import pytest
 from clip_diffusion.text2image.config import Config
-
-
-config = Config()
+from clip_diffusion.utils.functional import create_schedule
 
 
 def test_schedules():
@@ -15,13 +13,13 @@ def test_schedules():
     inner_cut_size_power_schedule = (5,) * 1000
     cut_gray_portion_schedule = (0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600
 
-    assert config.overview_cut_schedule == overview_cut_schedule, "diff found at overview_cut_schedule"
-    assert config.inner_cut_schedule == inner_cut_schedule, "diff found at inner_cut_schedule"
-    assert config.inner_cut_size_power_schedule == inner_cut_size_power_schedule, "diff found at inner_cut_size_power_schedule"
-    assert config.cut_gray_portion_schedule == cut_gray_portion_schedule, "diff found at cut_gray_portion_schedule"
+    assert Config.overview_cut_schedule == overview_cut_schedule, "diff found at overview_cut_schedule"
+    assert Config.inner_cut_schedule == inner_cut_schedule, "diff found at inner_cut_schedule"
+    assert Config.inner_cut_size_power_schedule == inner_cut_size_power_schedule, "diff found at inner_cut_size_power_schedule"
+    assert Config.cut_gray_portion_schedule == cut_gray_portion_schedule, "diff found at cut_gray_portion_schedule"
 
     with pytest.raises(AssertionError):
-        config.create_schedule(values=(1, 2, 3), steps=(100, 500))
+        create_schedule(values=(1, 2, 3), steps=(100, 500))
 
 
 def test_seed():
@@ -29,4 +27,6 @@ def test_seed():
     測試是否有拿到種子
     """
 
-    assert config.seed is not None, "seed is None"
+    Config.random_seed()
+
+    assert Config.seed is not None, "seed is None"
