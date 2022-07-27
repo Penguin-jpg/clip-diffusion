@@ -83,9 +83,7 @@ def load_clip_models_and_preprocessings(chosen_models, device=None):
     return models, preprocessings
 
 
-def load_guided_diffusion_model(
-    use_custom_model=False, custom_model_path=None, steps=200, use_checkpoint=True, use_fp16=True, device=None
-):
+def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoint=True, use_fp16=True, device=None):
     """
     載入guided diffusion model和diffusion
     """
@@ -97,7 +95,7 @@ def load_guided_diffusion_model(
 
     model_config = model_and_diffusion_defaults()
 
-    if not use_custom_model:
+    if not custom_model_path:
         model_config.update(
             {
                 "attention_resolutions": "32, 16, 8",
