@@ -1,12 +1,11 @@
 import torch
 from PIL import Image
-from clip_diffusion.text2image.prompts import Prompts
 from clip_diffusion.utils.functional import tokenize, get_text_embedding
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
 from clip_diffusion.text2image.perlin import generate_perlin_noise
 
 
-def get_embeddings_and_weights(prompts: Prompts, clip_models, device=None):
+def get_embeddings_and_weights(prompts, clip_models, device=None):
     """
     取得prompt的embedding及weight
     """
