@@ -48,6 +48,14 @@ def get_device():
     return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+def tensor_to_numpy(tensor):
+    """
+    將tensor轉為numpy ndarray
+    """
+
+    return np.array(tensor.cpu().detach().numpy())
+
+
 def tokenize(text, device=None):
     """
     將text tokenize成clip需要的格式
