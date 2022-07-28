@@ -21,7 +21,7 @@ class ColabHelper:
             repos = (
                 "https://github.com/openai/CLIP.git",
                 "https://github.com/crowsonkb/guided-diffusion.git",
-                "https://github.com/CompVis/latent-diffusion.git",
+                "https://github.com/Penguin-jpg/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
                 "https://github.com/Penguin-jpg/pyimgbox.git",
                 "https://github.com/xinntao/Real-ESRGAN.git",
