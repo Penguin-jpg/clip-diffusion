@@ -5,7 +5,7 @@ from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tens
 from clip_diffusion.text2image.perlin import generate_perlin_noise
 
 
-def get_embeddings_and_weights(prompts, clip_models, device=None):
+def get_embeddings_and_weights(prompt, clip_models, device=None):
     """
     取得prompt的embedding及weight
     """
@@ -17,10 +17,9 @@ def get_embeddings_and_weights(prompts, clip_models, device=None):
             "text_embeddings": [],  # text的embedding
             "text_weights": [],  # text對應的權重
         }
-        for text, weight in zip(prompts.texts, prompts.weights):
-            text_embedding = get_text_embedding(clip_model, tokenize(text, device))  # 取得text embedding
-            clip_model_stat["text_embeddings"].append(text_embedding)
-            clip_model_stat["text_weights"].append(weight)
+        text_embedding = get_text_embedding(clip_model, tokenize([prompt.text], device))  # 取得text embedding
+        clip_model_stat["text_embeddings"].append(text_embedding)
+        clip_model_stat["text_weights"].append(prompt.weight)
 
         clip_model_stat["text_embeddings"] = torch.cat(clip_model_stat["text_embeddings"])
         clip_model_stat["text_weights"] = torch.tensor(clip_model_stat["text_weights"], device=device)

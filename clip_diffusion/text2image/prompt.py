@@ -34,15 +34,15 @@ _prompt_types = {
 }
 
 
-class Prompts:
+class Prompt:
     """
     負責prompts功能的class
     """
 
-    def __init__(self, prompts, styles=[]):
-        assert isinstance(prompts, list), "prompts has to be 'list' type"
-        self.prompts = self._preprocess(prompts, styles)  # prompts前處理
-        self.texts, self.weights = self._get_texts_and_weights()  # 文字與權重
+    def __init__(self, prompt, styles=[]):
+        assert isinstance(prompt, str), "prompt has to be 'str' type"
+        self.prompt = self._preprocess(prompt, styles)  # prompts前處理
+        self.text, self.weight = self._get_text_and_weight()  # 文字與權重
 
     def _contains_zh(self, prompt):
         """
@@ -53,84 +53,72 @@ class Prompts:
             return True
         return False
 
-    def _translate_zh_to_en(self, prompts):
+    def _translate_zh_to_en(self, prompt):
         """
         將中文翻譯成英文
         """
 
         global _converter, _translator
 
-        # 先轉簡體，以符合模型輸入
-        for index, prompt in enumerate(prompts):
-            # 如果包含中文
-            if self._contains_zh(prompt):
-                prompt = _converter.convert(prompt)
-                # 翻譯成英文
-                result = _translator(prompt)[0]
-                # 更新prompts
-                prompts[index] = result["translation_text"]
+        # 如果包含中文
+        if self._contains_zh(prompt):
+            # 先轉簡體，以符合翻譯模型輸入
+            prompt = _converter.convert(prompt)
+            # 翻譯成英文
+            result = _translator(prompt)[0]
+            # 更新prompts
+            prompt = result["translation_text"]
 
-        return prompts
+        return prompt
 
-    def _append_styles_to_prompts(self, prompts, styles=[]):
+    def _append_styles_to_prompts(self, prompt, styles=[]):
         """
         根據對應的風格加上風格標籤
         """
 
         # 如果使用者有選擇風格才做
         if styles:
-            for index, prompt in enumerate(prompts):
-                # 從prompts中暫時移除句點
-                if prompt[-1] == ".":
-                    append_period = True
-                    prompt = prompt[:-1]
-                else:
-                    append_period = False
+            # 從prompt中暫時移除句點
+            if prompt[-1] == ".":
+                append_period = True
+                prompt = prompt[:-1]
+            else:
+                append_period = False
 
-                # 一律加入artstation
-                prompt += ", artstation"
+            # 一律加入artstation
+            prompt += ", artstation"
 
-                # 從選定的風格中挑出一個選項
-                for style in styles:
-                    prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
+            # 從選定的風格中挑出一個選項
+            for style in styles:
+                prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
 
-                # 需要時補回句點
-                if append_period:
-                    prompt += "."
+            # 需要時補回句點
+            if append_period:
+                prompt += "."
 
-                # 更新prompts
-                prompts[index] = prompt
+        return prompt
 
-        return prompts
-
-    def _preprocess(self, prompts, styles=[]):
+    def _preprocess(self, prompt, styles=[]):
         """
         對prompts做需要的前處理: 1. 中翻英 2. prompt engineering
         """
 
         # 先中翻英
-        prompts = self._translate_zh_to_en(prompts)
+        prompt = self._translate_zh_to_en(prompt)
         # 根據選擇的風格做prompt engineering
-        prompts = self._append_styles_to_prompts(prompts, styles)
-        return prompts
+        prompt = self._append_styles_to_prompts(prompt, styles)
+        return prompt
 
     # 參考並修改自：https://colab.research.google.com/drive/12a_Wrfi2_gwwAuN3VvMTwVMz9TfqctNj
-    def _get_texts_and_weights(self):
+    def _get_text_and_weight(self):
         """
         分離prompts的文字與權重
         """
 
-        texts = []
-        weights = []
-
-        for prompt in self.prompts:
-            parsed = prompt.split(":", 1)  # prompt的格式為"文字:權重"，所以透過":"進行切割
-            parsed = parsed + [1.0] if len(parsed) == 1 else parsed  # 如果原本未標示權重，就補上權重1
-            # 儲存文字與權重
-            texts.append(parsed[0])
-            weights.append(float(parsed[1]))
-
-        return texts, weights
+        parsed = self.prompt.split(":", 1)  # prompt的格式為"文字:權重"，所以透過":"進行切割
+        parsed = parsed + [1.0] if len(parsed) == 1 else parsed  # 如果原本未標示權重，就補上權重1
+        # 儲存文字與權重
+        return parsed[0], float(parsed[1])
 
     @staticmethod
     def random_prompt(prompt_type):

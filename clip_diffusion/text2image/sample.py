@@ -9,7 +9,7 @@ from IPython import display
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.text2image.config import Config
-from clip_diffusion.text2image.prompts import Prompts
+from clip_diffusion.text2image.prompt import Prompt
 from clip_diffusion.text2image.preprocessing import (
     get_embeddings_and_weights,
     create_init_noise,
@@ -59,9 +59,7 @@ real_esrgan_upsampler = None
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
 def guided_diffusion_sample(
-    prompts=[
-        "A cute golden retriever.",
-    ],
+    prompt="A cute golden retriever.",
     styles=[],
     init_image=None,
     use_perlin=False,
@@ -81,7 +79,7 @@ def guided_diffusion_sample(
 ):
     """
     生成圖片(和anvil client互動)
-    prompts: 生成敘述
+    prompt: 生成敘述
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
@@ -105,7 +103,7 @@ def guided_diffusion_sample(
     if secondary_model is None:
         secondary_model = load_secondary_model(_device)
 
-    prompts = Prompts(prompts, styles)  # 建立prompts物件
+    prompt = Prompt(prompt, styles)  # 建立Prompt物件
     model, diffusion = load_guided_diffusion_model(steps=steps, device=_device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
@@ -117,7 +115,7 @@ def guided_diffusion_sample(
         set_seed(Config.random_seed())
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embeddings_and_weights(prompts, clip_models, _device)
+    clip_model_stats = get_embeddings_and_weights(prompt, clip_models, _device)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, _device)
@@ -335,9 +333,7 @@ def guided_diffusion_sample(
 # 參考並修改自： https://github.com/CompVis/latent-diffusion/blob/main/scripts/txt2img.py
 @anvil.server.background_task
 def latent_diffusion_sample(
-    prompts=[
-        "A cute golden retriever.",
-    ],
+    prompt="A cute golden retriever.",
     init_image=None,
     mask_image=None,
     sample_mode="ddim",
@@ -351,7 +347,7 @@ def latent_diffusion_sample(
 ):
     """
     使用latent diffusion生成圖片
-    prompts: 生成敘述
+    prompt: 生成敘述
     init_image: 要配合inpaint使用的圖片
     mask_image: inpaint用的遮罩
     sample_mode: 使用的sample模式(ddim, plms)
@@ -372,7 +368,7 @@ def latent_diffusion_sample(
     if real_esrgan_upsampler is None:
         real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
 
-    prompts = Prompts(prompts)
+    prompt = Prompt(prompt)
     sampler = get_sampler(latent_diffusion_model, mode=sample_mode)  # 根據sample_mode選擇sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")
     make_dir(batch_folder, remove_old=True)
@@ -420,7 +416,7 @@ def latent_diffusion_sample(
                 count = 0  # 圖片編號
                 for current_iteration in range(num_iterations):
                     clear_gpu_cache()
-                    conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * prompts.texts)
+                    conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [prompt.text])
 
                     # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                     samples_ddim, _ = sampler.sample(
