@@ -135,7 +135,7 @@ class Prompts:
     @staticmethod
     def random_prompt(prompt_type):
         """
-        生成隨機的prompt(生物, 環境, 物件)
+        生成隨機的prompt(生物, 景觀, 物件)
         """
 
         url = f"https://artprompts.org/{_prompt_types[prompt_type]}"  # 目標url
