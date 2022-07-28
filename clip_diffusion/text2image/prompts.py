@@ -142,4 +142,4 @@ class Prompts:
         request = requests.get(url)
         soup = BeautifulSoup(request.content, "html.parser", from_encoding="iso-8859-1")  # 抓取網頁
         prompt = soup.find_all("div", {"class": "et_pb_text_inner"})
-        return prompt[1].text.strip().split("\n")[-1].lstrip("\t")
+        return prompt[1].text.strip().split("\n")[-1].lstrip("\t") + "."
