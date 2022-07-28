@@ -25,7 +25,9 @@ _STYLES = {
     "傍晚": ["evening"],
     "夕陽": ["sunset"],
 }  # 風格標籤
-
+prompts_type = {'creature' : 'creature-prompts/',
+               'environment' : 'environment-prompts/',
+               'object' : 'object-prompt/'}
 
 class Prompts:
     """
@@ -124,3 +126,21 @@ class Prompts:
             weights.append(float(parsed[1]))
 
         return texts, weights
+
+
+    def random_prompt_generate(prompt_style):
+        """
+        生成隨機prompt
+        有creature, environment, object三種
+        """
+
+        import requests
+        from bs4 import BeautifulSoup
+
+        url = "https://artprompts.org/"+prompts_type[prompt_style] #driver.current_url 
+        request = requests.get(url)
+        soup = BeautifulSoup(request.content, "html.parser", from_encoding="iso-8859-1") #用bs4爬文章
+
+        prompt = soup.find_all("div", {"class":"et_pb_text_inner"})
+
+        return prompt[1].text.strip().split("\n")[-1]
