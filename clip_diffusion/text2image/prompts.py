@@ -133,16 +133,11 @@ class Prompts:
         import requests
         import re
         from bs4 import BeautifulSoup
-        import random
-        import time
 
         url = 'https://artprompts.org/'+prompts_type[prompt_style] #driver.current_url 
         list_req = requests.get(url)
-        soup = BeautifulSoup(list_req.content, "html.parser") #用bs4爬文章
+        soup = BeautifulSoup(list_req.content, "html.parser", from_encoding="iso-8859-1") #用bs4爬文章
 
-        prompt_tmp = soup.find_all('div', {'class':'et_pb_text_inner'})
+        prompt_str = soup.find_all('div', {'class':'et_pb_text_inner'})
 
-        if prompt_style == 'creature': #不知道為啥creature的不一樣，特別處理
-            return prompt_tmp[1].text.split('\n')[2]
-        else:
-            return prompt_tmp[1].text.split('\n')[1].lstrip()
+        return prompt_str[1].text.strip().split('\n')[-1]
