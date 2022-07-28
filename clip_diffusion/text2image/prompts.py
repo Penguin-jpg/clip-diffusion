@@ -1,5 +1,7 @@
 import re
 import random
+import requests
+from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
 
@@ -25,9 +27,12 @@ _STYLES = {
     "傍晚": ["evening"],
     "夕陽": ["sunset"],
 }  # 風格標籤
-prompts_type = {'creature' : 'creature-prompts/',
-               'environment' : 'environment-prompts/',
-               'object' : 'object-prompt/'}
+_prompt_types = {
+    "生物": "creature-prompts/",
+    "景觀": "environment-prompts/",
+    "物件": "object-prompt/",
+}
+
 
 class Prompts:
     """
@@ -127,20 +132,14 @@ class Prompts:
 
         return texts, weights
 
-
-    def random_prompt_generate(prompt_style):
+    @staticmethod
+    def random_prompt(prompt_type):
         """
-        生成隨機prompt
-        有creature, environment, object三種
+        生成隨機的prompt(生物, 環境, 物件)
         """
 
-        import requests
-        from bs4 import BeautifulSoup
-
-        url = "https://artprompts.org/"+prompts_type[prompt_style] #driver.current_url 
+        url = f"https://artprompts.org/{_prompt_types[prompt_type]}"  # 目標url
         request = requests.get(url)
-        soup = BeautifulSoup(request.content, "html.parser", from_encoding="iso-8859-1") #用bs4爬文章
-
-        prompt = soup.find_all("div", {"class":"et_pb_text_inner"})
-
+        soup = BeautifulSoup(request.content, "html.parser", from_encoding="iso-8859-1")  # 抓取網頁
+        prompt = soup.find_all("div", {"class": "et_pb_text_inner"})
         return prompt[1].text.strip().split("\n")[-1]
