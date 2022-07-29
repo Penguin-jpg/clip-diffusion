@@ -366,7 +366,7 @@ def latent_diffusion_sample(
         latent_diffusion_model = load_latent_diffusion_model(_device)
 
     if real_esrgan_upsampler is None:
-        real_esrgan_upsampler = load_real_esrgan_upsampler(_device)
+        real_esrgan_upsampler = load_real_esrgan_upsampler(scale=4, device=_device)
 
     prompt = Prompt(prompt)
     sampler = get_sampler(latent_diffusion_model, mode=sample_mode)  # 根據sample_mode選擇sampler
