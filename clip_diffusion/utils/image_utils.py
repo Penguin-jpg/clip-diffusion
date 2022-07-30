@@ -99,7 +99,7 @@ def upload_image(image_path=None, extension="png", **kwargs):
             kwargs["batch_index"],
             kwargs["display_rate"],
             kwargs["gif_duration"],
-            kwargs["append_last_timesetp"],
+            kwargs["append_last_timestep"],
         )
 
     image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
