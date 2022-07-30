@@ -8,7 +8,7 @@ from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.utils.functional import clear_gpu_cache
 
-_STATIC_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png")
+_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "gif")
 imgur = pyimgur.Imgur(os.environ.get("IMGUR_CLIENT_ID"))
 
 
@@ -70,11 +70,11 @@ def _create_gif(
     if append_last_timestep:
         images.append(Image.open(image_paths[-1]))
 
-    filename = os.path.join(batch_folder, f"diffusion_{batch_index}.gif")
+    image_path = os.path.join(batch_folder, f"diffusion_{batch_index}.gif")
 
     # 儲存成gif
     images[0].save(
-        fp=filename,
+        fp=image_path,
         format="GIF",
         save_all=True,
         append_images=images[1:],
@@ -82,35 +82,28 @@ def _create_gif(
         loop=0,
     )
 
-    return filename
+    return image_path
 
 
-def upload_static_image(image_path, extension="png"):
+def upload_image(image_path=None, extension="png", **kwargs):
     """
     將靜態圖片上傳至imgbox並回傳該圖片的url
     """
 
-    assert extension in _STATIC_IMAGE_EXTENSIONS, "not a valid static image extension"
+    assert image_path or kwargs, "need to provide image_path (for static image) or kwargs (for animated image)"
+    assert extension.lower() in _IMAGE_EXTENSIONS, "not a valid image extension"
+
+    if kwargs:
+        image_path = _create_gif(
+            kwargs["batch_folder"],
+            kwargs["batch_index"],
+            kwargs["display_rate"],
+            kwargs["gif_duration"],
+            kwargs["append_last_timesetp"],
+        )
 
     image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
     return image.link  # 回傳url
-
-
-def upload_animated_image(
-    batch_folder,
-    batch_index,
-    display_rate=30,
-    gif_duration=500,
-    append_last_timestep=False,
-):
-    """
-    將動畫圖片上傳至imgbox並回傳該圖片的url
-    """
-
-    image_path = _create_gif(batch_folder, batch_index, display_rate, gif_duration, append_last_timestep)
-
-    image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
-    return image.link
 
 
 def get_image_from_bytes(image_bytes):
@@ -156,10 +149,10 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     for index, image in enumerate(images):
         grid_image.paste(image, box=(index % num_cols * width, index // num_cols * height))  # 將圖片貼到grid image對應的位置
 
-    filename = os.path.join(batch_folder, "grid_image.png")
-    grid_image.save(filename)
+    image_path = os.path.join(batch_folder, "grid_image.png")
+    grid_image.save(image_path)
 
-    return upload_static_image(filename, "png")
+    return upload_image(image_path, "png")
 
 
 def super_resolution(upsampler, batch_folder, exception_paths=[]):
@@ -190,7 +183,7 @@ def super_resolution(upsampler, batch_folder, exception_paths=[]):
             output_image, _ = upsampler.enhance(image, outscale=4)
 
             # 寫出圖片
-            filename = os.path.join(result_path, image_name)
-            cv2.imwrite(filename, output_image)
+            image_path = os.path.join(result_path, image_name)
+            cv2.imwrite(image_path, output_image)
 
             clear_gpu_cache()

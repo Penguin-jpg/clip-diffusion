@@ -43,8 +43,7 @@ from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
     unnormalize_image_zero_to_one,
     tensor_to_pillow_image,
-    upload_static_image,
-    upload_animated_image,
+    upload_image,
     images_to_grid_image,
     super_resolution,
 )
@@ -300,14 +299,14 @@ def guided_diffusion_sample(
                         display_image(image_path=image_path)
                         clear_output()
                         # 將最後一個timestep的url存到current_result
-                        store_task_state("current_result", upload_static_image(image_path, "png"))
+                        store_task_state("current_result", upload_image(image_path, "png"))
                         # 儲存生成過程的gif url
                         gif_urls.append(
-                            upload_animated_image(
-                                batch_folder,
-                                batch_index,
-                                display_rate,
-                                gif_duration,
+                            upload_image(
+                                batch_folder=batch_folder,
+                                batch_index=batch_index,
+                                display_rate=display_rate,
+                                gif_duration=gif_duration,
                                 append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
                             )
                         )
@@ -315,7 +314,7 @@ def guided_diffusion_sample(
                         images.append(Image.open(image_path))
                     elif step_index % 10 == 0:  # 每10個timestep更新上傳一次圖片
                         # 將目前圖片的url存到current_result
-                        store_task_state("current_result", upload_static_image(image_path, "png"))
+                        store_task_state("current_result", upload_image(image_path, "png"))
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
 
@@ -463,7 +462,7 @@ def latent_diffusion_sample(
                     grid_image = Image.fromarray(grid.astype(np.uint8))
                     grid_image = draw_index_on_grid_image(grid_image, num_iterations, num_batches, sample_height, sample_width)
                     grid_image.save(os.path.join(batch_folder, grid_filename))  # 儲存grid圖片
-                    grid_image_url = upload_static_image(os.path.join(batch_folder, grid_filename), "png")  # 儲存url
+                    grid_image_url = upload_image(os.path.join(batch_folder, grid_filename), "png")  # 儲存url
 
                     clear_gpu_cache()
 
