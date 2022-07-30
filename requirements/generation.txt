@@ -14,3 +14,4 @@ torch-fidelity
 einops
 requests
 beautifulsoup4
+faiss-cpu
