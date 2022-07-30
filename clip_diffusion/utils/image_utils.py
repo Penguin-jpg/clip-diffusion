@@ -1,6 +1,6 @@
 import os
 import io
-import pyimgbox
+import pyimgur
 import cv2
 from PIL import Image
 from torchvision.transforms import functional as TF
@@ -9,7 +9,7 @@ from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.utils.functional import clear_gpu_cache
 
 _STATIC_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png")
-_gallery = pyimgbox.Gallery(title="Diffusion")
+imgur = pyimgur.Imgur(os.environ.get("IMGUR_CLIENT_ID"))
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -92,8 +92,8 @@ def upload_static_image(image_path, extension="png"):
 
     assert extension in _STATIC_IMAGE_EXTENSIONS, "not a valid static image extension"
 
-    submission = _gallery.upload(image_path)
-    return submission.image_url  # 回傳url
+    image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
+    return image.link  # 回傳url
 
 
 def upload_animated_image(
@@ -109,8 +109,8 @@ def upload_animated_image(
 
     image_path = _create_gif(batch_folder, batch_index, display_rate, gif_duration, append_last_timestep)
 
-    submission = _gallery.upload(image_path)
-    return submission.image_url  # 回傳url
+    image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
+    return image.link
 
 
 def get_image_from_bytes(image_bytes):

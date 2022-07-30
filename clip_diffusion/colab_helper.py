@@ -23,7 +23,6 @@ class ColabHelper:
                 "https://github.com/crowsonkb/guided-diffusion.git",
                 "https://github.com/Penguin-jpg/latent-diffusion.git",
                 "https://github.com/Penguin-jpg/taming-transformers.git",
-                "https://github.com/Penguin-jpg/pyimgbox.git",
                 "https://github.com/xinntao/Real-ESRGAN.git",
             )
             repo_folders = (
@@ -31,7 +30,6 @@ class ColabHelper:
                 "guided-diffusion",
                 "latent-diffusion",
                 "taming-transformers",
-                "pyimgbox",
                 "Real-ESRGAN",
                 "clip-diffusion",
             )

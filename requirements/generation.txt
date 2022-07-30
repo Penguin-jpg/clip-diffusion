@@ -3,6 +3,7 @@ ipywidgets
 ipython
 lpips 
 anvil-uplink
+pyimgur
 transformers
 sentencepiece
 sacremoses
