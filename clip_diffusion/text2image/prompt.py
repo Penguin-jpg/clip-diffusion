@@ -1,11 +1,11 @@
 import re
-import random
 import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
 from clip_diffusion.text2image.models import load_sentence_transformer
 from clip_diffusion.utils.functional import get_device
+from clip_diffusion.text2image.embedding_index import get_faiss_index, get_topk_results
 
 _translator = pipeline(
     "translation",
@@ -13,12 +13,19 @@ _translator = pipeline(
     tokenizer="Helsinki-NLP/opus-mt-zh-en",
 )  # 用來中翻英
 _converter = OpenCC("tw2sp.json")  # 繁體轉簡體
+_sentence_transformer = load_sentence_transformer(
+    "sentence-transformers/sentence-t5-base",
+    get_device(),
+)  # 用來找出文字的embedding
 _prompt_types = {
     "生物": "creature-prompts/",
     "景觀": "environment-prompts/",
     "物件": "object-prompt/",
 }  # 可用的隨機prompt類型
-sentence_transformer = load_sentence_transformer("sentence-transformers/sentence-t5-base", get_device())
+# text_index = get_faiss_index("text_index_path")
+# image_index = get_faiss_index("image_index_path")
+# text_modifier_df = pd.read_csv("text_modifier_csv")
+# image_modifier_df = pd.read_csv("image_modifier_csv")
 
 
 class Prompt:
@@ -30,6 +37,8 @@ class Prompt:
         assert isinstance(prompt, str), "prompt has to be 'str' type"
         self.prompt = self._preprocess(prompt)  # prompts前處理
         self.text, self.weight = self._get_text_and_weight()  # 文字與權重
+        self.artist_modifiers = []  # 藝術家型修飾詞
+        self.phrase_modifiers = []  # 片語型修飾詞
 
     def _contains_zh(self, prompt):
         """
@@ -58,14 +67,26 @@ class Prompt:
 
         return prompt
 
+    def _append_modifiers(self, prompt):
+        """
+        為prompt加上修飾詞
+        """
+
+        # global _sentence_transformer
+
+        # text_embedding = _sentence_transformer.encode(prompt)
+        # similarties, indices = get_topk_results(text_index, text_embedding)
+        # decide which modifiers to use
+        pass
+
     def _preprocess(self, prompt):
         """
-        對prompts做需要的前處理: 1. 中翻英 2. prompt engineering
+        對prompts做需要的前處理: 1. 中翻英 2. 加上修飾詞
         """
 
         # 先中翻英
         prompt = self._translate_zh_to_en(prompt)
-        # TODO: prompt enginerring
+        # TODO: append modifiers to prompt
         return prompt
 
     # 參考並修改自：https://colab.research.google.com/drive/12a_Wrfi2_gwwAuN3VvMTwVMz9TfqctNj
