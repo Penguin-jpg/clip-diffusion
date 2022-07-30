@@ -421,3 +421,16 @@ def load_real_esrgan_upsampler(scale=4, device=None):
         device=device,
     )
     return upsampler
+
+
+def load_sentence_transformer(model_name, device=None):
+    """
+    載入指定的sentence transformer
+    """
+
+    from sentence_transformers import SentenceTransformer
+
+    model = SentenceTransformer(model_name)
+    _to_eval_and_freeze_layers(model, False, device)
+    clear_gpu_cache()
+    return model

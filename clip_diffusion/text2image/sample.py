@@ -59,7 +59,6 @@ real_esrgan_upsampler = None
 @anvil.server.background_task
 def guided_diffusion_sample(
     prompt="A cute golden retriever.",
-    styles=[],
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
@@ -102,7 +101,7 @@ def guided_diffusion_sample(
     if secondary_model is None:
         secondary_model = load_secondary_model(_device)
 
-    prompt = Prompt(prompt, styles)  # 建立Prompt物件
+    prompt = Prompt(prompt)  # 建立Prompt物件
     model, diffusion = load_guided_diffusion_model(steps=steps, device=_device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)

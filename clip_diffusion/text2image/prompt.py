@@ -4,6 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
+from clip_diffusion.text2image.models import load_sentence_transformer
+from clip_diffusion.utils.functional import get_device
 
 _translator = pipeline(
     "translation",
@@ -11,27 +13,12 @@ _translator = pipeline(
     tokenizer="Helsinki-NLP/opus-mt-zh-en",
 )  # 用來中翻英
 _converter = OpenCC("tw2sp.json")  # 繁體轉簡體
-_STYLES = {
-    "奇幻 / 科幻": [
-        "James Gurney",
-        "Greg Rutkowski",
-        "Pascal Blanche",
-        "Jakub Rozalski",
-        "Federico Pelat",
-    ],
-    "注重光影": ["James Paick", "Fitz Henry Lane"],
-    "立體效果": ["unreal engine"],
-    "風景畫": ["Julian Falat", "Isaac Levitan", "John Constable", "Ivan Shishkin"],
-    "印象派": ["Van Gogh", "Monet"],
-    "早晨": ["morning"],
-    "傍晚": ["evening"],
-    "夕陽": ["sunset"],
-}  # 風格標籤
 _prompt_types = {
     "生物": "creature-prompts/",
     "景觀": "environment-prompts/",
     "物件": "object-prompt/",
-}
+}  # 可用的隨機prompt類型
+sentence_transformer = load_sentence_transformer("sentence-transformers/sentence-t5-base", get_device())
 
 
 class Prompt:
@@ -39,9 +26,9 @@ class Prompt:
     負責prompts功能的class
     """
 
-    def __init__(self, prompt, styles=[]):
+    def __init__(self, prompt):
         assert isinstance(prompt, str), "prompt has to be 'str' type"
-        self.prompt = self._preprocess(prompt, styles)  # prompts前處理
+        self.prompt = self._preprocess(prompt)  # prompts前處理
         self.text, self.weight = self._get_text_and_weight()  # 文字與權重
 
     def _contains_zh(self, prompt):
@@ -71,42 +58,14 @@ class Prompt:
 
         return prompt
 
-    def _append_styles_to_prompts(self, prompt, styles=[]):
-        """
-        根據對應的風格加上風格標籤
-        """
-
-        # 如果使用者有選擇風格才做
-        if styles:
-            # 從prompt中暫時移除句點
-            if prompt[-1] == ".":
-                append_period = True
-                prompt = prompt[:-1]
-            else:
-                append_period = False
-
-            # 一律加入artstation
-            prompt += ", artstation"
-
-            # 從選定的風格中挑出一個選項
-            for style in styles:
-                prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
-
-            # 需要時補回句點
-            if append_period:
-                prompt += "."
-
-        return prompt
-
-    def _preprocess(self, prompt, styles=[]):
+    def _preprocess(self, prompt):
         """
         對prompts做需要的前處理: 1. 中翻英 2. prompt engineering
         """
 
         # 先中翻英
         prompt = self._translate_zh_to_en(prompt)
-        # 根據選擇的風格做prompt engineering
-        prompt = self._append_styles_to_prompts(prompt, styles)
+        # TODO: prompt enginerring
         return prompt
 
     # 參考並修改自：https://colab.research.google.com/drive/12a_Wrfi2_gwwAuN3VvMTwVMz9TfqctNj
