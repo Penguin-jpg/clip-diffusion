@@ -14,22 +14,6 @@ from PIL import ImageFont, ImageDraw
 CLIP_NORMALIZE = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
 
 
-def create_schedule(values, steps):
-    """
-    建立schedule:
-    (values[0],) * steps[0] + (values[1],) * steps[1]...
-    """
-
-    assert len(values) == len(steps), "length of values and steps must be the same"
-
-    schedule = ()
-
-    for value, num_steps in zip(values, steps):
-        schedule += (value,) * num_steps
-
-    return schedule
-
-
 def get_num_model_parameters(model, grad=True):
     """
     取得模型參數量
@@ -38,14 +22,6 @@ def get_num_model_parameters(model, grad=True):
     if grad:
         return sum(param.numel() for param in model.parameters() if param.requires_grad)
     return sum(param.numel() for param in model.parameters())
-
-
-def get_device():
-    """
-    取得要使用的device
-    """
-
-    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def tensor_to_numpy(tensor):

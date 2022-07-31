@@ -3,8 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
+from clip_diffusion.text2image.config import Config
 from clip_diffusion.text2image.models import load_sentence_transformer
-from clip_diffusion.utils.functional import get_device
 from clip_diffusion.text2image.embedding_index import get_faiss_index, get_topk_results
 
 _translator = pipeline(
@@ -13,10 +13,7 @@ _translator = pipeline(
     tokenizer="Helsinki-NLP/opus-mt-zh-en",
 )  # 用來中翻英
 _converter = OpenCC("tw2sp.json")  # 繁體轉簡體
-_sentence_transformer = load_sentence_transformer(
-    "sentence-transformers/sentence-t5-base",
-    get_device(),
-)  # 用來找出文字的embedding
+_sentence_transformer = load_sentence_transformer("sentence-transformers/sentence-t5-base", Config.device)  # 用來找出文字的embedding
 _prompt_types = {
     "生物": "creature-prompts/",
     "景觀": "environment-prompts/",

@@ -5,6 +5,7 @@ import requests
 import io
 from PIL import Image
 from clip_retrieval.clip_client import ClipClient, Modality
+from clip_diffusion.text2image.config import Config
 from clip_diffusion.utils.dir_utils import make_dir
 from clip_diffusion.utils.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
 
@@ -24,8 +25,7 @@ class QueryClient:
         num_images=500,
     ):
         self.client = self._create_clip_client(backend_url, indice_name, aesthetic_score, aesthetic_weight, modality, num_images)
-        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self._model, self._preprocess = clip.load("ViT-L/14", device=self._device)
+        self._model, self._preprocess = clip.load("ViT-L/14", device=Config.device)
         self._model.eval().requires_grad_(False)
 
     def _create_clip_client(
@@ -107,10 +107,10 @@ class QueryClient:
 
         # 如果text和image_url都有值就透過embedding組合
         if text and image_url:
-            text_embedding = get_text_embedding(self._model, tokenize(text, self._device), divided_by_norm=True)[0]
+            text_embedding = get_text_embedding(self._model, tokenize(text, Config.device), divided_by_norm=True)[0]
             image_embedding = get_image_embedding(
                 self._model,
-                to_clip_image(self._preprocess, self._fetch_image(image_url), self._device),
+                to_clip_image(self._preprocess, self._fetch_image(image_url), Config.device),
                 use_clip_normalize=False,
                 divided_by_norm=True,
             )[0]
