@@ -169,7 +169,7 @@ def guided_diffusion_sample(
                     # 做cutouts
                     cutouts = Cutouts(
                         cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
-                        overview=Config.overview_cut_schedule[current_diffusion_timestep],
+                        overview_cut=Config.overview_cut_schedule[current_diffusion_timestep],
                         inner_cut=Config.inner_cut_schedule[current_diffusion_timestep],
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],

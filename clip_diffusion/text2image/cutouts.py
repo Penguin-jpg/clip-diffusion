@@ -17,7 +17,7 @@ class Cutouts(nn.Module):
     def __init__(
         self,
         cut_size,
-        overview,
+        overview_cut,
         inner_cut,
         inner_cut_size_power,
         cut_gray_portion,
@@ -25,7 +25,7 @@ class Cutouts(nn.Module):
     ):
         super().__init__()
         self.cut_size = cut_size  # 要取的inner cut圖片大小(對應Clip模型的input resolution)
-        self.overview = overview  # 要做的overview cut次數
+        self.overview_cut = overview_cut  # 要做的overview cut次數
         self.inner_cut = inner_cut  # 要做的inner cut次數
         self.inner_cut_size_power = inner_cut_size_power  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
@@ -60,19 +60,18 @@ class Cutouts(nn.Module):
         cutout = resize(pad_input, out_shape=output_shape)
 
         # 做overview cut
-        if self.overview > 0:
-            if self.overview <= 4:
-                if self.overview >= 1:
+        if self.overview_cut > 0:
+            if self.overview_cut <= 4:
+                if self.overview_cut >= 1:
                     cutouts.append(cutout)
-                if self.overview >= 2:
+                if self.overview_cut >= 2:
                     cutouts.append(gray(cutout))
-                if self.overview >= 3:
+                if self.overview_cut >= 3:
                     cutouts.append(TF.hflip(cutout))
-                if self.overview == 4:
+                if self.overview_cut == 4:
                     cutouts.append(gray(TF.hflip(cutout)))
             else:
-                cutout = resize(pad_input, out_shape=output_shape)
-                for _ in range(self.overview):
+                for _ in range(self.overview_cut):
                     cutouts.append(cutout)
 
         # 做inner cut
