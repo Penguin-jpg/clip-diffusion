@@ -10,8 +10,8 @@ class Config:
     """
 
     # 圖片長寬相關(一定要是64的倍數)
-    width = 960  # 生成圖片的寬度
-    height = 768  # 　生成圖片的高度
+    width = 768  # 生成圖片的寬度
+    height = 512  # 　生成圖片的高度
 
     # cutout相關
     num_cutout_batches = 4  # 要做的cutout次數
@@ -53,8 +53,8 @@ class Config:
     @classmethod
     def adjust_settings(
         cls,
-        width=960,
-        height=768,
+        width=768,
+        height=512,
         num_cutout_batches=4,
         use_secondary_model=True,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
