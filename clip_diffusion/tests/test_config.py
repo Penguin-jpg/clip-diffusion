@@ -22,22 +22,12 @@ def test_schedules():
         create_schedule(values=(1, 2, 3), steps=(100, 500))
 
 
-def test_seed():
-    """
-    測試是否有拿到種子
-    """
-
-    Config.random_seed()
-
-    assert Config.seed is not None, "seed is None"
-
-
 def test_adjust_settings():
     """
     測試是否有改動設定
     """
 
-    Config.adjust_settings(
+    Config.change(
         width=512,
         height=512,
         num_cutout_batches=1,

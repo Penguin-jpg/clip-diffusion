@@ -24,6 +24,7 @@ from clip_diffusion.text2image.models import (
     load_real_esrgan_upsampler,
 )
 from clip_diffusion.utils.functional import (
+    random_seed,
     clear_output,
     set_seed,
     clear_gpu_cache,
@@ -59,6 +60,7 @@ def guided_diffusion_sample(
     prompt="A cute golden retriever.",
     use_auto_modifiers=True,
     num_modifiers=1,
+    seed=None,
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
@@ -80,6 +82,7 @@ def guided_diffusion_sample(
     prompt: 生成敘述
     use_auto_modifiers: 是否要使用自動補上修飾詞
     num_modifiers: 補上的修飾詞數量
+    seed: 生成種子
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
@@ -109,10 +112,10 @@ def guided_diffusion_sample(
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
-    if Config.seed:
-        set_seed(Config.seed)
-    else:
-        set_seed(Config.random_seed())
+    if not seed:
+        seed = random_seed()
+
+    set_seed(seed)
 
     # 取得prompt的embedding及weight
     clip_model_stats = get_embeddings_and_weights(prompt, clip_models, Config.device)
@@ -334,6 +337,7 @@ def guided_diffusion_sample(
 @anvil.server.background_task
 def latent_diffusion_sample(
     prompt="A cute golden retriever.",
+    seed=None,
     init_image=None,
     mask_image=None,
     sample_mode="ddim",
@@ -348,6 +352,7 @@ def latent_diffusion_sample(
     """
     使用latent diffusion生成圖片
     prompt: 生成敘述
+    seed: 生成種子
     init_image: 要配合inpaint使用的圖片
     mask_image: inpaint用的遮罩
     sample_mode: 使用的sample模式(ddim, plms)
@@ -374,10 +379,10 @@ def latent_diffusion_sample(
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
-    if Config.seed:
-        set_seed(Config.seed)
-    else:
-        set_seed(Config.random_seed())
+    if not seed:
+        seed = random_seed()
+
+    set_seed(seed)
 
     # 當使用plms時，eta沒有作用
     if sample_mode == "plms":

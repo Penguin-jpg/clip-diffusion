@@ -12,6 +12,7 @@ from PIL import ImageFont, ImageDraw
 
 # Clip用到的normalize
 CLIP_NORMALIZE = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+_INT_MAX = 2**32
 
 
 def get_num_model_parameters(model, grad=True):
@@ -22,6 +23,15 @@ def get_num_model_parameters(model, grad=True):
     if grad:
         return sum(param.numel() for param in model.parameters() if param.requires_grad)
     return sum(param.numel() for param in model.parameters())
+
+
+def random_seed():
+    """
+    生成隨機種子
+    """
+
+    random.seed()
+    return random.randint(0, _INT_MAX)
 
 
 def tensor_to_numpy(tensor):

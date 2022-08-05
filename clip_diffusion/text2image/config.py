@@ -1,7 +1,4 @@
 import torch
-import random
-
-_INT_MAX = 2**32
 
 
 def create_schedule(values, steps):
@@ -42,6 +39,8 @@ class Config:
     inner_cut_size_power_schedule = create_schedule(values=(5,), steps=(1000,))
     # 控制多少百分比的cut要取出做灰階化(建議剛開始高，隨著過程逐漸降低)
     cut_gray_portion_schedule = create_schedule(values=(0.7, 0.6, 0.45, 0.3, 0), steps=(100, 100, 100, 100, 600))
+    # 是否要對cutout做augmentation
+    use_augmentations = True
 
     # model相關
     use_secondary_model = True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
@@ -55,33 +54,19 @@ class Config:
     range_scale = 150  # 控制允許超出多遠的RGB值
     sat_scale = 0  # 控制允許多少飽和
 
-    # 生成相關
-    seed = None  # 亂數種子
-    use_augmentations = True  # 是否要做圖片的augmentation
-
     @classmethod
-    def random_seed(cls):
-        """
-        生成種子
-        """
-
-        random.seed()
-        cls.seed = random.randint(0, _INT_MAX)
-        return cls.seed
-
-    @classmethod
-    def adjust_settings(
+    def change(
         cls,
         width=768,
         height=512,
         num_cutout_batches=4,
+        use_augmentations=True,
         use_secondary_model=True,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
         clamp_max=0.05,
         tv_scale=0,
         range_scale=150,
         sat_scale=0,
-        use_augmentations=True,
     ):
         """
         調整設定
@@ -90,10 +75,10 @@ class Config:
         cls.width = (width // 64) * 64  # 調整成64的倍數
         cls.height = (height // 64) * 64
         cls.num_cutout_batches = num_cutout_batches
+        cls.use_augmentations = use_augmentations
         cls.use_secondary_model = use_secondary_model
         cls.chosen_clip_models = chosen_clip_models
         cls.clamp_max = clamp_max
         cls.tv_scale = tv_scale
         cls.range_scale = range_scale
         cls.sat_scale = sat_scale
-        cls.use_augmentations = use_augmentations
