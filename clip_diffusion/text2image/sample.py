@@ -115,7 +115,7 @@ def guided_diffusion_sample(
     if not seed:
         seed = random_seed()
 
-    set_seed(seed)
+    set_seed(int(seed))
 
     # 取得prompt的embedding及weight
     clip_model_stats = get_embeddings_and_weights(prompt, clip_models, Config.device)
@@ -382,7 +382,7 @@ def latent_diffusion_sample(
     if not seed:
         seed = random_seed()
 
-    set_seed(seed)
+    set_seed(int(seed))
 
     # 當使用plms時，eta沒有作用
     if sample_mode == "plms":
