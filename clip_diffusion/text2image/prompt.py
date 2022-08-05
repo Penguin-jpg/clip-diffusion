@@ -22,8 +22,8 @@ _prompt_types = {
     "景觀": "environment-prompts/",
     "物件": "object-prompt/",
 }  # 可用的隨機prompt類型
-keywords_index = load_faiss_index(os.path.abspath(os.path.join("data", "embeddings.index")))
-keywords_df = pd.read_csv(os.path.abspath(os.path.join("data", "prompt_keywords.csv")))
+keywords_index = load_faiss_index(os.path.abspath(os.path.join("clip-diffusion", "data", "embeddings.index")))
+keywords_df = pd.read_csv(os.path.abspath(os.path.join("clip-diffusion", "data", "prompt_keywords.csv")))
 # image_index = get_faiss_index("image_index_path")
 # text_modifier_df = pd.read_csv("text_modifier_csv")
 # image_modifier_df = pd.read_csv("image_modifier_csv")
