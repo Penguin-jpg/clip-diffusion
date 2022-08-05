@@ -1,57 +1,57 @@
-,Type,Keyword,Description
-0,artist,by Thomas Kinkade,"bright and pastel landscape, popular realistic, pastoral, and idyllic subjects"
-1,artist,by Anato Finnstark,fantasy illustrator #magicthegathering #darkhorsecomics #dungeonsandragons
-2,artist,by John Howe,"mythological material such as Beowulf, in the fantasy genre, expertise in ancient and medieval armour and armaments"
-3,artist,by Don Maitz,"science fiction,fantasy, and commercial artist"
-4,artist,by Albert Bierstadt,"German-American painter best known for his lavish, sweeping landscapes of the American West."
-5,artist,by Frederic Edwin Church,Majestic landscape and arctic marine scene painting
-6,artist,by Thomas Cole,"Landscape, history and allegory painting"
-7,artist,by James Paick,Dark postapocalyptic fantasy
-8,artist,by Federico Pelat,Large detailed futuristic cities and ships in space
-9,artist,by Wayne Barlowe,Science fiction and fantasy painting
-10,artist,by Bastien Lecouffe-Deharme,"science-fiction,cyberpunk and dark fantasy genre"
-11,artist,by Stanislav Poltavsky,"Dark Medieval Fantasy Character,Armadura Medieval, Mystique"
-12,artist,by Angela Sung,"concept artist currently working as a background layout artist, tell stories with lines and bright colors"
-13,artist,by Hubert Robert,"fantasy landscapes and architecture, architectural fantasy"
-14,artist,by Hugh Ferriss,"grayscale architecture, inspiration for gotham city"
-15,artist,by Ivan Aivazovsky,Dramatic paintings of oceans and sailing ships
-16,artist,by Kuvshinov,"illustrator and comic artist  fascinating combination of adorable girls with large, manga-influenced eyes, and soulful Japanese landscape illustrations"
-17,artist,by Abbott Fuller Graves,"thick brushstrokes, bright colors, and natural light"
-18,artist,by Adolf Hirémy-Hirschl,"known for historical and mythological painting, particularly of subjects pertaining to ancient Rome"
-19,artist,by Adolph Menzel,"painter and printmaker, best known in his own day as a brilliant historical painter"
-20,artist,by Adonna Khare,"known for her fanciful, large-scale carbon pencil drawings featuring creatures juxtaposed with ordinary events"
-21,artist,by Akihiko Yoshida,the keeping of color consistent between the characters and the game world
-22,artist,by Albert Lynch,"best known for his academic watercolor, pastel, and oil portraiture of Victorian-era French women"
-23,artist,by Albrecht Anker,enduringly popular depictions of 19th-century Swiss village life
-24,artist,by Albrecht Durer,"theoretical treatises, which involve principles of mathematics, perspective, and ideal proportions"
-25,artist,by Alex Horley,"key art, marketing, advertising, comics, trading cards, concept and design."
-26,artist,by Alex Maleev,best known for the Marvel Comics' series Daredevil
-27,artist,by Alexandr Averin,"A masterful combination of a portrait and a landscape in style ""impression"" is distinguishing feature of talent of the artist"
-28,artist,by Alexandre Cabanel,"historical, classical and religious subjects in the academic style"
-29,artist,by Thomas Benjamin Kennington,"genre, social realist and portrait painter,  best known for his social realist subjects executed in a French-style, with square brushwork and a muted tonal range"
-30,artist,by Abraham Pether,"depicting moonlit scenes, known for Nocturnes, river and mountain scenery painting"
-31,artist,by Adam Elsheimer,"include a variety of light effects, and an innovative treatment of landscape"
-32,artist,by Adriaen van Outrecht,"bjects, fruits, flowers and dead game, often together with living people and animals"
-33,artist,by Afarin Sajedi,predominantly features women merged with a variety of animals or objects
-34,artist,by Alan Bean,depicting various space-related scenes and documenting his own experiences in space
-35,artist,by Emile Galle,"artist and designer who worked in glass, best known for his thick glass objects etched with floral motifs"
-36,artist,by Emmanuel Shiu,"he currently specializes in concept design, illustration and visual development for the film and videogame industries"
-37,artist,by James Gurney,"oil paint, watercolor, fantasy, dinotopia, realistic images of scenes that cannot be photographed"
-38,artist,by Greg Rutkowski,"oil paint, detailed, great depiction of light, fantasy and majestic scenes"
-39,phrase,Unreal Engine,detailed 3d digital style
-40,phrase,super wide angle,influences more of a distant detailed result especially with landscapes
-41,phrase,matte painting,"a softer and more blended image, good for epic fantasy landscapes, settings, or distant locations"
-42,phrase,scenic view,Helps to make landscape images feel larger
-43,phrase,"dof, depth of field","depth of field effect, can also reduce depth of field with dof:-1"
-44,phrase,twinkling distant stars,helps narrow down that you mean space stars and not five pointed star shapes
-45,phrase,vantablack,very specific sharp pitch black
-46,phrase,intricate,attempts finer detail
-47,phrase,graphic novel style,"outlined, marker shaded look, good for sharper details in smaller images"
-48,phrase,inktober,black & white ink style
-49,phrase,through a peephole,good fisheye lens effect
-50,other,CMYK,Flat or Vibrant Colour Palletes
-51,phrase,pentium,Depicts classic CPU/processor computer imagery.
-52,phrase,3dfx voodoo,Depicts retro 3D video card computer imagery.
-53,phrase,minecraft,Image is rendered with block-shaped stuff.
-54,phrase,lowpoly,Primitive 3D graphics with simplistic polygon shapes.
-55,phrase,computer,"Includes computer technology like keyboards, mouses, screens, motherboards, and Personal Computer (PC) cases."
+Type,Keyword,Description
+artist,by Thomas Kinkade,"bright and pastel landscape, popular realistic, pastoral, and idyllic subjects"
+artist,by Anato Finnstark,fantasy illustrator #magicthegathering #darkhorsecomics #dungeonsandragons
+artist,by John Howe,"mythological material such as Beowulf, in the fantasy genre, expertise in ancient and medieval armour and armaments"
+artist,by Don Maitz,"science fiction,fantasy, and commercial artist"
+artist,by Albert Bierstadt,"German-American painter best known for his lavish, sweeping landscapes of the American West."
+artist,by Frederic Edwin Church,Majestic landscape and arctic marine scene painting
+artist,by Thomas Cole,"Landscape, history and allegory painting"
+artist,by James Paick,Dark postapocalyptic fantasy
+artist,by Federico Pelat,Large detailed futuristic cities and ships in space
+artist,by Wayne Barlowe,Science fiction and fantasy painting
+artist,by Bastien Lecouffe-Deharme,"science-fiction,cyberpunk and dark fantasy genre"
+artist,by Stanislav Poltavsky,"Dark Medieval Fantasy Character,Armadura Medieval, Mystique"
+artist,by Angela Sung,"concept artist currently working as a background layout artist, tell stories with lines and bright colors"
+artist,by Hubert Robert,"fantasy landscapes and architecture, architectural fantasy"
+artist,by Hugh Ferriss,"grayscale architecture, inspiration for gotham city"
+artist,by Ivan Aivazovsky,Dramatic paintings of oceans and sailing ships
+artist,by Kuvshinov,"illustrator and comic artist  fascinating combination of adorable girls with large, manga-influenced eyes, and soulful Japanese landscape illustrations"
+artist,by Abbott Fuller Graves,"thick brushstrokes, bright colors, and natural light"
+artist,by Adolf Hirémy-Hirschl,"known for historical and mythological painting, particularly of subjects pertaining to ancient Rome"
+artist,by Adolph Menzel,"painter and printmaker, best known in his own day as a brilliant historical painter"
+artist,by Adonna Khare,"known for her fanciful, large-scale carbon pencil drawings featuring creatures juxtaposed with ordinary events"
+artist,by Akihiko Yoshida,the keeping of color consistent between the characters and the game world
+artist,by Albert Lynch,"best known for his academic watercolor, pastel, and oil portraiture of Victorian-era French women"
+artist,by Albrecht Anker,enduringly popular depictions of 19th-century Swiss village life
+artist,by Albrecht Durer,"theoretical treatises, which involve principles of mathematics, perspective, and ideal proportions"
+artist,by Alex Horley,"key art, marketing, advertising, comics, trading cards, concept and design."
+artist,by Alex Maleev,best known for the Marvel Comics' series Daredevil
+artist,by Alexandr Averin,"A masterful combination of a portrait and a landscape in style ""impression"" is distinguishing feature of talent of the artist"
+artist,by Alexandre Cabanel,"historical, classical and religious subjects in the academic style"
+artist,by Thomas Benjamin Kennington,"genre, social realist and portrait painter,  best known for his social realist subjects executed in a French-style, with square brushwork and a muted tonal range"
+artist,by Abraham Pether,"depicting moonlit scenes, known for Nocturnes, river and mountain scenery painting"
+artist,by Adam Elsheimer,"include a variety of light effects, and an innovative treatment of landscape"
+artist,by Adriaen van Outrecht,"bjects, fruits, flowers and dead game, often together with living people and animals"
+artist,by Afarin Sajedi,predominantly features women merged with a variety of animals or objects
+artist,by Alan Bean,depicting various space-related scenes and documenting his own experiences in space
+artist,by Emile Galle,"artist and designer who worked in glass, best known for his thick glass objects etched with floral motifs"
+artist,by Emmanuel Shiu,"he currently specializes in concept design, illustration and visual development for the film and videogame industries"
+artist,by James Gurney,"oil paint, watercolor, fantasy, dinotopia, realistic images of scenes that cannot be photographed"
+artist,by Greg Rutkowski,"oil paint, detailed, great depiction of light, fantasy and majestic scenes"
+phrase,Unreal Engine,detailed 3d digital style
+phrase,super wide angle,influences more of a distant detailed result especially with landscapes
+phrase,matte painting,"a softer and more blended image, good for epic fantasy landscapes, settings, or distant locations"
+phrase,scenic view,Helps to make landscape images feel larger
+phrase,"dof, depth of field","depth of field effect, can also reduce depth of field with dof:-1"
+phrase,twinkling distant stars,helps narrow down that you mean space stars and not five pointed star shapes
+phrase,vantablack,very specific sharp pitch black
+phrase,intricate,attempts finer detail
+phrase,graphic novel style,"outlined, marker shaded look, good for sharper details in smaller images"
+phrase,inktober,black & white ink style
+phrase,through a peephole,good fisheye lens effect
+other,CMYK,Flat or Vibrant Colour Palletes
+phrase,pentium,Depicts classic CPU/processor computer imagery.
+phrase,3dfx voodoo,Depicts retro 3D video card computer imagery.
+phrase,minecraft,Image is rendered with block-shaped stuff.
+phrase,lowpoly,Primitive 3D graphics with simplistic polygon shapes.
+phrase,computer,"Includes computer technology like keyboards, mouses, screens, motherboards, and Personal Computer (PC) cases."
