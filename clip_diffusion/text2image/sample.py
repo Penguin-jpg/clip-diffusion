@@ -57,6 +57,8 @@ real_esrgan_upsampler = None
 @anvil.server.background_task
 def guided_diffusion_sample(
     prompt="A cute golden retriever.",
+    use_auto_modifiers=True,
+    num_modifiers=1,
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
@@ -76,6 +78,8 @@ def guided_diffusion_sample(
     """
     生成圖片(和anvil client互動)
     prompt: 生成敘述
+    use_auto_modifiers: 是否要使用自動補上修飾詞
+    num_modifiers: 補上的修飾詞數量
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
@@ -99,7 +103,7 @@ def guided_diffusion_sample(
     if secondary_model is None:
         secondary_model = load_secondary_model(Config.device)
 
-    prompt = Prompt(prompt)  # 建立Prompt物件
+    prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
     model, diffusion = load_guided_diffusion_model(steps=steps, device=Config.device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
@@ -364,7 +368,7 @@ def latent_diffusion_sample(
     if real_esrgan_upsampler is None:
         real_esrgan_upsampler = load_real_esrgan_upsampler(scale=4, device=Config.device)
 
-    prompt = Prompt(prompt)
+    prompt = Prompt(prompt, False, 0)
     sampler = get_sampler(latent_diffusion_model, mode=sample_mode)  # 根據sample_mode選擇sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")
     make_dir(batch_folder, remove_old=True)
