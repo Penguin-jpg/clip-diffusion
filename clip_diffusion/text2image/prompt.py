@@ -80,7 +80,7 @@ class Prompt:
 
         # 將修飾詞到prompt
         for index in indices[0]:
-            prompt += f", {keywords_df.iloc[index]['Description']}"
+            prompt += f", {keywords_df.iloc[index]['Keyword']}"
 
         # 補上trending on artstation
         prompt += ", trending on artstation."
