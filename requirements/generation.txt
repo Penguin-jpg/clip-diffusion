@@ -15,3 +15,5 @@ einops
 requests
 beautifulsoup4
 faiss-cpu
+sentence-transformers
+pandas

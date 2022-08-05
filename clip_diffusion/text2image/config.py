@@ -1,13 +1,32 @@
+import torch
 import random
-from clip_diffusion.utils.functional import create_schedule
 
 _INT_MAX = 2**32
+
+
+def create_schedule(values, steps):
+    """
+    建立schedule:
+    (values[0],) * steps[0] + (values[1],) * steps[1]...
+    """
+
+    assert len(values) == len(steps), "length of values and steps must be the same"
+
+    schedule = ()
+
+    for value, num_steps in zip(values, steps):
+        schedule += (value,) * num_steps
+
+    return schedule
 
 
 class Config:
     """
     儲存全域設定
     """
+
+    # device
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # 圖片長寬相關(一定要是64的倍數)
     width = 768  # 生成圖片的寬度

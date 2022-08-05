@@ -24,7 +24,6 @@ from clip_diffusion.text2image.models import (
     load_real_esrgan_upsampler,
 )
 from clip_diffusion.utils.functional import (
-    get_device,
     clear_output,
     set_seed,
     clear_gpu_cache,
@@ -48,9 +47,8 @@ from clip_diffusion.utils.image_utils import (
     super_resolution,
 )
 
-_device = get_device()
-lpips_model = lpips.LPIPS(net="vgg").to(_device)
-clip_models, preprocessings = load_clip_models_and_preprocessings(Config.chosen_clip_models, _device)
+lpips_model = lpips.LPIPS(net="vgg").to(Config.device)
+clip_models, preprocessings = load_clip_models_and_preprocessings(Config.chosen_clip_models, Config.device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
@@ -59,7 +57,8 @@ real_esrgan_upsampler = None
 @anvil.server.background_task
 def guided_diffusion_sample(
     prompt="A cute golden retriever.",
-    styles=[],
+    use_auto_modifiers=True,
+    num_modifiers=1,
     init_image=None,
     use_perlin=False,
     perlin_mode="mixed",
@@ -79,6 +78,8 @@ def guided_diffusion_sample(
     """
     生成圖片(和anvil client互動)
     prompt: 生成敘述
+    use_auto_modifiers: 是否要使用自動補上修飾詞
+    num_modifiers: 補上的修飾詞數量
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
@@ -100,10 +101,10 @@ def guided_diffusion_sample(
     global secondary_model
 
     if secondary_model is None:
-        secondary_model = load_secondary_model(_device)
+        secondary_model = load_secondary_model(Config.device)
 
-    prompt = Prompt(prompt, styles)  # 建立Prompt物件
-    model, diffusion = load_guided_diffusion_model(steps=steps, device=_device)  # 載入diffusion model和diffusion
+    prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
+    model, diffusion = load_guided_diffusion_model(steps=steps, device=Config.device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -114,10 +115,10 @@ def guided_diffusion_sample(
         set_seed(Config.random_seed())
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embeddings_and_weights(prompt, clip_models, _device)
+    clip_model_stats = get_embeddings_and_weights(prompt, clip_models, Config.device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, _device)
+    init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, Config.device)
 
     loss_values = []
     current_timestep = None  # 目前的timestep
@@ -139,12 +140,12 @@ def guided_diffusion_sample(
                 alpha = torch.tensor(
                     diffusion.sqrt_alphas_cumprod[current_timestep],
                     dtype=torch.float32,
-                    device=_device,
+                    device=Config.device,
                 )
                 sigma = torch.tensor(
                     diffusion.sqrt_one_minus_alphas_cumprod[current_timestep],
                     dtype=torch.float32,
-                    device=_device,
+                    device=Config.device,
                 )
                 cosine_t = alpha_sigma_to_t(alpha, sigma)
                 out = secondary_model(x, cosine_t[None].repeat([batch_size])).pred
@@ -153,7 +154,7 @@ def guided_diffusion_sample(
                 x_in_grad = torch.zeros_like(x_in)
             else:
                 # 目前timestep轉tensor
-                current_timestep_tensor = torch.ones([batch_size], device=_device, dtype=torch.long) * current_timestep
+                current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
                 out = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
                 factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
                 x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
@@ -244,7 +245,7 @@ def guided_diffusion_sample(
 
         # 如果使用perlin noise，要記得每個batch都重新生成一次初始雜訊
         if use_perlin:
-            init = create_init_noise(None, None, use_perlin, perlin_mode, _device)
+            init = create_init_noise(None, None, use_perlin, perlin_mode, Config.device)
 
         # 根據sample_mode選擇sample_function
         sample_function = get_sample_function(diffusion, mode=sample_mode)
@@ -362,12 +363,12 @@ def latent_diffusion_sample(
     global latent_diffusion_model, real_esrgan_upsampler
 
     if latent_diffusion_model is None:
-        latent_diffusion_model = load_latent_diffusion_model(_device)
+        latent_diffusion_model = load_latent_diffusion_model(Config.device)
 
     if real_esrgan_upsampler is None:
-        real_esrgan_upsampler = load_real_esrgan_upsampler(scale=4, device=_device)
+        real_esrgan_upsampler = load_real_esrgan_upsampler(scale=4, device=Config.device)
 
-    prompt = Prompt(prompt)
+    prompt = Prompt(prompt, False, 0)
     sampler = get_sampler(latent_diffusion_model, mode=sample_mode)  # 根據sample_mode選擇sampler
     batch_folder = os.path.join(OUTPUT_PATH, "latent")
     make_dir(batch_folder, remove_old=True)
@@ -392,13 +393,13 @@ def latent_diffusion_sample(
     # 處理inpaint的參數
     if init_image is not None and mask_image is not None:
         # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
-        init = create_init_noise(init_image, (sample_width, sample_height), device=_device).half()
+        init = create_init_noise(init_image, (sample_width, sample_height), device=Config.device).half()
         init = repeat(init, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
         encoder_posterior = latent_diffusion_model.encode_first_stage(init)  # 使用encoder對init encode
         encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior).detach()  # 取出encode的結果
 
         # mask為黑白圖片的tensor(shape=(1, num_channels, height, width)，黑白圖片的num_channels=1)
-        mask = create_mask_tensor(mask_image, (shape[2], shape[1]), _device)
+        mask = create_mask_tensor(mask_image, (shape[2], shape[1]), Config.device)
         mask = repeat(mask, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
 
     exception_paths = []  # 不做sr的圖片路徑

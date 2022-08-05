@@ -30,7 +30,11 @@ def build_embedding_index(
     )
 
 
-def get_faiss_index(index_path):
+def load_faiss_index(index_path):
+    """
+    載入faiss index
+    """
+
     return faiss.read_index(index_path)
 
 

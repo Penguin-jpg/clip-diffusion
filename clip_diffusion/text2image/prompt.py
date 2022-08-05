@@ -1,9 +1,14 @@
+import os
+import pandas as pd
 import re
-import random
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
+from clip_diffusion.text2image.config import Config
+from clip_diffusion.text2image.models import load_sentence_transformer
+from clip_diffusion.text2image.embedding_index import load_faiss_index, get_topk_results
 
 _translator = pipeline(
     "translation",
@@ -11,27 +16,17 @@ _translator = pipeline(
     tokenizer="Helsinki-NLP/opus-mt-zh-en",
 )  # 用來中翻英
 _converter = OpenCC("tw2sp.json")  # 繁體轉簡體
-_STYLES = {
-    "奇幻 / 科幻": [
-        "James Gurney",
-        "Greg Rutkowski",
-        "Pascal Blanche",
-        "Jakub Rozalski",
-        "Federico Pelat",
-    ],
-    "注重光影": ["James Paick", "Fitz Henry Lane"],
-    "立體效果": ["unreal engine"],
-    "風景畫": ["Julian Falat", "Isaac Levitan", "John Constable", "Ivan Shishkin"],
-    "印象派": ["Van Gogh", "Monet"],
-    "早晨": ["morning"],
-    "傍晚": ["evening"],
-    "夕陽": ["sunset"],
-}  # 風格標籤
+_sentence_transformer = load_sentence_transformer("sentence-transformers/sentence-t5-base", Config.device)  # 用來找出文字的embedding
 _prompt_types = {
     "生物": "creature-prompts/",
     "景觀": "environment-prompts/",
     "物件": "object-prompt/",
-}
+}  # 可用的隨機prompt類型
+keywords_index = load_faiss_index(os.path.abspath(os.path.join("clip-diffusion", "data", "embeddings.index")))
+keywords_df = pd.read_csv(os.path.abspath(os.path.join("clip-diffusion", "data", "prompt_keywords.csv")))
+# image_index = get_faiss_index("image_index_path")
+# text_modifier_df = pd.read_csv("text_modifier_csv")
+# image_modifier_df = pd.read_csv("image_modifier_csv")
 
 
 class Prompt:
@@ -39,9 +34,9 @@ class Prompt:
     負責prompts功能的class
     """
 
-    def __init__(self, prompt, styles=[]):
+    def __init__(self, prompt, use_auto_modifiers, num_modifiers):
         assert isinstance(prompt, str), "prompt has to be 'str' type"
-        self.prompt = self._preprocess(prompt, styles)  # prompts前處理
+        self.prompt = self._preprocess(prompt, use_auto_modifiers, num_modifiers)  # prompts前處理
         self.text, self.weight = self._get_text_and_weight()  # 文字與權重
 
     def _contains_zh(self, prompt):
@@ -71,42 +66,39 @@ class Prompt:
 
         return prompt
 
-    def _append_styles_to_prompts(self, prompt, styles=[]):
+    def _append_modifiers(self, prompt, num_modifiers=1):
         """
-        根據對應的風格加上風格標籤
+        為prompt加上修飾詞
         """
 
-        # 如果使用者有選擇風格才做
-        if styles:
-            # 從prompt中暫時移除句點
-            if prompt[-1] == ".":
-                append_period = True
-                prompt = prompt[:-1]
-            else:
-                append_period = False
+        global _sentence_transformer, keywords_index, keywords_df
 
-            # 一律加入artstation
-            prompt += ", artstation"
+        # 補上一維
+        text_embedding = np.expand_dims(_sentence_transformer.encode(prompt), axis=0)
+        # 算出相似度及index
+        similarties, indices = get_topk_results(keywords_index, text_embedding, num_modifiers)
 
-            # 從選定的風格中挑出一個選項
-            for style in styles:
-                prompt += f", {_STYLES[style][random.randint(0, len(_STYLES[style])-1)]}"
+        # 將修飾詞到prompt
+        for index in indices[0]:
+            prompt += f", {keywords_df.iloc[index]['Keyword']}"
 
-            # 需要時補回句點
-            if append_period:
-                prompt += "."
+        # 補上trending on artstation
+        prompt += ", trending on artstation."
 
         return prompt
 
-    def _preprocess(self, prompt, styles=[]):
+    def _preprocess(self, prompt, use_auto_modifiers=True, num_modifiers=1):
         """
-        對prompts做需要的前處理: 1. 中翻英 2. prompt engineering
+        對prompts做需要的前處理: 1. 中翻英 2. 加上修飾詞
         """
 
         # 先中翻英
         prompt = self._translate_zh_to_en(prompt)
-        # 根據選擇的風格做prompt engineering
-        prompt = self._append_styles_to_prompts(prompt, styles)
+
+        if use_auto_modifiers:
+            # 加上修飾詞
+            prompt = self._append_modifiers(prompt, num_modifiers)
+
         return prompt
 
     # 參考並修改自：https://colab.research.google.com/drive/12a_Wrfi2_gwwAuN3VvMTwVMz9TfqctNj
