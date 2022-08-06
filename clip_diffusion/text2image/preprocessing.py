@@ -10,29 +10,29 @@ def get_embeddings_and_weights(prompt, clip_models, device=None):
     取得prompt的embedding及weight
     """
 
-    clip_model_stats = []
+    embeddings_and_weights = []
 
     for clip_model in clip_models:
-        clip_model_stat = {
+        embedding_and_weight = {
             "text_embeddings": [],  # text的embedding
             "text_weights": [],  # text對應的權重
         }
         text_embedding = get_text_embedding(clip_model, tokenize([prompt.text], device))  # 取得text embedding
-        clip_model_stat["text_embeddings"].append(text_embedding)
-        clip_model_stat["text_weights"].append(prompt.weight)
+        embedding_and_weight["text_embeddings"].append(text_embedding)
+        embedding_and_weight["text_weights"].append(prompt.weight)
 
-        clip_model_stat["text_embeddings"] = torch.cat(clip_model_stat["text_embeddings"])
-        clip_model_stat["text_weights"] = torch.tensor(clip_model_stat["text_weights"], device=device)
+        embedding_and_weight["text_embeddings"] = torch.cat(embedding_and_weight["text_embeddings"])
+        embedding_and_weight["text_weights"] = torch.tensor(embedding_and_weight["text_weights"], device=device)
 
         # 權重和不可為0
-        if clip_model_stat["text_weights"].sum().abs() < 1e-3:
+        if embedding_and_weight["text_weights"].sum().abs() < 1e-3:
             raise RuntimeError("The text_weights must not sum to 0.")
 
         # 正規化
-        clip_model_stat["text_weights"] /= clip_model_stat["text_weights"].sum().abs()
-        clip_model_stats.append(clip_model_stat)
+        embedding_and_weight["text_weights"] /= embedding_and_weight["text_weights"].sum().abs()
+        embeddings_and_weights.append(embedding_and_weight)
 
-    return clip_model_stats
+    return embeddings_and_weights
 
 
 def create_init_noise(init_image=None, resize_shape=None, use_perlin=False, perlin_mode="mixed", device=None):

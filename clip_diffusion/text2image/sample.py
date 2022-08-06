@@ -25,6 +25,7 @@ from clip_diffusion.text2image.models import (
 )
 from clip_diffusion.utils.functional import (
     random_seed,
+    range_map,
     clear_output,
     set_seed,
     clear_gpu_cache,
@@ -44,7 +45,6 @@ from clip_diffusion.utils.image_utils import (
     unnormalize_image_zero_to_one,
     tensor_to_pillow_image,
     upload_image,
-    images_to_grid_image,
     super_resolution,
 )
 
@@ -65,17 +65,15 @@ def guided_diffusion_sample(
     use_perlin=False,
     perlin_mode="mixed",
     sample_mode="ddim",
+    auto_parameters={},
     steps=200,
     skip_timesteps=0,
     clip_guidance_scale=8000,
     eta=0.8,
     init_scale=1000,
     num_batches=1,
-    use_grid_image=False,
-    num_rows=1,
-    num_cols=1,
     display_rate=25,
-    gif_duration=400,
+    gif_duration=500,
 ):
     """
     生成圖片(和anvil client互動)
@@ -87,15 +85,13 @@ def guided_diffusion_sample(
     use_perlin: 是否要使用perlin noise
     perlin_mode: 使用的perlin noise模式
     sample_mode: 使用的sample模式(ddim, plms)
+    auto_parameters: 需要自動調整的參數
     steps: 每個batch要跑的step數
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
     eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
     init_scale: 增強init_image的效果
     num_batches: 要生成的圖片數量
-    use_grid_iamge: 是否要生成grid圖片
-    num_rows: grid圖片的row數量
-    num_cols: grid圖片的col數量
     display_rate: 生成過程的gif多少個step要更新一次
     gif_duration: gif的播放時間
     """
@@ -106,7 +102,14 @@ def guided_diffusion_sample(
     if secondary_model is None:
         secondary_model = load_secondary_model(Config.device)
 
+    # 根據規則自動分配參數
+    if auto_parameters:
+        if "eta" in auto_parameters:
+            eta = range_map(steps, source_range=[50, 250], target_range=[0.0, 1.0])
+            store_task_state("eta", eta)
+
     prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
+    store_task_state("prompt", prompt.text)
     model, diffusion = load_guided_diffusion_model(steps=steps, device=Config.device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
@@ -118,7 +121,7 @@ def guided_diffusion_sample(
     set_seed(int(seed))
 
     # 取得prompt的embedding及weight
-    clip_model_stats = get_embeddings_and_weights(prompt, clip_models, Config.device)
+    embeddings_and_weights = get_embeddings_and_weights(prompt, clip_models, Config.device)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, Config.device)
@@ -163,7 +166,7 @@ def guided_diffusion_sample(
                 x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
                 x_in_grad = torch.zeros_like(x_in)
 
-            for index, clip_model_stat in enumerate(clip_model_stats):
+            for index, embedding_and_weight in enumerate(embeddings_and_weights):
                 for _ in range(Config.num_cutout_batches):
                     # 將t的值從tensor取出
                     # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
@@ -184,7 +187,7 @@ def guided_diffusion_sample(
                     image_embeddings = get_image_embedding(clip_models[index], cuts, use_clip_normalize=True)
                     dists = spherical_dist_loss(
                         image_embeddings.unsqueeze(1),
-                        clip_model_stat["text_embeddings"].unsqueeze(0),
+                        embedding_and_weight["text_embeddings"].unsqueeze(0),
                     )
                     dists = dists.view(
                         [
@@ -194,7 +197,7 @@ def guided_diffusion_sample(
                             -1,
                         ]
                     )
-                    losses = dists.mul(clip_model_stat["text_weights"]).sum(2).mean(0)
+                    losses = dists.mul(embedding_and_weight["text_weights"]).sum(2).mean(0)
                     loss_values.append(losses.sum().item())
                     x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
             tv_losses = tv_loss(x_in)
@@ -324,11 +327,6 @@ def guided_diffusion_sample(
 
         progess_bar.update_progress(num_batches)
         clear_gpu_cache()
-
-    if use_grid_image:
-        # 儲存grid圖片的url到grid_image_url
-        grid_image_url = images_to_grid_image(batch_folder, images, num_rows, num_cols)
-        return gif_urls, grid_image_url
 
     return gif_urls  # 回傳gif url
 

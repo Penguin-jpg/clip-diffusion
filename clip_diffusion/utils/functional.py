@@ -34,6 +34,35 @@ def random_seed():
     return random.randint(0, _INT_MAX)
 
 
+def range_map(num, source_range, target_range):
+    """
+    將數字從來源範圍map到目標範圍內
+    """
+
+    assert (
+        len(source_range) == 2 and len(target_range) == 2
+    ), "source_range and target_range are lists of length 2 that represents [min, max]"
+
+    min_source = source_range[0]
+    max_source = source_range[1]
+    min_target = target_range[0]
+    max_target = target_range[1]
+
+    if num < min_source:
+        num = min_source
+
+    if num > max_source:
+        num = max_source
+
+    # 1. 將範圍map到[0, t-a] -> (num - min_source)
+    # 2. 將範圍map到[0, 1] -> / (max_source - min_source)
+    # 3. 將範圍map到[0, d-c] -> * (max_target - min_target)
+    # 4. 將範圍map到[c, d] -> + min_target
+    result = (num - min_source) / (max_source - min_source) * (max_target - min_target) + min_target
+
+    return result
+
+
 def tensor_to_numpy(tensor):
     """
     將tensor轉為numpy ndarray
