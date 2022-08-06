@@ -39,7 +39,7 @@ from clip_diffusion.utils.functional import (
     draw_index_on_grid_image,
 )
 from clip_diffusion.text2image.cutouts import Cutouts
-from clip_diffusion.text2image.loss import spherical_dist_loss, tv_loss, range_loss
+from clip_diffusion.text2image.loss import square_spherical_distance_loss, total_variational_loss, rgb_range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
     unnormalize_image_zero_to_one,
@@ -127,7 +127,7 @@ def guided_diffusion_sample(
     # 建立初始雜訊
     init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, Config.device)
 
-    loss_values = []
+    losses = []
     current_timestep = None  # 目前的timestep
 
     def conditon_function(x, t, y=None):
@@ -183,13 +183,15 @@ def guided_diffusion_sample(
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                         use_augmentations=Config.use_augmentations,
                     )
+                    cutout_images = cutouts(unnormalize_image_zero_to_one(x_in))
+                    image_embeddings = get_image_embedding(clip_models[index], cutout_images, use_clip_normalize=True)
 
-                    cuts = cutouts(unnormalize_image_zero_to_one(x_in))
-                    image_embeddings = get_image_embedding(clip_models[index], cuts, use_clip_normalize=True)
-                    dists = spherical_dist_loss(
+                    # 計算spherical distance loss
+                    dists = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
                         embedding_and_weight["text_embeddings"].unsqueeze(0),
                     )
+                    # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
                     dists = dists.view(
                         [
                             Config.overview_cut_schedule[current_diffusion_timestep]
@@ -198,25 +200,29 @@ def guided_diffusion_sample(
                             -1,
                         ]
                     )
-                    losses = dists.mul(embedding_and_weight["text_weights"]).sum(2).mean(0)
-                    loss_values.append(losses.sum().item())
-                    x_in_grad += torch.autograd.grad(losses.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
-            tv_losses = tv_loss(x_in)
+                    # 對最後一個維度取平均
+                    dist_loss = dists.mul(embedding_and_weight["text_weights"]).sum(dim=2).mean(dim=0)
+                    losses.append(dist_loss.sum().item())
+                    x_in_grad += torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
 
+            # 計算total variational loss
+            tv_loss = total_variational_loss(x_in)
+
+            # 計算rgb range loss
             if Config.use_secondary_model:
-                range_losses = range_loss(out)
+                range_losses = rgb_range_loss(out)
             else:
-                range_losses = range_loss(out["pred_xstart"])
+                range_losses = rgb_range_loss(out["pred_xstart"])
 
-            sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = (
-                tv_losses.sum() * Config.tv_scale + range_losses.sum() * Config.range_scale + sat_losses.sum() * Config.sat_scale
-            )
+            # 計算saturation loss(計算超出-1到1範圍的絕對值差平均)
+            sat_loss = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
+            loss = tv_loss.sum() * Config.tv_scale + range_losses.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
 
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
-                init_losses = lpips_model(x_in, init)
-                loss = loss + init_losses.sum() * init_scale
+                init_loss = lpips_model(x_in, init)
+                loss += init_loss.sum() * init_scale
+
             x_in_grad += torch.autograd.grad(loss, x_in)[0]
 
             if not torch.isnan(x_in_grad).any():

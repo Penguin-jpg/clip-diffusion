@@ -5,7 +5,6 @@ from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
 
-# 參考並修改自：disco diffusion
 # 作者： Dango233(https://github.com/Dango233)
 class Cutouts(nn.Module):
     """
@@ -47,49 +46,66 @@ class Cutouts(nn.Module):
         )  # 要做的image augmentation
 
     def forward(self, input):
-        cutouts = []
+        cutout_images = []
         gray = T.Grayscale(3)
-        side_y, side_x = input.shape[2:4]
-        max_size = min(side_x, side_y)
-        min_size = min(side_x, side_y, self.cut_size)
+        height, width = input.shape[2:4]
+        shorter_side = min(width, height)
+        min_size = min(width, height, self.cut_size)
         output_shape = [1, 3, self.cut_size, self.cut_size]
         pad_input = F.pad(
             input,
-            ((side_y - max_size) // 2, (side_y - max_size) // 2, (side_x - max_size) // 2, (side_x - max_size) // 2),
-        )
-        cutout = resize(pad_input, out_shape=output_shape)
+            (
+                (height - shorter_side) // 2,
+                (height - shorter_side) // 2,
+                (width - shorter_side) // 2,
+                (width - shorter_side) // 2,
+            ),
+        )  # pad到與最長的邊等大，假設768*512就是pad到(1, 3, 768, 768)
+        # 將整張圖片重新resize成(1, 3, cut_size, cut_size)，用於overview cut
+        cut_size_input = resize(pad_input, out_shape=output_shape)
 
         # 做overview cut
         if self.overview_cut > 0:
             if self.overview_cut <= 4:
                 if self.overview_cut >= 1:
-                    cutouts.append(cutout)
+                    cutout_images.append(cut_size_input)
                 if self.overview_cut >= 2:
-                    cutouts.append(gray(cutout))
+                    cutout_images.append(gray(cut_size_input))
                 if self.overview_cut >= 3:
-                    cutouts.append(TF.hflip(cutout))
+                    cutout_images.append(TF.hflip(cut_size_input))
                 if self.overview_cut == 4:
-                    cutouts.append(gray(TF.hflip(cutout)))
+                    cutout_images.append(gray(TF.hflip(cut_size_input)))
             else:
                 for _ in range(self.overview_cut):
-                    cutouts.append(cutout)
+                    cutout_images.append(cut_size_input)
 
         # 做inner cut
         if self.inner_cut > 0:
             for i in range(self.inner_cut):
-                size = int(torch.rand([]) ** self.inner_cut_size_power * (max_size - min_size) + min_size)
-                offsetx = torch.randint(0, side_x - size + 1, ())
-                offsety = torch.randint(0, side_y - size + 1, ())
-                cutout = input[:, :, offsety : offsety + size, offsetx : offsetx + size]
-                if i <= int(self.cut_gray_portion * self.inner_cut):
-                    cutout = gray(cutout)
-                cutout = resize(cutout, out_shape=output_shape)
-                cutouts.append(cutout)
+                innert_cut_size = int(torch.rand([]) ** self.inner_cut_size_power * (shorter_side - min_size) + min_size)
+                width_offset = torch.randint(
+                    0, width - innert_cut_size + 1, ()
+                )  # 從0~(width - inner_cut_size +1)中隨機選一個數字當cutout寬度的offset
+                height_offset = torch.randint(
+                    0, height - innert_cut_size + 1, ()
+                )  # 從0~(height - innert_cut_size +1)中隨機選一個數字當cutout高度的offset
 
-        cutouts = torch.cat(cutouts)  # shape=(num_cuts, num_channels, cut_size, cut_size)
+                # 取input高度介於[y_offset, y_offset + size)；寬度介於[x_offset, x_offset + size)的區域，用於inner cut
+                inner_cut_image = input[
+                    :, :, height_offset : height_offset + innert_cut_size, width_offset : width_offset + innert_cut_size
+                ]
+
+                if i <= int(self.cut_gray_portion * self.inner_cut):
+                    inner_cut_image = gray(inner_cut_image)
+
+                inner_cut_image = resize(inner_cut_image, out_shape=output_shape)  # 重新resize成(1, 3, cut_size, cut_size)
+                cutout_images.append(inner_cut_image)
+
+        # 將所有cutout圖片相接
+        cutout_images = torch.cat(cutout_images)  # shape=(num_cuts, num_channels, cut_size, cut_size)
 
         # 對cutout的圖片做augmentation
         if self.use_augmentations:
-            cutouts = self.augmentations(cutouts)
+            cutout_images = self.augmentations(cutout_images)
 
-        return cutouts
+        return cutout_images
