@@ -106,10 +106,11 @@ def guided_diffusion_sample(
     if auto_parameters:
         if "eta" in auto_parameters:
             eta = range_map(steps, source_range=[50, 250], target_range=[0.0, 1.0])
-            store_task_state("eta", eta)
+            store_task_state("new_eta", eta)
 
     prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
-    store_task_state("prompt", prompt.text)
+    if use_auto_modifiers:
+        store_task_state("new_prompt", prompt.text)
     model, diffusion = load_guided_diffusion_model(steps=steps, device=Config.device)  # 載入diffusion model和diffusion
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
@@ -253,7 +254,7 @@ def guided_diffusion_sample(
         if use_perlin:
             init = create_init_noise(None, None, use_perlin, perlin_mode, Config.device)
 
-        # 根據sample_mode選擇sample_function
+        # 根據sample_mode選擇`sample_function
         sample_function = get_sample_function(diffusion, mode=sample_mode)
 
         # 根據不同function傳入參數
