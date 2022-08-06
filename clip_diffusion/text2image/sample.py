@@ -239,7 +239,7 @@ def guided_diffusion_sample(
     images = []  # 最後一個timestep的圖片
 
     for batch_index in range(num_batches):
-        display.clear_output(wait=True)
+        clear_output(wait=True)
         progess_bar.update_progress(batch_index)
         set_display_widget(image_display)
         store_task_state("current_batch", batch_index)  # 將目前的batch index存到current_batch
