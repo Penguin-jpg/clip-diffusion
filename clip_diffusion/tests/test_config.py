@@ -37,7 +37,6 @@ def test_adjust_settings():
         tv_scale=50,
         range_scale=100,
         sat_scale=20,
-        use_augmentations=False,
     )
 
     assert Config.width == 512, "width not set"
@@ -49,4 +48,3 @@ def test_adjust_settings():
     assert Config.tv_scale == 50, "tv_scale not set"
     assert Config.range_scale == 100, "range_scale not set"
     assert Config.sat_scale == 20, "sat_scale not set"
-    assert Config.use_augmentations == False, "use_augmentations not set"

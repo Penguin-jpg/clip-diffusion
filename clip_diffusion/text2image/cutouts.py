@@ -22,7 +22,6 @@ class Cutouts(nn.Module):
         num_inner_cuts,
         inner_cut_size_power,
         cut_gray_portion,
-        use_augmentations,
     ):
         super().__init__()
         self.cut_size = cut_size  # 要取的inner cut圖片大小(對應Clip模型的input resolution)
@@ -30,7 +29,6 @@ class Cutouts(nn.Module):
         self.num_inner_cuts = num_inner_cuts  # 要做的inner cut次數
         self.inner_cut_size_power = inner_cut_size_power  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
-        self.use_augmentations = use_augmentations  # 是否要對cutout圖片使用augmentations
         self.augmentations = T.Compose(
             [
                 T.RandomHorizontalFlip(p=0.5),
@@ -107,8 +105,7 @@ class Cutouts(nn.Module):
         cutout_images = torch.cat(cutout_images)  # shape=(num_cuts, num_channels, cut_size, cut_size)
 
         # 對cutout的圖片做augmentation
-        if self.use_augmentations:
-            cutout_images = self.augmentations(cutout_images)
+        cutout_images = self.augmentations(cutout_images)
 
         return cutout_images
 
@@ -121,7 +118,6 @@ def make_cutouts(
     num_inner_cuts,
     inner_cut_size_power,
     cut_gray_portion,
-    use_augmentations,
 ):
     """
     對目前生成圖片做cutout
@@ -133,7 +129,6 @@ def make_cutouts(
         num_inner_cuts=num_inner_cuts,
         inner_cut_size_power=inner_cut_size_power,
         cut_gray_portion=cut_gray_portion,
-        use_augmentations=use_augmentations,
     )
     cutout_images = cutouts(unnormalize_image_zero_to_one(input))
     return embed_image(clip_model, cutout_images, use_clip_normalize=True)

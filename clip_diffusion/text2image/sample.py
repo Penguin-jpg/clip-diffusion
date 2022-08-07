@@ -181,7 +181,6 @@ def guided_diffusion_sample(
                         num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_timestep],
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
-                        use_augmentations=Config.use_augmentations,
                     )
                     # 計算spherical distance loss
                     dists = square_spherical_distance_loss(
