@@ -13,8 +13,8 @@ def test_schedules():
     inner_cut_size_power_schedule = (5,) * 1000
     cut_gray_portion_schedule = (0.7,) * 100 + (0.6,) * 100 + (0.45,) * 100 + (0.3,) * 100 + (0,) * 600
 
-    assert Config.overview_cut_schedule == overview_cut_schedule, "diff found at overview_cut_schedule"
-    assert Config.inner_cut_schedule == inner_cut_schedule, "diff found at inner_cut_schedule"
+    assert Config.num_overview_cuts_schedule == overview_cut_schedule, "diff found at overview_cut_schedule"
+    assert Config.num_inner_cuts_schedule == inner_cut_schedule, "diff found at inner_cut_schedule"
     assert Config.inner_cut_size_power_schedule == inner_cut_size_power_schedule, "diff found at inner_cut_size_power_schedule"
     assert Config.cut_gray_portion_schedule == cut_gray_portion_schedule, "diff found at cut_gray_portion_schedule"
 

@@ -4,6 +4,8 @@ from torch.nn import functional as F
 from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
+from clip_diffusion.utils.image_utils import unnormalize_image_zero_to_one
+from clip_diffusion.utils.functional import embed_image
 
 # 作者： Dango233(https://github.com/Dango233)
 class Cutouts(nn.Module):
@@ -16,16 +18,16 @@ class Cutouts(nn.Module):
     def __init__(
         self,
         cut_size,
-        overview_cut,
-        inner_cut,
+        num_overview_cuts,
+        num_inner_cuts,
         inner_cut_size_power,
         cut_gray_portion,
         use_augmentations,
     ):
         super().__init__()
         self.cut_size = cut_size  # 要取的inner cut圖片大小(對應Clip模型的input resolution)
-        self.overview_cut = overview_cut  # 要做的overview cut次數
-        self.inner_cut = inner_cut  # 要做的inner cut次數
+        self.num_overview_cuts = num_overview_cuts  # 要做的overview cut次數
+        self.num_inner_cuts = num_inner_cuts  # 要做的inner cut次數
         self.inner_cut_size_power = inner_cut_size_power  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
         self.use_augmentations = use_augmentations  # 是否要對cutout圖片使用augmentations
@@ -65,23 +67,23 @@ class Cutouts(nn.Module):
         cut_size_input = resize(pad_input, out_shape=output_shape)
 
         # 做overview cut
-        if self.overview_cut > 0:
-            if self.overview_cut <= 4:
-                if self.overview_cut >= 1:
+        if self.num_overview_cuts > 0:
+            if self.num_overview_cuts <= 4:
+                if self.num_overview_cuts >= 1:
                     cutout_images.append(cut_size_input)
-                if self.overview_cut >= 2:
+                if self.num_overview_cuts >= 2:
                     cutout_images.append(gray(cut_size_input))
-                if self.overview_cut >= 3:
+                if self.num_overview_cuts >= 3:
                     cutout_images.append(TF.hflip(cut_size_input))
-                if self.overview_cut == 4:
+                if self.num_overview_cuts == 4:
                     cutout_images.append(gray(TF.hflip(cut_size_input)))
             else:
-                for _ in range(self.overview_cut):
+                for _ in range(self.num_overview_cuts):
                     cutout_images.append(cut_size_input)
 
         # 做inner cut
-        if self.inner_cut > 0:
-            for i in range(self.inner_cut):
+        if self.num_inner_cuts > 0:
+            for i in range(self.num_inner_cuts):
                 innert_cut_size = int(torch.rand([]) ** self.inner_cut_size_power * (shorter_side - min_size) + min_size)
                 width_offset = torch.randint(
                     0, width - innert_cut_size + 1, ()
@@ -95,7 +97,7 @@ class Cutouts(nn.Module):
                     :, :, height_offset : height_offset + innert_cut_size, width_offset : width_offset + innert_cut_size
                 ]
 
-                if i <= int(self.cut_gray_portion * self.inner_cut):
+                if i <= int(self.cut_gray_portion * self.num_inner_cuts):
                     inner_cut_image = gray(inner_cut_image)
 
                 inner_cut_image = resize(inner_cut_image, out_shape=output_shape)  # 重新resize成(1, 3, cut_size, cut_size)
@@ -109,3 +111,29 @@ class Cutouts(nn.Module):
             cutout_images = self.augmentations(cutout_images)
 
         return cutout_images
+
+
+def make_cutouts(
+    clip_model,
+    input,
+    cut_size,
+    num_overview_cuts,
+    num_inner_cuts,
+    inner_cut_size_power,
+    cut_gray_portion,
+    use_augmentations,
+):
+    """
+    對目前生成圖片做cutout
+    """
+
+    cutouts = Cutouts(
+        cut_size=cut_size,
+        num_overview_cuts=num_overview_cuts,
+        num_inner_cuts=num_inner_cuts,
+        inner_cut_size_power=inner_cut_size_power,
+        cut_gray_portion=cut_gray_portion,
+        use_augmentations=use_augmentations,
+    )
+    cutout_images = cutouts(unnormalize_image_zero_to_one(input))
+    return embed_image(clip_model, cutout_images, use_clip_normalize=True)

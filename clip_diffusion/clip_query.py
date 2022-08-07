@@ -7,7 +7,7 @@ from PIL import Image
 from clip_retrieval.clip_client import ClipClient, Modality
 from clip_diffusion.text2image.config import Config
 from clip_diffusion.utils.dir_utils import make_dir
-from clip_diffusion.utils.functional import to_clip_image, tokenize, get_text_embedding, get_image_embedding
+from clip_diffusion.utils.functional import to_clip_image, tokenize, embed_text, embed_image
 
 
 class QueryClient:
@@ -107,8 +107,8 @@ class QueryClient:
 
         # 如果text和image_url都有值就透過embedding組合
         if text and image_url:
-            text_embedding = get_text_embedding(self._model, tokenize(text, Config.device), divided_by_norm=True)[0]
-            image_embedding = get_image_embedding(
+            text_embedding = embed_text(self._model, tokenize(text, Config.device), divided_by_norm=True)[0]
+            image_embedding = embed_image(
                 self._model,
                 to_clip_image(self._preprocess, self._fetch_image(image_url), Config.device),
                 use_clip_normalize=False,

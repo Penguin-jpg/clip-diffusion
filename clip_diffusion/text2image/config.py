@@ -32,9 +32,9 @@ class Config:
     # cutout相關
     num_cutout_batches = 4  # 要做的cutout次數
     # overview cutout的schedule，以1000當作基準，前200/1000個step會做14次cutout中間200/1000個step會做12次cutout，以此類推(建議一開始高，隨著過程逐漸降低)
-    overview_cut_schedule = create_schedule(values=(14, 12, 4, 0), steps=(200, 200, 400, 200))
+    num_overview_cuts_schedule = create_schedule(values=(14, 12, 4, 0), steps=(200, 200, 400, 200))
     # inner cutout的schedule(建議一開始低，隨著過程逐漸升高)
-    inner_cut_schedule = create_schedule(values=(2, 4, 2, 12), steps=(200, 200, 400, 200))
+    num_inner_cuts_schedule = create_schedule(values=(2, 4, 2, 12), steps=(200, 200, 400, 200))
     # 控制inner cutout大小的schedule(越高會讓inner cutout圖片大小越接近Clip的解析度)
     inner_cut_size_power_schedule = create_schedule(values=(5,), steps=(1000,))
     # 控制多少百分比的cut要取出做灰階化(建議剛開始高，隨著過程逐漸降低)

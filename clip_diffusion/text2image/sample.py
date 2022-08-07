@@ -5,7 +5,6 @@ import anvil
 import numpy as np
 from PIL import Image
 from ipywidgets import Output
-from IPython import display
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.text2image.config import Config
@@ -31,14 +30,13 @@ from clip_diffusion.utils.functional import (
     clear_gpu_cache,
     get_sample_function,
     get_sampler,
-    get_image_embedding,
     set_display_widget,
     display_image,
     ProgressBar,
     store_task_state,
     draw_index_on_grid_image,
 )
-from clip_diffusion.text2image.cutouts import Cutouts
+from clip_diffusion.text2image.cutouts import Cutouts, make_cutouts
 from clip_diffusion.text2image.loss import square_spherical_distance_loss, total_variational_loss, rgb_range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
@@ -175,17 +173,16 @@ def guided_diffusion_sample(
                     # 目前的diffusion timestep
                     current_diffusion_timestep = 1000 - total_diffusion_timesteps_minus_passed_timesteps
                     # 做cutouts
-                    cutouts = Cutouts(
-                        cut_size=clip_models[index].visual.input_resolution,  # 將輸入的圖片切成Clip model的輸入大小
-                        overview_cut=Config.overview_cut_schedule[current_diffusion_timestep],
-                        inner_cut=Config.inner_cut_schedule[current_diffusion_timestep],
+                    image_embeddings = make_cutouts(
+                        clip_model=clip_models[index],
+                        input=x_in,
+                        cut_size=clip_models[index].visual.input_resolution,
+                        num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_timestep],
+                        num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_timestep],
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                         use_augmentations=Config.use_augmentations,
                     )
-                    cutout_images = cutouts(unnormalize_image_zero_to_one(x_in))
-                    image_embeddings = get_image_embedding(clip_models[index], cutout_images, use_clip_normalize=True)
-
                     # 計算spherical distance loss
                     dists = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
@@ -194,8 +191,8 @@ def guided_diffusion_sample(
                     # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
                     dists = dists.view(
                         [
-                            Config.overview_cut_schedule[current_diffusion_timestep]
-                            + Config.inner_cut_schedule[current_diffusion_timestep],
+                            Config.num_overview_cuts_schedule[current_diffusion_timestep]
+                            + Config.num_inner_cuts_schedule[current_diffusion_timestep],
                             batch_size,
                             -1,
                         ]

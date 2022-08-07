@@ -1,6 +1,6 @@
 import torch
 from PIL import Image
-from clip_diffusion.utils.functional import tokenize, get_text_embedding
+from clip_diffusion.utils.functional import tokenize, embed_text
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
 from clip_diffusion.text2image.perlin import generate_perlin_noise
 
@@ -17,7 +17,7 @@ def get_embeddings_and_weights(prompt, clip_models, device=None):
             "text_embeddings": [],  # text的embedding
             "text_weights": [],  # text對應的權重
         }
-        text_embedding = get_text_embedding(clip_model, tokenize([prompt.text], device))  # 取得text embedding
+        text_embedding = embed_text(clip_model, tokenize([prompt.text], device))  # 取得text embedding
         embedding_and_weight["text_embeddings"].append(text_embedding)
         embedding_and_weight["text_weights"].append(prompt.weight)
 

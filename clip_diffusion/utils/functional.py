@@ -90,7 +90,7 @@ def to_clip_image(preprocess, image, device=None):
     return preprocess(image).unsqueeze(0).to(device)
 
 
-def get_text_embedding(clip_model, text, divided_by_norm=False):
+def embed_text(clip_model, text, divided_by_norm=False):
     """
     取得text embedding
     """
@@ -104,7 +104,7 @@ def get_text_embedding(clip_model, text, divided_by_norm=False):
     return text_embedding
 
 
-def get_image_embedding(clip_model, image, use_clip_normalize=True, divided_by_norm=False):
+def embed_image(clip_model, image, use_clip_normalize=True, divided_by_norm=False):
     """
     取得image embedding
     """
