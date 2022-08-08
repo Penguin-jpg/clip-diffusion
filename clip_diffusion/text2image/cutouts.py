@@ -5,12 +5,11 @@ from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
 from clip_diffusion.utils.image_utils import unnormalize_image_zero_to_one
-from clip_diffusion.utils.functional import embed_image
 
 # 作者： Dango233(https://github.com/Dango233)
 class Cutouts(nn.Module):
     """
-    在Clip引導時取出圖片(cutout)做處理，讓引導效果更好
+    由於只取單張圖片計算Clip loss時的效果不好，所以導入cutout增加圖片多樣性，讓引導效果更好
     overview cut: 取出整張圖片，有助於整體線條
     inner cut: 只取出圖片中指定大小的部分(crop)，有助於細節調整
     """
@@ -26,7 +25,7 @@ class Cutouts(nn.Module):
         super().__init__()
         self.cut_size = cut_size  # 要取的inner cut圖片大小(對應Clip模型的input resolution)
         self.num_overview_cuts = num_overview_cuts  # 要做的overview cut次數
-        self.num_inner_cuts = num_inner_cuts  # 要做的inner cut次數
+        self.num_inner_cuts = num_inner_cuts  # 要做的inner cut次數s
         self.inner_cut_size_power = inner_cut_size_power  # inner cut size的指數
         self.cut_gray_portion = cut_gray_portion  # 要做灰階化的cut比例
         self.augmentations = T.Compose(
@@ -38,7 +37,7 @@ class Cutouts(nn.Module):
                     translate=(0.05, 0.05),
                     interpolation=T.InterpolationMode.BILINEAR,
                 ),
-                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+                T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),  # 加入隨機的高斯雜訊
                 T.RandomGrayscale(p=0.1),
                 T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
                 T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
@@ -111,7 +110,6 @@ class Cutouts(nn.Module):
 
 
 def make_cutouts(
-    clip_model,
     input,
     cut_size,
     num_overview_cuts,
@@ -131,4 +129,4 @@ def make_cutouts(
         cut_gray_portion=cut_gray_portion,
     )
     cutout_images = cutouts(unnormalize_image_zero_to_one(input))
-    return embed_image(clip_model, cutout_images, use_clip_normalize=True)
+    return cutout_images

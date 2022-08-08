@@ -10,7 +10,7 @@ from torchvision.utils import make_grid
 from clip_diffusion.text2image.config import Config
 from clip_diffusion.text2image.prompt import Prompt
 from clip_diffusion.text2image.preprocessing import (
-    get_embeddings_and_weights,
+    get_text_embeddings_and_text_weights,
     create_init_noise,
     create_mask_tensor,
 )
@@ -29,6 +29,7 @@ from clip_diffusion.utils.functional import (
     set_seed,
     clear_gpu_cache,
     get_sample_function,
+    embed_image,
     get_sampler,
     set_display_widget,
     display_image,
@@ -120,7 +121,7 @@ def guided_diffusion_sample(
     set_seed(int(seed))
 
     # 取得prompt的embedding及weight
-    embeddings_and_weights = get_embeddings_and_weights(prompt, clip_models, Config.device)
+    text_embeddings, text_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, Config.device)
@@ -165,7 +166,7 @@ def guided_diffusion_sample(
                 x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
                 x_in_grad = torch.zeros_like(x_in)
 
-            for index, embedding_and_weight in enumerate(embeddings_and_weights):
+            for index, (text_embedding, text_weight) in enumerate(zip(text_embeddings, text_weights)):
                 for _ in range(Config.num_cutout_batches):
                     # 將t的值從tensor取出
                     # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
@@ -173,8 +174,7 @@ def guided_diffusion_sample(
                     # 目前的diffusion timestep
                     current_diffusion_timestep = 1000 - total_diffusion_timesteps_minus_passed_timesteps
                     # 做cutouts
-                    image_embeddings = make_cutouts(
-                        clip_model=clip_models[index],
+                    cutout_images = make_cutouts(
                         input=x_in,
                         cut_size=clip_models[index].visual.input_resolution,
                         num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_timestep],
@@ -182,10 +182,11 @@ def guided_diffusion_sample(
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                     )
-                    # 計算spherical distance loss
+                    image_embeddings = embed_image(clip_models[index], cutout_images, use_clip_normalize=True)
+                    # 計算square spherical distance loss
                     dists = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
-                        embedding_and_weight["text_embeddings"].unsqueeze(0),
+                        text_embedding.unsqueeze(0),
                     )
                     # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
                     dists = dists.view(
@@ -196,8 +197,9 @@ def guided_diffusion_sample(
                             -1,
                         ]
                     )
+
                     # 對最後一個維度取平均
-                    dist_loss = dists.mul(embedding_and_weight["text_weights"]).sum(dim=2).mean(dim=0)
+                    dist_loss = dists.mul(text_weight).sum(dim=2).mean(dim=0)
                     losses.append(dist_loss.sum().item())
                     x_in_grad += torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
 
