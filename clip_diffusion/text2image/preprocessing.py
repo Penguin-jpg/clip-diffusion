@@ -2,7 +2,6 @@ import torch
 from PIL import Image
 from clip_diffusion.utils.functional import tokenize, embed_text
 from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
-from clip_diffusion.text2image.perlin import generate_perlin_noise
 
 
 def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
@@ -26,9 +25,9 @@ def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
     return text_embeddings, text_weights
 
 
-def create_init_noise(init_image=None, resize_shape=None, use_perlin=False, perlin_mode="mixed", device=None):
+def create_init_noise(init_image=None, resize_shape=None, device=None):
     """
-    建立初始雜訊(init_image或perlin noise只能擇一)
+    建立初始雜訊
     """
 
     init_noise = None  # 初始雜訊
@@ -39,8 +38,6 @@ def create_init_noise(init_image=None, resize_shape=None, use_perlin=False, perl
         image = image.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
         image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
         init_noise = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
-    elif use_perlin:  # 使用perlin noise
-        init_noise = generate_perlin_noise(perlin_mode, device)
 
     return init_noise
 

@@ -61,8 +61,6 @@ def guided_diffusion_sample(
     num_modifiers=1,
     seed=None,
     init_image=None,
-    use_perlin=False,
-    perlin_mode="mixed",
     sample_mode="ddim",
     auto_parameters={},
     steps=200,
@@ -81,8 +79,6 @@ def guided_diffusion_sample(
     num_modifiers: 補上的修飾詞數量
     seed: 生成種子
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
-    use_perlin: 是否要使用perlin noise
-    perlin_mode: 使用的perlin noise模式
     sample_mode: 使用的sample模式(ddim, plms)
     auto_parameters: 需要自動調整的參數
     steps: 每個batch要跑的step數
@@ -124,7 +120,7 @@ def guided_diffusion_sample(
     text_embeddings, text_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, (Config.width, Config.height), use_perlin, perlin_mode, Config.device)
+    init = create_init_noise(init_image, (Config.width, Config.height), Config.device)
 
     losses = []
     current_timestep = None  # 目前的timestep
@@ -253,10 +249,6 @@ def guided_diffusion_sample(
 
         # 將目前timestep的值初始化為總timestep數-1
         current_timestep = diffusion.num_timesteps - skip_timesteps - 1
-
-        # 如果使用perlin noise，要記得每個batch都重新生成一次初始雜訊
-        if use_perlin:
-            init = create_init_noise(None, None, use_perlin, perlin_mode, Config.device)
 
         # 根據sample_mode選擇`sample_function
         sample_function = get_sample_function(diffusion, mode=sample_mode)
