@@ -204,13 +204,13 @@ def guided_diffusion_sample(
 
             # 計算rgb range loss
             if Config.use_secondary_model:
-                range_losses = rgb_range_loss(out)
+                range_loss = rgb_range_loss(out)
             else:
-                range_losses = rgb_range_loss(out["pred_xstart"])
+                range_loss = rgb_range_loss(out["pred_xstart"])
 
             # 計算saturation loss(計算超出-1到1範圍的絕對值差平均)
             sat_loss = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = tv_loss.sum() * Config.tv_scale + range_losses.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
+            loss = tv_loss.sum() * Config.tv_scale + range_loss.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
 
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
