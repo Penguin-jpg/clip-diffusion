@@ -1,3 +1,4 @@
+from turtle import forward
 import torch
 import math
 import os
@@ -16,6 +17,11 @@ _SECONDARY_MODEL_URL = "https://the-eye.eu/public/AI/models/v-diffusion/secondar
 _LATENT_DIFFUSION_MODEL_URL = "https://huggingface.co/multimodalart/compvis-latent-diffusion-text2img-large/resolve/main/txt2img-f8-large-jack000-finetuned-fp16.ckpt"
 _REAL_ESRGAN_X4_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 _REAL_ESRGAN_X2_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth"
+_AESTHETIC_PREDICTOR_URLS = {
+    "ViT-B/32": "https://github.com/LAION-AI/aesthetic-predictor/raw/main/sa_0_4_vit_b_32_linear.pth",
+    "ViT-B/16": "https://github.com/LAION-AI/aesthetic-predictor/raw/main/sa_0_4_vit_b_16_linear.pth",
+    "ViT-L/14": "https://github.com/LAION-AI/aesthetic-predictor/raw/main/sa_0_4_vit_l_14_linear.pth",
+}
 
 # 模型名稱
 _GUIDED_DIFFUSION_MODEL_NAME = "512x512_diffusion_uncond_finetune_008100.pt"
@@ -23,6 +29,18 @@ _SECONDARY_MODEL_NAME = "secondary_model_imagenet_2.pth"
 _LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"
 _REAL_ESRGAN_X4_MODEL_NAME = "RealESRGAN_x4plus.pth"
 _REAL_ESRGAN_X2_MODEL_NAME = "RealESRGAN_x2plus.pth"
+_AESTHETIC_PREDICTOR_NAMES = {
+    "ViT-B/32": "sa_0_4_vit_b_32_linear.pth",
+    "ViT-B/16": "sa_0_4_vit_b_16_linear.pth",
+    "ViT-L/14": "sa_0_4_vit_l_14_linear.pth",
+}
+
+# Clip與對應維度
+_CLIP_DIMS = {
+    "ViT-B/32": 512,
+    "ViT-B/16": 512,
+    "ViT-L/14": 768,
+}
 
 
 # 參考並修改自：https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
@@ -429,6 +447,36 @@ def load_sentence_transformer(model_name, device=None):
     from sentence_transformers import SentenceTransformer
 
     model = SentenceTransformer(model_name)
+    _to_eval_and_freeze_layers(model, False, device)
+    clear_gpu_cache()
+    return model
+
+
+class AestheticPredictor(nn.Module):
+    """
+    在Clip之上加一層linear
+    """
+
+    def __init__(self, input_dim):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, 1)
+
+    def forward(self, input):
+        return self.linear(input)
+
+
+def load_aesthetic_predictor(model_name, device=None):
+    """
+    載入指定的aesthetic predictor
+    """
+
+    input_dim = _CLIP_DIMS[model_name]
+    model = AestheticPredictor(input_dim)
+    model.load_state_dict(
+        torch.load(
+            _download_model(_AESTHETIC_PREDICTOR_URLS[model_name], _AESTHETIC_PREDICTOR_NAMES[model_name]), map_location="cpu"
+        )
+    )
     _to_eval_and_freeze_layers(model, False, device)
     clear_gpu_cache()
     return model
