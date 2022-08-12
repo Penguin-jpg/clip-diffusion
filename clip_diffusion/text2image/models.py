@@ -64,25 +64,23 @@ def _to_eval_and_freeze_layers(model, half=False, device=None):
     model.eval().requires_grad_(False).to(device)
 
 
-def load_clip_models_and_preprocessings(chosen_models, device=None):
+def load_clip_models(chosen_models, device=None):
     """
-    選擇並載入要使用的Clip模型和preprocess function
+    選擇並載入要使用的Clip模型
     """
 
     import clip
 
     models = []
-    preprocessings = []
 
     for model_name in chosen_models:
-        model, preprocess = clip.load(model_name, device=device)
+        model, _ = clip.load(model_name, device=device)
         _to_eval_and_freeze_layers(model, False, device)
         models.append(model)
-        preprocessings.append(preprocess)
 
     clear_gpu_cache()
 
-    return models, preprocessings
+    return models
 
 
 def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoint=True, use_fp16=True, device=None):

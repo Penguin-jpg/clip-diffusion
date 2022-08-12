@@ -107,12 +107,12 @@ class QueryClient:
 
         # 如果text和image_url都有值就透過embedding組合
         if text and image_url:
-            text_embedding = embed_text(self._model, tokenize(text, Config.device), divided_by_norm=True)[0]
+            text_embedding = embed_text(self._model, tokenize(text, Config.device), normalize=True)[0]
             image_embedding = embed_image(
                 self._model,
                 to_clip_image(self._preprocess, self._fetch_image(image_url), Config.device),
                 use_clip_normalize=False,
-                divided_by_norm=True,
+                normalize=True,
             )[0]
             results = self.client.query(embedding_input=self._merge_embeddings(text_embedding, image_embedding))
         else:

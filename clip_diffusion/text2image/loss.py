@@ -1,14 +1,7 @@
 from torch.nn import functional as F
+from clip_diffusion.utils.functional import L2_norm
 
 # 來源：https://colab.research.google.com/drive/1QBsaDAZv8np29FPbvjffbE1eytoJcsgA#scrollTo=YHOj78Yvx8jP
-
-
-def L2_norm(input, dim=-1):
-    """
-    對input的dim做L2 norm
-    """
-
-    return F.normalize(input, dim=dim)
 
 
 def square_spherical_distance_loss(x, y):

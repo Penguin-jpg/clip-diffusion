@@ -5,13 +5,22 @@ import gc
 import torch
 import anvil.server
 import os
+from torch.nn import functional as F
 from torchvision import transforms as T
 from tqdm.notebook import trange
 from IPython import display
 from PIL import ImageFont, ImageDraw
 
-# Clip用到的normalize
-CLIP_NORMALIZE = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+# Clip用到的preprocess
+CLIP_NORMALIZE = (T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711)),)
+CLIP_PREPROCESS = T.Compose(
+    [
+        T.Resize(224, T.InterpolationMode.LANCZOS),
+        T.CenterCrop(224),
+        T.ToTensor(),
+        CLIP_NORMALIZE,
+    ]
+)
 _INT_MAX = 2**32
 
 
@@ -71,6 +80,14 @@ def tensor_to_numpy(tensor):
     return np.array(tensor.cpu().detach().numpy())
 
 
+def L2_norm(input, dim=-1):
+    """
+    對input的dim做L2 norm
+    """
+
+    return F.normalize(input, dim=dim)
+
+
 def tokenize(text, device=None):
     """
     將text tokenize成clip需要的格式
@@ -82,15 +99,15 @@ def tokenize(text, device=None):
     return clip.tokenize(text).to(device)
 
 
-def to_clip_image(preprocess, image, device=None):
+def to_clip_image(image, device=None):
     """
     預設的Clip圖片處理方式
     """
 
-    return preprocess(image).unsqueeze(0).to(device)
+    return CLIP_PREPROCESS(image).unsqueeze(0).to(device)
 
 
-def embed_text(clip_model, text, divided_by_norm=False):
+def embed_text(clip_model, text, normalize=False):
     """
     取得text embedding
     """
@@ -98,25 +115,25 @@ def embed_text(clip_model, text, divided_by_norm=False):
     text_embedding = clip_model.encode_text(text).float()
 
     # 不考慮維度，只保留特徵
-    if divided_by_norm:
-        text_embedding /= text_embedding.norm(dim=-1, keepdim=True)
+    if normalize:
+        text_embedding = L2_norm(text_embedding, dim=-1)
 
     return text_embedding
 
 
-def embed_image(clip_model, image, use_clip_normalize=True, divided_by_norm=False):
+def embed_image(clip_model, image, clip_normalize=True, normalize=False):
     """
     取得image embedding
     """
 
-    if use_clip_normalize:
+    if clip_normalize:
         image = CLIP_NORMALIZE(image)
 
     image_embedding = clip_model.encode_image(image).float()
 
     # 不考慮維度，只保留特徵
-    if divided_by_norm:
-        image_embedding /= image_embedding.norm(dim=-1, keepdim=True)
+    if normalize:
+        image_embedding = L2_norm(image_embedding, dim=-1)
 
     return image_embedding
 

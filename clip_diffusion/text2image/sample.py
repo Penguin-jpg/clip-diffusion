@@ -15,7 +15,7 @@ from clip_diffusion.text2image.preprocessing import (
     create_mask_tensor,
 )
 from clip_diffusion.text2image.models import (
-    load_clip_models_and_preprocessings,
+    load_clip_models,
     load_guided_diffusion_model,
     load_secondary_model,
     alpha_sigma_to_t,
@@ -37,7 +37,7 @@ from clip_diffusion.utils.functional import (
     store_task_state,
     draw_index_on_grid_image,
 )
-from clip_diffusion.text2image.cutouts import Cutouts, make_cutouts
+from clip_diffusion.text2image.cutouts import make_cutouts
 from clip_diffusion.text2image.loss import square_spherical_distance_loss, total_variational_loss, rgb_range_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
@@ -48,7 +48,7 @@ from clip_diffusion.utils.image_utils import (
 )
 
 lpips_model = lpips.LPIPS(net="vgg").to(Config.device)
-clip_models, preprocessings = load_clip_models_and_preprocessings(Config.chosen_clip_models, Config.device)
+clip_models = load_clip_models(Config.chosen_clip_models, Config.device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
@@ -178,7 +178,7 @@ def guided_diffusion_sample(
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                     )
-                    image_embeddings = embed_image(clip_models[index], cutout_images, use_clip_normalize=True)
+                    image_embeddings = embed_image(clip_models[index], cutout_images, clip_normalize=True)
                     # 計算square spherical distance loss
                     dists = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),

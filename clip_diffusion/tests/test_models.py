@@ -3,7 +3,7 @@ from torch import nn
 from realesrgan.utils import RealESRGANer
 from clip_diffusion.text2image.config import Config
 from clip_diffusion.text2image.models import (
-    load_clip_models_and_preprocessings,
+    load_clip_models,
     load_guided_diffusion_model,
     load_secondary_model,
     load_latent_diffusion_model,
@@ -18,7 +18,7 @@ def test_clip_models():
     測試clip_models是否正常載入
     """
 
-    models, _ = load_clip_models_and_preprocessings(Config.chosen_clip_models, device)
+    models, _ = load_clip_models(Config.chosen_clip_models, device)
     for model in models:
         assert isinstance(model, nn.Module), "failed to loading clip model"
 
