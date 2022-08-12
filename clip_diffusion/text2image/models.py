@@ -18,9 +18,9 @@ _LATENT_DIFFUSION_MODEL_URL = "https://huggingface.co/multimodalart/compvis-late
 _REAL_ESRGAN_X4_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 _REAL_ESRGAN_X2_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth"
 _AESTHETIC_PREDICTOR_URLS = {
-    "ViT-B/32": "https://github.com/LAION-AI/aesthetic-predictor/raw/main/sa_0_4_vit_b_32_linear.pth",
-    "ViT-B/16": "https://github.com/LAION-AI/aesthetic-predictor/raw/main/sa_0_4_vit_b_16_linear.pth",
-    "ViT-L/14": "https://github.com/LAION-AI/aesthetic-predictor/raw/main/sa_0_4_vit_l_14_linear.pth",
+    "ViT-B/32": "https://github.com/crowsonkb/simulacra-aesthetic-models/raw/master/models/sac_public_2022_06_29_vit_b_32_linear.pth",
+    "ViT-B/16": "https://github.com/crowsonkb/simulacra-aesthetic-models/raw/master/models/sac_public_2022_06_29_vit_b_16_linear.pth",
+    "ViT-L/14": "https://github.com/crowsonkb/simulacra-aesthetic-models/raw/master/models/sac_public_2022_06_29_vit_l_14_linear.pth",
 }
 
 # 模型名稱
@@ -30,9 +30,9 @@ _LATENT_DIFFUSION_MODEL_NAME = "txt2img-f8-large-jack000-finetuned-fp16.ckpt"
 _REAL_ESRGAN_X4_MODEL_NAME = "RealESRGAN_x4plus.pth"
 _REAL_ESRGAN_X2_MODEL_NAME = "RealESRGAN_x2plus.pth"
 _AESTHETIC_PREDICTOR_NAMES = {
-    "ViT-B/32": "sa_0_4_vit_b_32_linear.pth",
-    "ViT-B/16": "sa_0_4_vit_b_16_linear.pth",
-    "ViT-L/14": "sa_0_4_vit_l_14_linear.pth",
+    "ViT-B/32": "sac_public_2022_06_29_vit_b_32_linear.pth",
+    "ViT-B/16": "sac_public_2022_06_29_vit_b_16_linear.pth",
+    "ViT-L/14": "sac_public_2022_06_29_vit_l_14_linear.pth",
 }
 
 # Clip與對應維度
