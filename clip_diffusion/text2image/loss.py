@@ -40,7 +40,7 @@ def aesthetic_loss(predictor, input):
 
     score_sum = 0
 
-    for i in input.shape[0]:
+    for i in range(input.shape[0]):
         score_sum += predictor(input[i].unsqueeze(0)).item()
 
     return score_sum / input.shape[0]

@@ -89,12 +89,12 @@ def load_clip_models(chosen_models, device=None):
 
     import clip
 
-    models = []
+    models = {}
 
     for model_name in chosen_models:
         model, _ = clip.load(model_name, device=device)
         _to_eval_and_freeze_layers(model, False, device)
-        models.append(model)
+        models[model_name] = model
 
     clear_gpu_cache()
 

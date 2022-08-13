@@ -119,7 +119,7 @@ def guided_diffusion_sample(
     set_seed(int(seed))
 
     # 取得prompt的embedding及weight
-    text_embeddings, text_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
+    text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
 
     # 建立初始雜訊
     init = create_init_noise(init_image, (Config.width, Config.height), Config.device)
@@ -166,7 +166,7 @@ def guided_diffusion_sample(
 
             aesthetic_scores = []
 
-            for index, (text_embedding, text_weight) in enumerate(zip(text_embeddings, text_weights)):
+            for clip_model_name, clip_model in clip_models.items():
                 for _ in range(Config.num_cutout_batches):
                     # 將t的值從tensor取出
                     # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
@@ -176,25 +176,17 @@ def guided_diffusion_sample(
                     # 做cutouts
                     cutout_images = make_cutouts(
                         input=x_in,
-                        cut_size=clip_models[index].visual.input_resolution,
+                        cut_size=clip_model.visual.input_resolution,
                         num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_timestep],
                         num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_timestep],
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                     )
-                    image_embeddings = embed_image(clip_models[index], cutout_images, clip_normalize=True)
-                    aesthetic_scores.append(
-                        torch.tensor(
-                            aesthetic_loss(aesthetic_predictor, image_embeddings),
-                            dtype=torch.float,
-                            requires_grad=True,
-                            device=Config.device,
-                        )
-                    )
+                    image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
                     # 計算square spherical distance loss
                     dists = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
-                        text_embedding.unsqueeze(0),
+                        text_embeddings_and_weights["embeddings"].unsqueeze(0),
                     )
                     # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
                     dists = dists.view(
@@ -207,14 +199,9 @@ def guided_diffusion_sample(
                     )
 
                     # 對最後一個維度取平均
-                    dist_loss = dists.mul(text_weight).sum(dim=2).mean(dim=0)
+                    dist_loss = dists.mul(text_embeddings_and_weights["weights"]).sum(dim=2).mean(dim=0)
                     losses.append(dist_loss.sum().item())
                     x_in_grad += torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
-
-            # 計算aesthetic loss
-            aesthetic_scores = torch.cat(aesthetic_scores)
-            aes_loss = aesthetic_scores.pow(2).mean(dim=0)
-            loss = aes_loss.sum() * Config.aesthetic_scale
 
             # 計算total variational loss
             tv_loss = total_variational_loss(x_in)

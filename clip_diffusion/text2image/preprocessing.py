@@ -9,20 +9,19 @@ def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
     取得prompt的embedding及weight
     """
 
-    text_embeddings = []  # text的embedding
-    text_weights = []  # text對應的權重
+    text_embeddings_and_weights = {}
 
-    for clip_model in clip_models:
-        text_embedding = embed_text(clip_model, tokenize([prompt.text], device))
-        text_weight = torch.tensor(prompt.weight, device=device)
-        text_embeddings.append(text_embedding)
-        text_weights.append(text_weight)
+    for clip_model_name, clip_model in clip_models.items():
+        # text的embedding和權重
+        text_embeddings_and_weights[clip_model_name] = {}
+        text_embeddings_and_weights[clip_model_name]["embeddings"] = embed_text(clip_model, tokenize([prompt.text], device))
+        text_embeddings_and_weights[clip_model_name]["weights"] = torch.tensor(prompt.weight, device=device)
 
         # 權重和不可為0
-        if text_weight.item() < 1e-3:
+        if text_embeddings_and_weights[clip_model_name]["weights"].item() < 1e-3:
             raise RuntimeError("The text_weights must not sum to 0.")
 
-    return text_embeddings, text_weights
+    return text_embeddings_and_weights
 
 
 def create_init_noise(init_image=None, resize_shape=None, device=None):
