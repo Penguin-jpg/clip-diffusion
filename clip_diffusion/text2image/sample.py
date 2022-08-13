@@ -21,6 +21,7 @@ from clip_diffusion.text2image.models import (
     alpha_sigma_to_t,
     load_latent_diffusion_model,
     load_real_esrgan_upsampler,
+    load_aesthetic_predictor,
 )
 from clip_diffusion.utils.functional import (
     random_seed,
@@ -38,7 +39,7 @@ from clip_diffusion.utils.functional import (
     draw_index_on_grid_image,
 )
 from clip_diffusion.text2image.cutouts import make_cutouts
-from clip_diffusion.text2image.loss import square_spherical_distance_loss, total_variational_loss, rgb_range_loss
+from clip_diffusion.text2image.loss import square_spherical_distance_loss, total_variational_loss, rgb_range_loss, aesthetic_loss
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
     unnormalize_image_zero_to_one,
@@ -52,6 +53,7 @@ clip_models = load_clip_models(Config.chosen_clip_models, Config.device)
 secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
+aesthetic_predictor = load_aesthetic_predictor("ViT-L/14", Config.device)
 
 # 參考並修改自：disco diffusion
 @anvil.server.background_task
@@ -162,6 +164,8 @@ def guided_diffusion_sample(
                 x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
                 x_in_grad = torch.zeros_like(x_in)
 
+            aesthetic_scores = []
+
             for index, (text_embedding, text_weight) in enumerate(zip(text_embeddings, text_weights)):
                 for _ in range(Config.num_cutout_batches):
                     # 將t的值從tensor取出
@@ -179,6 +183,14 @@ def guided_diffusion_sample(
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                     )
                     image_embeddings = embed_image(clip_models[index], cutout_images, clip_normalize=True)
+                    aesthetic_scores.append(
+                        torch.tensor(
+                            aesthetic_loss(aesthetic_predictor, image_embeddings),
+                            dtype=torch.float,
+                            requires_grad=True,
+                            device=Config.device,
+                        )
+                    )
                     # 計算square spherical distance loss
                     dists = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
@@ -199,6 +211,11 @@ def guided_diffusion_sample(
                     losses.append(dist_loss.sum().item())
                     x_in_grad += torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
 
+            # 計算aesthetic loss
+            aesthetic_scores = torch.cat(aesthetic_scores)
+            aes_loss = aesthetic_scores.pow(2).mean(dim=0)
+            loss = aes_loss.sum() * Config.aesthetic_scale
+
             # 計算total variational loss
             tv_loss = total_variational_loss(x_in)
 
@@ -210,7 +227,7 @@ def guided_diffusion_sample(
 
             # 計算saturation loss(計算超出-1到1範圍的絕對值差平均)
             sat_loss = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = tv_loss.sum() * Config.tv_scale + range_loss.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
+            loss += tv_loss.sum() * Config.tv_scale + range_loss.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
 
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:

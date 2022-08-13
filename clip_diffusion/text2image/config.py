@@ -51,6 +51,7 @@ class Config:
     tv_scale = 0  # 控制最後輸出的平滑程度
     range_scale = 150  # 控制允許超出多遠的RGB值
     sat_scale = 0  # 控制允許多少飽和
+    aesthetic_scale = 0  # 調整aesthetic loss影響程度
 
     @classmethod
     def change(
@@ -64,6 +65,7 @@ class Config:
         tv_scale=0,
         range_scale=150,
         sat_scale=0,
+        aesthetic_scale=0,
     ):
         """
         調整設定
@@ -78,3 +80,4 @@ class Config:
         cls.tv_scale = tv_scale
         cls.range_scale = range_scale
         cls.sat_scale = sat_scale
+        cls.aesthetic_scale = aesthetic_scale
