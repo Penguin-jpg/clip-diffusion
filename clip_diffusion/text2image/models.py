@@ -465,18 +465,24 @@ class AestheticPredictor(nn.Module):
         return self.linear(input)
 
 
-def load_aesthetic_predictor(model_name, device=None):
+def load_aesthetic_predictors(predictor_names, device=None):
     """
     載入指定的aesthetic predictor
     """
 
-    input_dim = _CLIP_DIMS[model_name]
-    model = AestheticPredictor(input_dim)
-    model.load_state_dict(
-        torch.load(
-            _download_model(_AESTHETIC_PREDICTOR_URLS[model_name], _AESTHETIC_PREDICTOR_NAMES[model_name]), map_location="cpu"
+    predictors = {}
+
+    for predictor_name in predictor_names:
+        input_dim = _CLIP_DIMS[predictor_name]
+        model = AestheticPredictor(input_dim)
+        model.load_state_dict(
+            torch.load(
+                _download_model(_AESTHETIC_PREDICTOR_URLS[predictor_name], _AESTHETIC_PREDICTOR_NAMES[predictor_name]),
+                map_location="cpu",
+            )
         )
-    )
-    _to_eval_and_freeze_layers(model, False, device)
-    clear_gpu_cache()
-    return model
+        _to_eval_and_freeze_layers(model, False, device)
+        predictors[predictor_name] = model
+        clear_gpu_cache()
+
+    return predictors

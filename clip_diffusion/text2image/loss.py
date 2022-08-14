@@ -38,9 +38,4 @@ def rgb_range_loss(input):
 def aesthetic_loss(predictor, input):
     """計算aesthetic score作為loss"""
 
-    score_sum = 0
-
-    for i in range(input.shape[0]):
-        score_sum += predictor(input[i].unsqueeze(0)).item()
-
-    return score_sum / input.shape[0]
+    return predictor(L2_norm(input, dim=-1)).mean()
