@@ -59,7 +59,7 @@ real_esrgan_upsampler = None
 @anvil.server.background_task
 def guided_diffusion_sample(
     prompt="A cute golden retriever.",
-    use_auto_modifiers=True,
+    use_auto_modifiers=False,
     num_modifiers=1,
     seed=None,
     init_image=None,
@@ -166,7 +166,7 @@ def guided_diffusion_sample(
 
             for clip_model_name, clip_model in clip_models.items():
                 for _ in range(Config.num_cutout_batches):
-                    aesthetic_scores = []  # aesthetic loss計算的值
+                    aesthetic_score = None  # aesthetic loss計算的值
                     # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
                     total_diffusion_timesteps_minus_passed_timesteps = int(t.item()) + 1
                     # 目前的diffusion timestep
@@ -183,7 +183,7 @@ def guided_diffusion_sample(
                     image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
 
                     if clip_model_name in aesthetic_predictors.keys():
-                        aesthetic_scores.append(aesthetic_loss(aesthetic_predictors[clip_model_name], input))
+                        aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)
 
                     # 計算square spherical distance loss
                     dists = square_spherical_distance_loss(
@@ -204,11 +204,10 @@ def guided_diffusion_sample(
                     dist_loss = dists.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
                     losses.append(dist_loss.sum().item())
 
-                    if aesthetic_scores:
-                        aesthetic_scores = torch.cat(aesthetic_scores)
+                    if aesthetic_score is not None:
                         x_in_grad += (
                             torch.autograd.grad(
-                                dist_loss.sum() * clip_guidance_scale + aesthetic_scores.sum() * Config.aesthetic_scale, x_in
+                                dist_loss.sum() * clip_guidance_scale + aesthetic_score * Config.aesthetic_scale, x_in
                             )[0]
                             / Config.num_cutout_batches
                         )
