@@ -207,7 +207,7 @@ def guided_diffusion_sample(
                     if aesthetic_score is not None:
                         x_in_grad += (
                             torch.autograd.grad(
-                                dist_loss.sum() * clip_guidance_scale + aesthetic_score * Config.aesthetic_scale, x_in
+                                dist_loss.sum() * clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
                             )[0]
                             / Config.num_cutout_batches
                         )
