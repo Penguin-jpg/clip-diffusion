@@ -43,6 +43,7 @@ class Config:
     # model相關
     use_secondary_model = True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
     chosen_clip_models = ("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101")  # 要選擇的Clip模型
+    chosen_predictors = ("ViT-B/32", "ViT-B/16", "ViT-L/14")  # 要選擇的aesthetic predictor
 
     # 梯度相關
     clamp_max = 0.05  # 限制的最大梯度(越高顏色會越明亮、增加對比與細節，但同時會提高出現極端結果的可能)
@@ -51,6 +52,7 @@ class Config:
     tv_scale = 0  # 控制最後輸出的平滑程度
     range_scale = 150  # 控制允許超出多遠的RGB值
     sat_scale = 0  # 控制允許多少飽和
+    aesthetic_scale = 0  # 調整aesthetic loss影響程度
 
     @classmethod
     def change(
@@ -60,10 +62,12 @@ class Config:
         num_cutout_batches=4,
         use_secondary_model=True,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
+        chosen_predictors=("ViT-B/32", "ViT-B/16", "ViT-L/14"),
         clamp_max=0.05,
         tv_scale=0,
         range_scale=150,
         sat_scale=0,
+        aesthetic_scale=0,
     ):
         """
         調整設定
@@ -74,7 +78,9 @@ class Config:
         cls.num_cutout_batches = num_cutout_batches
         cls.use_secondary_model = use_secondary_model
         cls.chosen_clip_models = chosen_clip_models
+        cls.chosen_predictors = chosen_predictors
         cls.clamp_max = clamp_max
         cls.tv_scale = tv_scale
         cls.range_scale = range_scale
         cls.sat_scale = sat_scale
+        cls.aesthetic_scale = aesthetic_scale

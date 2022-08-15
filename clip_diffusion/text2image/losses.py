@@ -33,3 +33,9 @@ def rgb_range_loss(input):
     # 由於輸入模型內的圖像必須在-1到1之間，但計算過程中是有可能超出範圍的，
     # 透過計算這個loss來告訴模型把值拉回正常範圍
     return (input - input.clamp(min=-1, max=1)).pow(2).mean([1, 2, 3])
+
+
+def aesthetic_loss(predictor, input):
+    """計算aesthetic score作為loss"""
+
+    return predictor(L2_norm(input, dim=-1)).mean()
