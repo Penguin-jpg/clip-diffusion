@@ -39,7 +39,12 @@ from clip_diffusion.utils.functional import (
     draw_index_on_grid_image,
 )
 from clip_diffusion.text2image.cutouts import make_cutouts
-from clip_diffusion.text2image.loss import square_spherical_distance_loss, total_variational_loss, rgb_range_loss, aesthetic_loss
+from clip_diffusion.text2image.losses import (
+    square_spherical_distance_loss,
+    total_variational_loss,
+    rgb_range_loss,
+    aesthetic_loss,
+)
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
     unnormalize_image_zero_to_one,

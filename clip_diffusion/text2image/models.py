@@ -1,3 +1,4 @@
+from turtle import forward
 import torch
 import math
 import os
@@ -19,7 +20,7 @@ _REAL_ESRGAN_X2_MODEL_URL = "https://github.com/xinntao/Real-ESRGAN/releases/dow
 _AESTHETIC_PREDICTOR_URLS = {
     "ViT-B/32": "https://github.com/crowsonkb/simulacra-aesthetic-models/raw/master/models/sac_public_2022_06_29_vit_b_32_linear.pth",
     "ViT-B/16": "https://github.com/crowsonkb/simulacra-aesthetic-models/raw/master/models/sac_public_2022_06_29_vit_b_16_linear.pth",
-    "ViT-L/14": "https://github.com/crowsonkb/simulacra-aesthetic-models/raw/master/models/sac_public_2022_06_29_vit_l_14_linear.pth",
+    "ViT-L/14": "https://github.com/christophschuhmann/improved-aesthetic-predictor/raw/main/sac%2Blogos%2Bava1-l14-linearMSE.pth",
 }
 
 # 模型名稱
@@ -31,7 +32,7 @@ _REAL_ESRGAN_X2_MODEL_NAME = "RealESRGAN_x2plus.pth"
 _AESTHETIC_PREDICTOR_NAMES = {
     "ViT-B/32": "sac_public_2022_06_29_vit_b_32_linear.pth",
     "ViT-B/16": "sac_public_2022_06_29_vit_b_16_linear.pth",
-    "ViT-L/14": "sac_public_2022_06_29_vit_l_14_linear.pth",
+    "ViT-L/14": "sac+logos+ava1-l14-linearMSE.pth",
 }
 
 # Clip與對應維度
@@ -451,7 +452,7 @@ def load_sentence_transformer(model_name, device=None):
     return model
 
 
-class AestheticPredictor(nn.Module):
+class LinearAestheticPredictor(nn.Module):
     """
     在Clip之上加一層linear
     """
@@ -464,6 +465,29 @@ class AestheticPredictor(nn.Module):
         return self.linear(input)
 
 
+# 修改自：https://github.com/christophschuhmann/improved-aesthetic-predictor
+class MLPAestheticPredictor(nn.Module):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(input_dim, 1024),
+            # nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(1024, 128),
+            # nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 64),
+            # nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(64, 16),
+            # nn.ReLU(),
+            nn.Linear(16, 1),
+        )
+
+    def forward(self, input):
+        return self.layers(input)
+
+
 def load_aesthetic_predictors(predictor_names, device=None):
     """
     載入指定的aesthetic predictor
@@ -473,7 +497,11 @@ def load_aesthetic_predictors(predictor_names, device=None):
 
     for predictor_name in predictor_names:
         input_dim = _CLIP_DIMS[predictor_name]
-        model = AestheticPredictor(input_dim)
+        if input_dim == 768:
+            model = MLPAestheticPredictor(input_dim)
+        else:
+            model = LinearAestheticPredictor(input_dim)
+
         model.load_state_dict(
             torch.load(
                 _download_model(_AESTHETIC_PREDICTOR_URLS[predictor_name], _AESTHETIC_PREDICTOR_NAMES[predictor_name]),
