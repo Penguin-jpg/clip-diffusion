@@ -39,7 +39,7 @@ def change_settings(width, height, use_secondary_model):
     Config.change(width=width, height=height, use_secondary_model=use_secondary_model)
 
 
-@anvil.server.callabe
+@anvil.server.callable
 def get_random_prompt(prompt_type):
     """
     回傳隨機的prompt給anvil
