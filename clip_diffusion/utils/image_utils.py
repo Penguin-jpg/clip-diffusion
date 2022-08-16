@@ -110,7 +110,7 @@ def get_image_from_bytes(image_bytes):
     """
     透過io.BytesIO讀取圖片的bytes再轉成Image
     """
-    return Image.open(io.BytesIO(image_bytes))
+    return Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
 
 def _image_to_bytes(image_path):
