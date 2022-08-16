@@ -7,6 +7,7 @@ from clip_diffusion.utils.dir_utils import CSV_PATH, INDEX_PATH, OUTPUT_PATH
 from clip_diffusion.utils.functional import random_seed, to_clip_image, embed_image
 from clip_diffusion.text2image.prompt import Prompt
 from clip_diffusion.utils.image_utils import image_to_blob_media, get_image_from_bytes
+from clip_diffusion.text2image.sample import clip_models
 
 styles_df = pd.read_csv(os.path.join(CSV_PATH, "styles.csv"))
 media_df = pd.read_csv(os.path.join(CSV_PATH, "media.csv"))
@@ -72,13 +73,13 @@ def analyze_image(image):
 
     for clip_model_name, clip_model in clip_models.items():
         image_embedding = embed_image(clip_model, image, False, True)
-        style_similarities, style_indices = get_topk_results(styles_indices[clip_model_name], image_embedding, 5)
-        media_similarities, media_indices = get_topk_results(media_indices[clip_model_name], image_embedding, 5)
+        style_similarities, s_indices = get_topk_results(styles_indices[clip_model_name], image_embedding, 2)
+        media_similarities, m_indices = get_topk_results(media_indices[clip_model_name], image_embedding, 2)
         results[clip_model_name] = {
             "style_similarities": style_similarities[0].tolist(),
-            "style_indices": [styles_df.iloc[index] for index in style_indices[0].tolist()],
+            "styles": [styles_df.iloc[index]["style"] for index in s_indices[0].tolist()],
             "media_similarities": media_similarities[0].tolist(),
-            "media_indices": [media_df.iloc[index] for index in media_indices[0].tolist()],
+            "media": [media_df.iloc[index]["medium"] for index in m_indices[0].tolist()],
         }
 
     return results
