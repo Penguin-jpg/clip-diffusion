@@ -25,18 +25,8 @@ _prompt_types = {
 }  # 可用的隨機prompt類型
 # index對應的dataframe
 keywords_df = pd.read_csv(os.path.abspath(os.path.join(CSV_PATH, "prompt_keywords.csv")))
-styles_df = pd.read_csv(os.path.join(CSV_PATH, "styles.csv"))
-media_df = pd.read_csv(os.path.join(CSV_PATH, "media.csv"))
 # index
 keywords_index = load_faiss_index(os.path.abspath(os.path.join(INDEX_PATH, "embeddings.index")))
-styles_indices = {
-    clip_model_name: load_faiss_index(os.path.join(INDEX_PATH, f"{clip_model_name.replace('/', '_')}_style_embeddings.index"))
-    for clip_model_name in Config.chosen_clip_models
-}
-media_indices = {
-    clip_model_name: load_faiss_index(os.path.join(INDEX_PATH, f"{clip_model_name.replace('/', '_')}_media_embeddings.index"))
-    for clip_model_name in Config.chosen_clip_models
-}
 
 
 class Prompt:
