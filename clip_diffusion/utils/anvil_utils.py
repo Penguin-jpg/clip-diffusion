@@ -62,7 +62,7 @@ def get_chosen_image(choice):
 @anvil.server.callable
 def analyze_image(image):
     """
-    分析圖片風格與媒介並回傳
+    分析圖片風格與媒介並回傳相似度前三高的
     """
 
     global clip_models
@@ -71,15 +71,15 @@ def analyze_image(image):
     image = to_clip_image(image, Config.device)
     results = {}
 
-    for clip_model_name, clip_model in clip_models.items():
-        image_embedding = embed_image(clip_model, image, False, True)
-        style_similarities, s_indices = get_topk_results(styles_indices[clip_model_name], image_embedding, 2)
-        media_similarities, m_indices = get_topk_results(media_indices[clip_model_name], image_embedding, 2)
+    for clip_model_name in ("ViT-B/16", "ViT-L/14"):
+        image_embedding = embed_image(clip_models[clip_model_name], image, False, True)
+        s_similarities, s_indices = get_topk_results(styles_indices[clip_model_name], image_embedding, 3)
+        m_similarities, m_indices = get_topk_results(media_indices[clip_model_name], image_embedding, 3)
         results[clip_model_name] = {
-            "style_similarities": style_similarities[0].tolist(),
-            "styles": [styles_df.iloc[index]["style"] for index in s_indices[0].tolist()],
-            "media_similarities": media_similarities[0].tolist(),
-            "media": [media_df.iloc[index]["medium"] for index in m_indices[0].tolist()],
+            "style_similarities": [f"{value:.2%}" for value in s_similarities[0]],
+            "styles": [styles_df.iloc[index]["style"] for index in s_indices[0]],
+            "media_similarities": [f"{value:.2%}" for value in m_similarities[0]],
+            "media": [media_df.iloc[index]["medium"] for index in m_indices[0]],
         }
 
     return results
