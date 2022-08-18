@@ -1,6 +1,5 @@
 import sys
 import subprocess
-import os
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH, MODEL_PATH
 
 
@@ -9,38 +8,32 @@ class ColabHelper:
     幫忙包裝、簡化anvil和colab準備工作
     """
 
-    def __init__(self, mode="generation"):
+    def __init__(self):
         """
-        mode: helper會根據選擇的模式來安裝dependency(generation, clip_query)
         uplink_key: anvil的uplink key(只在generation_mode需要)
         """
 
-        assert mode in ("generation", "clip_query"), "unsupported mode"
+        repos = (
+            "https://github.com/openai/CLIP.git",
+            "https://github.com/crowsonkb/guided-diffusion.git",
+            "https://github.com/Penguin-jpg/latent-diffusion.git",
+            "https://github.com/Penguin-jpg/taming-transformers.git",
+            "https://github.com/xinntao/Real-ESRGAN.git",
+        )
+        repo_folders = (
+            "CLIP",
+            "guided-diffusion",
+            "latent-diffusion",
+            "taming-transformers",
+            "Real-ESRGAN",
+            "clip-diffusion",
+        )
 
-        if mode == "generation":
-            repos = (
-                "https://github.com/openai/CLIP.git",
-                "https://github.com/crowsonkb/guided-diffusion.git",
-                "https://github.com/Penguin-jpg/latent-diffusion.git",
-                "https://github.com/Penguin-jpg/taming-transformers.git",
-                "https://github.com/xinntao/Real-ESRGAN.git",
-            )
-            repo_folders = (
-                "CLIP",
-                "guided-diffusion",
-                "latent-diffusion",
-                "taming-transformers",
-                "Real-ESRGAN",
-                "clip-diffusion",
-            )
-
-            self._clone_dependencies(repos)
-            self._install_dependencies_from_repos(repo_folders)
-            self._append_paths(repo_folders)
-            make_dir(OUTPUT_PATH)
-            make_dir(MODEL_PATH)
-        else:
-            self._install_dependencies_from_requirements(os.path.join("clip-diffusion", "requirements", f"{mode}.txt"))
+        self._clone_dependencies(repos)
+        self._install_dependencies_from_repos(repo_folders)
+        self._append_paths(repo_folders)
+        make_dir(OUTPUT_PATH)
+        make_dir(MODEL_PATH)
 
     def _clone_dependencies(self, repos):
         """
