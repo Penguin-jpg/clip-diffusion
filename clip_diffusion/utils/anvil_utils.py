@@ -65,8 +65,6 @@ def analyze_image(image):
     分析圖片風格與媒介並回傳相似度前三高的
     """
 
-    global clip_models
-
     image = get_image_from_bytes(image.get_bytes())
     image = to_clip_image(image, Config.device)
     results = {}
@@ -76,10 +74,8 @@ def analyze_image(image):
         s_similarities, s_indices = get_topk_results(styles_indices[clip_model_name], image_embedding, 3)
         m_similarities, m_indices = get_topk_results(media_indices[clip_model_name], image_embedding, 3)
         results[clip_model_name] = {
-            "style_similarities": [f"{value:.2%}" for value in s_similarities[0]],
-            "styles": [styles_df.iloc[index]["style"] for index in s_indices[0]],
-            "media_similarities": [f"{value:.2%}" for value in m_similarities[0]],
-            "media": [media_df.iloc[index]["medium"] for index in m_indices[0]],
+            "styles": [(f"{value:.2%}", styles_df.iloc[index]["style"]) for value, index in zip(s_similarities[0], s_indices[0])],
+            "media": [(f"{value:.2%}", media_df.iloc[index]["medium"]) for value, index in zip(m_similarities[0], m_indices[0])],
         }
 
     return results
