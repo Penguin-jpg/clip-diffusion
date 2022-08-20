@@ -57,7 +57,10 @@ def _download_model(url, model_name):
         else:
             return str(download_target)
 
-    with request.urlopen(url) as source, open(download_target_tmp, "wb") as output:
+    opener = request.build_opener()
+    opener.addheaders = [("User-Agent", "Mozilla/5.0")]
+
+    with opener.open(url) as source, open(download_target_tmp, "wb") as output:
         with tqdm(total=int(source.info().get("Content-Length")), ncols=80) as loop:
             while True:
                 buffer = source.read(4096)
