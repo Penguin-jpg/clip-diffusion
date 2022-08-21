@@ -137,7 +137,6 @@ def guided_diffusion_sample(
         y: class
         """
         with torch.enable_grad():
-            x_is_NaN = False  # x是否為NaN
             x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
             batch_size = x.shape[0]
 
@@ -188,12 +187,12 @@ def guided_diffusion_sample(
                         aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)
 
                     # 計算square spherical distance loss
-                    dists = square_spherical_distance_loss(
+                    distances = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
                         text_embeddings_and_weights[clip_model_name]["embeddings"].unsqueeze(0),
                     )
                     # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
-                    dists = dists.view(
+                    distances = distances.view(
                         [
                             Config.num_overview_cuts_schedule[current_diffusion_timestep]
                             + Config.num_inner_cuts_schedule[current_diffusion_timestep],
@@ -203,19 +202,19 @@ def guided_diffusion_sample(
                     )
 
                     # 對最後一個維度取平均
-                    dist_loss = dists.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
-                    losses.append(dist_loss.sum().item())
+                    distance_loss = distances.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
+                    losses.append(distance_loss.sum().item())
 
                     if aesthetic_score is not None:
                         x_in_grad += (
                             torch.autograd.grad(
-                                dist_loss.sum() * clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
+                                distance_loss.sum() * clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
                             )[0]
                             / Config.num_cutout_batches
                         )
                     else:
                         x_in_grad += (
-                            torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
+                            torch.autograd.grad(distance_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
                         )
 
             # 計算perceptual loss
@@ -226,16 +225,13 @@ def guided_diffusion_sample(
             if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
             else:
-                x_is_NaN = True
                 grad = torch.zeros_like(x)
+                return grad
 
-        if not x_is_NaN:
-            # 使用RMS當作調整用的強度
-            magnitude = grad.square().mean().sqrt()
-            # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
-            return grad * magnitude.clamp(min=-Config.clamp_max, max=Config.clamp_max) / magnitude
-
-        return grad
+        # 使用RMS當作調整用的強度
+        magnitude = grad.square().mean().sqrt()
+        # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
+        return grad * magnitude.clamp(min=-Config.clamp_max, max=Config.clamp_max) / magnitude
 
     image_display = Output()  # 在server端顯示圖片
     progess_bar = ProgressBar(length=num_batches, description="Batches")  # 進度條
@@ -275,7 +271,7 @@ def guided_diffusion_sample(
             samples = sample_function(
                 model=model,
                 shape=(1, 3, Config.height, Config.width),
-                clip_denoised=True,
+                clip_denoised=False,
                 model_kwargs={},
                 cond_fn=conditon_function,
                 progress=True,
