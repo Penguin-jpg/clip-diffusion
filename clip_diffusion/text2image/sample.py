@@ -41,8 +41,6 @@ from clip_diffusion.utils.functional import (
 from clip_diffusion.text2image.cutouts import make_cutouts
 from clip_diffusion.text2image.losses import (
     square_spherical_distance_loss,
-    total_variational_loss,
-    rgb_range_loss,
     aesthetic_loss,
 )
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
@@ -221,25 +219,11 @@ def guided_diffusion_sample(
                             torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
                         )
 
-            # 計算total variational loss
-            tv_loss = total_variational_loss(x_in)
-
-            # 計算rgb range loss
-            if Config.use_secondary_model:
-                range_loss = rgb_range_loss(out)
-            else:
-                range_loss = rgb_range_loss(out["pred_xstart"])
-
-            # 計算saturation loss(計算超出-1到1範圍的絕對值差平均)
-            sat_loss = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = tv_loss.sum() * Config.tv_scale + range_loss.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
-
             # 透過LPIPS計算初始圖片的loss
             if init is not None and init_scale:
                 init_loss = lpips_model(x_in, init)
-                loss += init_loss.sum() * init_scale
-
-            x_in_grad += torch.autograd.grad(loss, x_in)[0]
+                loss = init_loss.sum() * init_scale
+                x_in_grad += torch.autograd.grad(loss, x_in)[0]
 
             if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
