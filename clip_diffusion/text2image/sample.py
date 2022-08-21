@@ -41,6 +41,7 @@ from clip_diffusion.utils.functional import (
 from clip_diffusion.text2image.cutouts import make_cutouts
 from clip_diffusion.text2image.losses import (
     square_spherical_distance_loss,
+    LPIPS_loss,
     aesthetic_loss,
 )
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
@@ -51,7 +52,7 @@ from clip_diffusion.utils.image_utils import (
     super_resolution,
 )
 
-lpips_model = lpips.LPIPS(net="vgg").to(Config.device)
+LPIPS_model = lpips.LPIPS(net="vgg").to(Config.device)
 clip_models = load_clip_models(Config.chosen_clip_models, Config.device)
 aesthetic_predictors = load_aesthetic_predictors(Config.chosen_predictors, Config.device)
 secondary_model = None
@@ -72,7 +73,6 @@ def guided_diffusion_sample(
     skip_timesteps=0,
     clip_guidance_scale=8000,
     eta=0.8,
-    init_scale=1000,
     num_batches=1,
     display_rate=25,
     gif_duration=500,
@@ -90,7 +90,6 @@ def guided_diffusion_sample(
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
     eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
-    init_scale: 增強init_image的效果
     num_batches: 要生成的圖片數量
     display_rate: 生成過程的gif多少個step要更新一次
     gif_duration: gif的播放時間
@@ -219,11 +218,10 @@ def guided_diffusion_sample(
                             torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
                         )
 
-            # 透過LPIPS計算初始圖片的loss
-            if init is not None and init_scale:
-                init_loss = lpips_model(x_in, init)
-                loss = init_loss.sum() * init_scale
-                x_in_grad += torch.autograd.grad(loss, x_in)[0]
+            # 計算perceptual loss
+            if init is not None:
+                perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image)
+                x_in_grad += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
 
             if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)

@@ -49,7 +49,7 @@ class Config:
     clamp_max = 0.05  # 限制的最大梯度(越高顏色會越明亮、增加對比與細節，但同時會提高出現極端結果的可能)
 
     # loss相關
-    range_scale = 150  # 控制允許超出多遠的RGB值
+    LPIPS_scale = 1000  # 調整perceptual loss影響程度
     aesthetic_scale = 0  # 調整aesthetic loss影響程度
 
     @classmethod
@@ -62,7 +62,7 @@ class Config:
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
         chosen_predictors=("ViT-B/32", "ViT-B/16", "ViT-L/14"),
         clamp_max=0.05,
-        range_scale=150,
+        LPIPS_scale=1000,
         aesthetic_scale=0,
     ):
         """
@@ -76,5 +76,5 @@ class Config:
         cls.chosen_clip_models = chosen_clip_models
         cls.chosen_predictors = chosen_predictors
         cls.clamp_max = clamp_max
-        cls.range_scale = range_scale
+        cls.LPIPS_scale = LPIPS_scale
         cls.aesthetic_scale = aesthetic_scale

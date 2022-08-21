@@ -33,6 +33,12 @@ def rgb_range_loss(input):
     return (input - input.clamp(min=-1, max=1)).pow(2).mean([1, 2, 3])
 
 
+def LPIPS_loss(LPIPS_model, input, image):
+    """計算input與image之間的perceptual loss"""
+
+    return LPIPS_model(input, image)
+
+
 def aesthetic_loss(predictor, input):
     """計算aesthetic score作為loss"""
 
