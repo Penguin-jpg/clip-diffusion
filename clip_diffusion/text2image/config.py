@@ -41,7 +41,6 @@ class Config:
     cut_gray_portion_schedule = create_schedule(values=(0.7, 0.6, 0.45, 0.3, 0), steps=(100, 100, 100, 100, 600))
 
     # model相關
-    use_secondary_model = True  # 是否要使用secondary model(如果關閉的話則會用原本的diffusion model進行清除)
     chosen_clip_models = ("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101")  # 要選擇的Clip模型
     chosen_predictors = ("ViT-B/32", "ViT-B/16", "ViT-L/14")  # 要選擇的aesthetic predictor
 
@@ -58,7 +57,6 @@ class Config:
         width=768,
         height=512,
         num_cutout_batches=4,
-        use_secondary_model=True,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
         chosen_predictors=("ViT-B/32", "ViT-B/16", "ViT-L/14"),
         clamp_max=0.05,
@@ -72,7 +70,6 @@ class Config:
         cls.width = (width // 64) * 64  # 調整成64的倍數
         cls.height = (height // 64) * 64
         cls.num_cutout_batches = num_cutout_batches
-        cls.use_secondary_model = use_secondary_model
         cls.chosen_clip_models = chosen_clip_models
         cls.chosen_predictors = chosen_predictors
         cls.clamp_max = clamp_max

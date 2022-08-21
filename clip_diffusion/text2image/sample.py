@@ -17,8 +17,6 @@ from clip_diffusion.text2image.preprocessing import (
 from clip_diffusion.text2image.models import (
     load_clip_models,
     load_guided_diffusion_model,
-    load_secondary_model,
-    alpha_sigma_to_t,
     load_latent_diffusion_model,
     load_real_esrgan_upsampler,
     load_aesthetic_predictors,
@@ -55,7 +53,6 @@ from clip_diffusion.utils.image_utils import (
 LPIPS_model = lpips.LPIPS(net="vgg").to(Config.device)
 clip_models = load_clip_models(Config.chosen_clip_models, Config.device)
 aesthetic_predictors = load_aesthetic_predictors(Config.chosen_predictors, Config.device)
-secondary_model = None
 latent_diffusion_model = None
 real_esrgan_upsampler = None
 
@@ -95,11 +92,7 @@ def guided_diffusion_sample(
     gif_duration: gif的播放時間
     """
 
-    # 使用全域變數
-    global secondary_model
-
-    if secondary_model is None:
-        secondary_model = load_secondary_model(Config.device)
+    global clip_models, LPIPS_model, aesthetic_predictors
 
     # 根據規則自動分配參數
     if auto_parameters:
@@ -140,30 +133,12 @@ def guided_diffusion_sample(
             x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
             batch_size = x.shape[0]
 
-            # 使用secondary_model加速生成
-            if Config.use_secondary_model:
-                alpha = torch.tensor(
-                    diffusion.sqrt_alphas_cumprod[current_timestep],
-                    dtype=torch.float32,
-                    device=Config.device,
-                )
-                sigma = torch.tensor(
-                    diffusion.sqrt_one_minus_alphas_cumprod[current_timestep],
-                    dtype=torch.float32,
-                    device=Config.device,
-                )
-                cosine_t = alpha_sigma_to_t(alpha, sigma)
-                out = secondary_model(x, cosine_t[None].repeat([batch_size])).pred
-                factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-                x_in = out * factor + x * (1 - factor)
-                x_in_grad = torch.zeros_like(x_in)
-            else:
-                # 目前timestep轉tensor
-                current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
-                out = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
-                factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-                x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
-                x_in_grad = torch.zeros_like(x_in)
+            # 目前timestep轉tensor
+            current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
+            out = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
+            factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
+            x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
+            x_in_grad = torch.zeros_like(x_in)
 
             for clip_model_name, clip_model in clip_models.items():
                 for _ in range(Config.num_cutout_batches):

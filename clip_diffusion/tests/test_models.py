@@ -5,7 +5,6 @@ from clip_diffusion.text2image.config import Config
 from clip_diffusion.text2image.models import (
     load_clip_models,
     load_guided_diffusion_model,
-    load_secondary_model,
     load_latent_diffusion_model,
     load_real_esrgan_upsampler,
 )
@@ -30,15 +29,6 @@ def test_guided_diffusion_model():
 
     model, _ = load_guided_diffusion_model(steps=200, device=device)
     assert isinstance(model, nn.Module), "failed to loading guided diffusion model"
-
-
-def test_secondary_model():
-    """
-    測試secondary_model是否正常載入
-    """
-
-    model = load_secondary_model(device)
-    assert isinstance(model, nn.Module), "failed to loading secondary model"
 
 
 def test_latent_diffusion_model():
