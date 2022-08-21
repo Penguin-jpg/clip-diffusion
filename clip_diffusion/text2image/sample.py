@@ -41,8 +41,7 @@ from clip_diffusion.utils.functional import (
 from clip_diffusion.text2image.cutouts import make_cutouts
 from clip_diffusion.text2image.losses import (
     square_spherical_distance_loss,
-    total_variational_loss,
-    rgb_range_loss,
+    LPIPS_loss,
     aesthetic_loss,
 )
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
@@ -53,7 +52,7 @@ from clip_diffusion.utils.image_utils import (
     super_resolution,
 )
 
-lpips_model = lpips.LPIPS(net="vgg").to(Config.device)
+LPIPS_model = lpips.LPIPS(net="vgg").to(Config.device)
 clip_models = load_clip_models(Config.chosen_clip_models, Config.device)
 aesthetic_predictors = load_aesthetic_predictors(Config.chosen_predictors, Config.device)
 secondary_model = None
@@ -74,7 +73,6 @@ def guided_diffusion_sample(
     skip_timesteps=0,
     clip_guidance_scale=8000,
     eta=0.8,
-    init_scale=1000,
     num_batches=1,
     display_rate=25,
     gif_duration=500,
@@ -92,7 +90,6 @@ def guided_diffusion_sample(
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
     eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
-    init_scale: 增強init_image的效果
     num_batches: 要生成的圖片數量
     display_rate: 生成過程的gif多少個step要更新一次
     gif_duration: gif的播放時間
@@ -140,7 +137,6 @@ def guided_diffusion_sample(
         y: class
         """
         with torch.enable_grad():
-            x_is_NaN = False  # x是否為NaN
             x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
             batch_size = x.shape[0]
 
@@ -191,12 +187,12 @@ def guided_diffusion_sample(
                         aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)
 
                     # 計算square spherical distance loss
-                    dists = square_spherical_distance_loss(
+                    distances = square_spherical_distance_loss(
                         image_embeddings.unsqueeze(1),
                         text_embeddings_and_weights[clip_model_name]["embeddings"].unsqueeze(0),
                     )
                     # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
-                    dists = dists.view(
+                    distances = distances.view(
                         [
                             Config.num_overview_cuts_schedule[current_diffusion_timestep]
                             + Config.num_inner_cuts_schedule[current_diffusion_timestep],
@@ -206,54 +202,36 @@ def guided_diffusion_sample(
                     )
 
                     # 對最後一個維度取平均
-                    dist_loss = dists.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
-                    losses.append(dist_loss.sum().item())
+                    distance_loss = distances.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
+                    losses.append(distance_loss.sum().item())
 
                     if aesthetic_score is not None:
                         x_in_grad += (
                             torch.autograd.grad(
-                                dist_loss.sum() * clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
+                                distance_loss.sum() * clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
                             )[0]
                             / Config.num_cutout_batches
                         )
                     else:
                         x_in_grad += (
-                            torch.autograd.grad(dist_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
+                            torch.autograd.grad(distance_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
                         )
 
-            # 計算total variational loss
-            tv_loss = total_variational_loss(x_in)
-
-            # 計算rgb range loss
-            if Config.use_secondary_model:
-                range_loss = rgb_range_loss(out)
-            else:
-                range_loss = rgb_range_loss(out["pred_xstart"])
-
-            # 計算saturation loss(計算超出-1到1範圍的絕對值差平均)
-            sat_loss = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-            loss = tv_loss.sum() * Config.tv_scale + range_loss.sum() * Config.range_scale + sat_loss.sum() * Config.sat_scale
-
-            # 透過LPIPS計算初始圖片的loss
-            if init is not None and init_scale:
-                init_loss = lpips_model(x_in, init)
-                loss += init_loss.sum() * init_scale
-
-            x_in_grad += torch.autograd.grad(loss, x_in)[0]
+            # 計算perceptual loss
+            if init is not None:
+                perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image)
+                x_in_grad += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
 
             if not torch.isnan(x_in_grad).any():
                 grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
             else:
-                x_is_NaN = True
                 grad = torch.zeros_like(x)
+                return grad
 
-        if not x_is_NaN:
-            # 使用RMS當作調整用的強度
-            magnitude = grad.square().mean().sqrt()
-            # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
-            return grad * magnitude.clamp(min=-Config.clamp_max, max=Config.clamp_max) / magnitude
-
-        return grad
+        # 使用RMS當作調整用的強度
+        magnitude = grad.square().mean().sqrt()
+        # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
+        return grad * magnitude.clamp(min=-Config.clamp_max, max=Config.clamp_max) / magnitude
 
     image_display = Output()  # 在server端顯示圖片
     progess_bar = ProgressBar(length=num_batches, description="Batches")  # 進度條
@@ -293,7 +271,7 @@ def guided_diffusion_sample(
             samples = sample_function(
                 model=model,
                 shape=(1, 3, Config.height, Config.width),
-                clip_denoised=True,
+                clip_denoised=False,
                 model_kwargs={},
                 cond_fn=conditon_function,
                 progress=True,

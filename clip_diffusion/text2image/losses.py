@@ -1,8 +1,6 @@
 from torch.nn import functional as F
 from clip_diffusion.utils.functional import L2_norm
 
-# 來源：https://colab.research.google.com/drive/1QBsaDAZv8np29FPbvjffbE1eytoJcsgA#scrollTo=YHOj78Yvx8jP
-
 
 def square_spherical_distance_loss(x, y):
     """計算spherical distance loss"""
@@ -33,6 +31,12 @@ def rgb_range_loss(input):
     # 由於輸入模型內的圖像必須在-1到1之間，但計算過程中是有可能超出範圍的，
     # 透過計算這個loss來告訴模型把值拉回正常範圍
     return (input - input.clamp(min=-1, max=1)).pow(2).mean([1, 2, 3])
+
+
+def LPIPS_loss(LPIPS_model, input, image):
+    """計算input與image之間的perceptual loss"""
+
+    return LPIPS_model(input, image)
 
 
 def aesthetic_loss(predictor, input):
