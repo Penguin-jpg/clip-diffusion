@@ -14,3 +14,4 @@
   1. [CLIP Guided Diffusion HQ 512x512 Uncond.ipynb](https://colab.research.google.com/drive/1QBsaDAZv8np29FPbvjffbE1eytoJcsgA)
   2. [dalle-pytorch](https://github.com/lucidrains/DALLE-pytorch)
   3. [關鍵字資料來源](https://docs.google.com/spreadsheets/d/1j7zaDi_PkndizQ2pL8B_yMcwfKUdE6tSMhL31bYtJNs/edit#gid=0)
+  4. [styles.csv及media.csv來源](https://github.com/pharmapsychotic/clip-interrogator)

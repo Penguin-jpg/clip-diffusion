@@ -3,8 +3,11 @@ import shutil
 from glob import glob
 
 
-OUTPUT_PATH = "output_images"  # 儲存輸出圖片的資料夾
-MODEL_PATH = "models"  # 儲存model的資料夾
+OUTPUT_PATH = "output_images"  # 儲存輸出圖片的資料夾路徑
+MODEL_PATH = "models"  # 儲存model的資料夾路徑
+ASSET_PATH = os.path.join("clip-diffusion", "assets")  # 儲存assets的資料夾路徑
+CSV_PATH = os.path.join("clip-diffusion", "data", "csv")  # 儲存csv的資料夾路徑
+INDEX_PATH = os.path.join("clip-diffusion", "data", "indices")  # 儲存index的資料夾路徑
 
 
 def _remove_old_dirs_and_files(dir_path):

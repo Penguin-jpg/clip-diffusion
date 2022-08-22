@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
 from clip_diffusion.text2image.config import Config
+from clip_diffusion.utils.dir_utils import CSV_PATH, INDEX_PATH
 from clip_diffusion.text2image.models import load_sentence_transformer
 from clip_diffusion.text2image.embedding_index import load_faiss_index, get_topk_results
 
@@ -22,11 +23,10 @@ _prompt_types = {
     "景觀": "environment-prompts/",
     "物件": "object-prompt/",
 }  # 可用的隨機prompt類型
-keywords_index = load_faiss_index(os.path.abspath(os.path.join("clip-diffusion", "data", "embeddings.index")))
-keywords_df = pd.read_csv(os.path.abspath(os.path.join("clip-diffusion", "data", "prompt_keywords.csv")))
-# image_index = get_faiss_index("image_index_path")
-# text_modifier_df = pd.read_csv("text_modifier_csv")
-# image_modifier_df = pd.read_csv("image_modifier_csv")
+# index對應的dataframe
+keywords_df = pd.read_csv(os.path.abspath(os.path.join(CSV_PATH, "prompt_keywords.csv")))
+# index
+keywords_index = load_faiss_index(os.path.abspath(os.path.join(INDEX_PATH, "embeddings.index")))
 
 
 class Prompt:
@@ -85,7 +85,7 @@ class Prompt:
         # 補上trending on artstation
         prompt += ", trending on artstation."
 
-        return prompt
+        return similarties[0][:num_modifiers], prompt
 
     def _preprocess(self, prompt, use_auto_modifiers=True, num_modifiers=1):
         """
@@ -97,7 +97,7 @@ class Prompt:
 
         if use_auto_modifiers:
             # 加上修飾詞
-            prompt = self._append_modifiers(prompt, num_modifiers)
+            _, prompt = self._append_modifiers(prompt, num_modifiers)
 
         return prompt
 

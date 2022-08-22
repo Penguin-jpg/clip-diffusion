@@ -10,6 +10,7 @@ from torchvision import transforms as T
 from tqdm.notebook import trange
 from IPython import display
 from PIL import ImageFont, ImageDraw
+from clip_diffusion.utils.dir_utils import ASSET_PATH
 
 # Clip用到的preprocess
 CLIP_NORMALIZE = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
@@ -252,9 +253,7 @@ def draw_index_on_grid_image(image, num_rows, num_cols, row_offset, col_offset, 
     將index畫在格狀圖片上
     """
 
-    font = ImageFont.truetype(
-        os.path.abspath(os.path.join("clip-diffusion", "assets", "fonts", "BebasNeue-Regular.ttf")), font_size
-    )
+    font = ImageFont.truetype(os.path.abspath(os.path.join(ASSET_PATH, "fonts", "BebasNeue-Regular.ttf")), font_size)
     index_draw = ImageDraw.Draw(image)
 
     for row in range(num_rows):
