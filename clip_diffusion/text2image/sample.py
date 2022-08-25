@@ -62,6 +62,7 @@ def guided_diffusion_sample(
     prompt="A cute golden retriever.",
     use_auto_modifiers=False,
     num_modifiers=1,
+    dynamic_thresholding_percentile=0.995,
     seed=None,
     init_image=None,
     sample_mode="ddim",
@@ -121,6 +122,22 @@ def guided_diffusion_sample(
 
     losses = []
     current_timestep = None  # 目前的timestep
+
+    def denoised_function(x_start):
+        """
+        在計算p_mean_variance時套用在x_start上的function
+        在此使用Imagen的dynamic thresholding方法
+        """
+
+        threshold = torch.quantile(
+            rearrange(x_start, "b ... -> b (...)").abs(),
+            dynamic_thresholding_percentile,
+            dim=-1,
+        )
+        threshold = threshold.clamp(min=1.0)  # 最小值要為1
+        threshold = threshold.view(*threshold.shape, *((1,) * (x_start.ndim - threshold.ndim)))  # pad到和x_start一樣的維度
+        x_start = x_start.clamp(min=-threshold, max=threshold) / threshold
+        return x_start
 
     def conditon_function(x, t, y=None):
         """
@@ -234,6 +251,7 @@ def guided_diffusion_sample(
                 model=model,
                 shape=(1, 3, Config.height, Config.width),  # shape=(batch_size, num_channels, height, width)
                 clip_denoised=False,
+                denoised_fn=denoised_function,
                 model_kwargs={},
                 cond_fn=conditon_function,
                 progress=True,
@@ -247,6 +265,7 @@ def guided_diffusion_sample(
                 model=model,
                 shape=(1, 3, Config.height, Config.width),
                 clip_denoised=False,
+                denoised_fn=denoised_function,
                 model_kwargs={},
                 cond_fn=conditon_function,
                 progress=True,
