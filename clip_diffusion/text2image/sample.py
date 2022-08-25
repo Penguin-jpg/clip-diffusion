@@ -135,7 +135,7 @@ def guided_diffusion_sample(
             dim=-1,
         )
         threshold = threshold.clamp(min=1.0)  # 最小值要為1
-        threshold = threshold.view(t.view(*threshold.shape, *((1,) * (x_start.ndim - threshold.ndim))))  # pad到和x一樣的維度
+        threshold = threshold.view(*threshold.shape, *((1,) * (x_start.ndim - threshold.ndim)))  # pad到和x_start一樣的維度
         x_start = x_start.clamp(min=-threshold, max=threshold) / threshold
         return x_start
 
