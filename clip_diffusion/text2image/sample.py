@@ -156,7 +156,7 @@ def guided_diffusion_sample(
                         inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
                         cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
                     )
-                    image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
+                    image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True, L2_normalize=True)
 
                     if clip_model_name in aesthetic_predictors.keys():
                         aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)

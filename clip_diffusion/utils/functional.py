@@ -108,7 +108,7 @@ def to_clip_image(image, device=None):
     return CLIP_PREPROCESS(image).unsqueeze(0).to(device)
 
 
-def embed_text(clip_model, text, normalize=False):
+def embed_text(clip_model, text, L2_normalize=False):
     """
     取得text embedding
     """
@@ -116,13 +116,13 @@ def embed_text(clip_model, text, normalize=False):
     text_embedding = clip_model.encode_text(text).float()
 
     # 不考慮維度，只保留特徵
-    if normalize:
+    if L2_normalize:
         text_embedding = L2_norm(text_embedding, dim=-1)
 
     return text_embedding
 
 
-def embed_image(clip_model, image, clip_normalize=True, normalize=False):
+def embed_image(clip_model, image, clip_normalize=True, L2_normalize=False):
     """
     取得image embedding
     """
@@ -133,7 +133,7 @@ def embed_image(clip_model, image, clip_normalize=True, normalize=False):
     image_embedding = clip_model.encode_image(image).float()
 
     # 不考慮維度，只保留特徵
-    if normalize:
+    if L2_normalize:
         image_embedding = L2_norm(image_embedding, dim=-1)
 
     return image_embedding
