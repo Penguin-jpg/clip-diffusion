@@ -1,12 +1,9 @@
 import torch
-import math
 import os
 from urllib import request
 from pathlib import Path
 from tqdm import tqdm
 from torch import nn
-from dataclasses import dataclass
-from functools import partial
 from clip_diffusion.utils.dir_utils import MODEL_PATH
 from clip_diffusion.utils.functional import clear_gpu_cache
 
