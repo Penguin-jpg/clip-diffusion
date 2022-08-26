@@ -66,7 +66,6 @@ def guided_diffusion_sample(
     seed=None,
     init_image=None,
     sample_mode="ddim",
-    auto_parameters={},
     steps=200,
     skip_timesteps=0,
     eta=0.8,
@@ -79,10 +78,10 @@ def guided_diffusion_sample(
     prompt: 生成敘述
     use_auto_modifiers: 是否要使用自動補上修飾詞
     num_modifiers: 補上的修飾詞數量
+    dynamic_thresholding_percentile: dynamic thresholding中選擇的百分位數(當作threshold)
     seed: 生成種子
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
     sample_mode: 使用的sample模式(ddim, plms)
-    auto_parameters: 需要自動調整的參數
     steps: 每個batch要跑的step數
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
@@ -92,12 +91,6 @@ def guided_diffusion_sample(
     """
 
     global clip_models, LPIPS_model, aesthetic_predictors
-
-    # 根據規則自動分配參數
-    if auto_parameters:
-        if "eta" in auto_parameters:
-            eta = range_map(steps, source_range=[50, 250], target_range=[0.0, 1.0])
-            store_task_state("new_eta", eta)
 
     prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
     if use_auto_modifiers:
