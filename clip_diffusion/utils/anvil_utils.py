@@ -1,13 +1,13 @@
 import pandas as pd
 import anvil.server
 import os
-from clip_diffusion.text2image.config import Config
-from clip_diffusion.text2image.embedding_index import load_faiss_index, get_topk_results
+from clip_diffusion.config import Config
+from clip_diffusion.utils.embedding_index import load_faiss_index, get_topk_results
 from clip_diffusion.utils.dir_utils import CSV_PATH, INDEX_PATH, OUTPUT_PATH
 from clip_diffusion.utils.functional import random_seed, to_clip_image, embed_image
-from clip_diffusion.text2image.prompt import Prompt
+from clip_diffusion.prompt import Prompt
 from clip_diffusion.utils.image_utils import image_to_blob_media, get_image_from_bytes
-from clip_diffusion.text2image.sample import clip_models
+from clip_diffusion.sample import clip_models
 
 styles_df = pd.read_csv(os.path.join(CSV_PATH, "styles.csv"))
 media_df = pd.read_csv(os.path.join(CSV_PATH, "media.csv"))

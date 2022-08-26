@@ -7,14 +7,14 @@ from PIL import Image
 from ipywidgets import Output
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
-from clip_diffusion.text2image.config import Config
-from clip_diffusion.text2image.prompt import Prompt
-from clip_diffusion.text2image.preprocessing import (
+from clip_diffusion.config import Config
+from clip_diffusion.prompt import Prompt
+from clip_diffusion.preprocessing import (
     get_text_embeddings_and_text_weights,
     create_init_noise,
     create_mask_tensor,
 )
-from clip_diffusion.text2image.models import (
+from clip_diffusion.models import (
     load_clip_models,
     load_guided_diffusion_model,
     load_latent_diffusion_model,
@@ -23,7 +23,6 @@ from clip_diffusion.text2image.models import (
 )
 from clip_diffusion.utils.functional import (
     random_seed,
-    range_map,
     clear_output,
     set_seed,
     clear_gpu_cache,
@@ -36,8 +35,8 @@ from clip_diffusion.utils.functional import (
     store_task_state,
     draw_index_on_grid_image,
 )
-from clip_diffusion.text2image.cutouts import make_cutouts
-from clip_diffusion.text2image.losses import (
+from clip_diffusion.cutouts import make_cutouts
+from clip_diffusion.losses import (
     square_spherical_distance_loss,
     LPIPS_loss,
     aesthetic_loss,

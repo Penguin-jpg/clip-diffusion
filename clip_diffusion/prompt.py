@@ -6,10 +6,10 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 from opencc import OpenCC
-from clip_diffusion.text2image.config import Config
+from clip_diffusion.config import Config
 from clip_diffusion.utils.dir_utils import CSV_PATH, INDEX_PATH
-from clip_diffusion.text2image.models import load_sentence_transformer
-from clip_diffusion.text2image.embedding_index import load_faiss_index, get_topk_results
+from clip_diffusion.models import load_sentence_transformer
+from clip_diffusion.utils.embedding_index import load_faiss_index, get_topk_results
 
 _translator = pipeline(
     "translation",
