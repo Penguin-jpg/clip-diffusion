@@ -31,7 +31,6 @@ from clip_diffusion.utils.functional import (
     get_sampler,
     set_display_widget,
     display_image,
-    ProgressBar,
     store_task_state,
     draw_index_on_grid_image,
 )
@@ -61,6 +60,7 @@ def guided_diffusion_sample(
     prompt="A cute golden retriever.",
     use_auto_modifiers=False,
     num_modifiers=1,
+    custom_model_path=None,
     dynamic_thresholding_percentile=0.995,
     seed=None,
     init_image=None,
@@ -77,6 +77,7 @@ def guided_diffusion_sample(
     prompt: 生成敘述
     use_auto_modifiers: 是否要使用自動補上修飾詞
     num_modifiers: 補上的修飾詞數量
+    custom_model_path: 自訂模型的路徑
     dynamic_thresholding_percentile: dynamic thresholding中選擇的百分位數(當作threshold)
     seed: 生成種子
     init_image: 模型會參考該圖片生成初始雜訊(會是anvil的Media類別)
@@ -94,19 +95,18 @@ def guided_diffusion_sample(
     prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
     if use_auto_modifiers:
         store_task_state("new_prompt", prompt.text)
-    model, diffusion = load_guided_diffusion_model(steps=steps, device=Config.device)  # 載入diffusion model和diffusion
+    # 載入diffusion model和diffusion
+    model, diffusion = load_guided_diffusion_model(custom_model_path=custom_model_path, steps=steps, device=Config.device)
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
     # 設定種子
     if not seed:
         seed = random_seed()
-
     set_seed(int(seed))
 
     # 取得prompt的embedding及weight
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
-
     # 建立初始雜訊
     init_noise = create_init_noise(init_image, (Config.width, Config.height), Config.device)
 
@@ -129,6 +129,7 @@ def guided_diffusion_sample(
         x_start = x_start.clamp(min=-threshold, max=threshold) / threshold
         return x_start
 
+    @torch.enable_grad()
     def conditon_function(x, t, y=None):
         """
         透過clip引導guided diffusion(計算grad(log(p(y|x))))
@@ -136,79 +137,78 @@ def guided_diffusion_sample(
         t: diffusion timestep tensor
         y: class
         """
-        with torch.enable_grad():
-            x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
-            batch_size = x.shape[0]
 
-            # 目前timestep轉tensor
-            current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
-            out = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
-            factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-            x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
-            grad_tensor = torch.zeros_like(x_in)  # 在計算最後梯度時和x_in做內積
+        x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
+        batch_size = x.shape[0]
 
-            for clip_model_name, clip_model in clip_models.items():
-                for _ in range(Config.num_cutout_batches):
-                    aesthetic_score = None  # aesthetic loss計算的值
-                    # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
-                    total_diffusion_timesteps_minus_passed_timesteps = int(t.item()) + 1
-                    # 目前的diffusion timestep
-                    current_diffusion_timestep = 1000 - total_diffusion_timesteps_minus_passed_timesteps
-                    # 做cutouts
-                    cutout_images = make_cutouts(
-                        input=x_in,
-                        cut_size=clip_model.visual.input_resolution,
-                        num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_timestep],
-                        num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_timestep],
-                        inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
-                        cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
+        # 目前timestep轉tensor
+        current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
+        p_mean_var = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
+        factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
+        x_in = p_mean_var["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
+        grad_tensor = torch.zeros_like(x_in)  # 在計算最後梯度時和x_in做內積
+
+        for clip_model_name, clip_model in clip_models.items():
+            for _ in range(Config.num_cutout_batches):
+                aesthetic_score = None  # aesthetic loss計算的值
+                # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
+                total_diffusion_timesteps_minus_passed_timesteps = int(t.item()) + 1
+                # 目前的diffusion timestep
+                current_diffusion_timestep = 1000 - total_diffusion_timesteps_minus_passed_timesteps
+                # 做cutouts
+                cutout_images = make_cutouts(
+                    input=x_in,
+                    cut_size=clip_model.visual.input_resolution,
+                    num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_timestep],
+                    num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_timestep],
+                    inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
+                    cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
+                )
+                image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
+
+                if clip_model_name in aesthetic_predictors.keys():
+                    aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)
+
+                # 計算square spherical distance loss
+                distances = square_spherical_distance_loss(
+                    image_embeddings.unsqueeze(1),
+                    text_embeddings_and_weights[clip_model_name]["embeddings"].unsqueeze(0),
+                )
+                # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
+                distances = distances.view(
+                    [
+                        Config.num_overview_cuts_schedule[current_diffusion_timestep]
+                        + Config.num_inner_cuts_schedule[current_diffusion_timestep],
+                        batch_size,
+                        -1,
+                    ]
+                )
+
+                # 對最後一個維度取平均
+                distance_loss = distances.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
+                losses.append(distance_loss.sum().item())
+
+                if aesthetic_score is not None:
+                    grad_tensor += (
+                        torch.autograd.grad(
+                            distance_loss.sum() * Config.clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
+                        )[0]
+                        / Config.num_cutout_batches
                     )
-                    image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
-
-                    if clip_model_name in aesthetic_predictors.keys():
-                        aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)
-
-                    # 計算square spherical distance loss
-                    distances = square_spherical_distance_loss(
-                        image_embeddings.unsqueeze(1),
-                        text_embeddings_and_weights[clip_model_name]["embeddings"].unsqueeze(0),
-                    )
-                    # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
-                    distances = distances.view(
-                        [
-                            Config.num_overview_cuts_schedule[current_diffusion_timestep]
-                            + Config.num_inner_cuts_schedule[current_diffusion_timestep],
-                            batch_size,
-                            -1,
-                        ]
+                else:
+                    grad_tensor += (
+                        torch.autograd.grad(distance_loss.sum() * Config.clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
                     )
 
-                    # 對最後一個維度取平均
-                    distance_loss = distances.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
-                    losses.append(distance_loss.sum().item())
+        # 計算perceptual loss
+        if init_noise is not None:
+            perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image)
+            grad_tensor += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
 
-                    if aesthetic_score is not None:
-                        grad_tensor += (
-                            torch.autograd.grad(
-                                distance_loss.sum() * Config.clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
-                            )[0]
-                            / Config.num_cutout_batches
-                        )
-                    else:
-                        grad_tensor += (
-                            torch.autograd.grad(distance_loss.sum() * Config.clip_guidance_scale, x_in)[0]
-                            / Config.num_cutout_batches
-                        )
-
-            # 計算perceptual loss
-            if init_noise is not None:
-                perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image)
-                grad_tensor += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
-
-            if not torch.isnan(grad_tensor).any():
-                grad = -torch.autograd.grad(x_in, x, grad_tensor)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
-            else:
-                return torch.zeros_like(x)
+        if not torch.isnan(grad_tensor).any():
+            grad = -torch.autograd.grad(x_in, x, grad_tensor)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
+        else:
+            return torch.zeros_like(x)
 
         # 使用梯度的RMS當作調整用的強度
         magnitude = grad.square().mean().sqrt()
@@ -216,22 +216,18 @@ def guided_diffusion_sample(
         return grad * magnitude.clamp(min=-Config.grad_threshold, max=Config.grad_threshold) / magnitude
 
     image_display = Output()  # 在server端顯示圖片
-    progess_bar = ProgressBar(length=num_batches, description="Batches")  # 進度條
     gif_urls = []  # 生成過程的gif url
     images = []  # 最後一個timestep的圖片
 
     for batch_index in range(num_batches):
         clear_output(wait=True)
-        progess_bar.update_progress(batch_index)
         set_display_widget(image_display)
         store_task_state("current_batch", batch_index)  # 將目前的batch index存到current_batch
         store_task_state("current_result", None)  # 初始化
-
         clear_gpu_cache()
 
         # 將目前timestep的值初始化為總timestep數-1
         current_timestep = diffusion.num_timesteps - skip_timesteps - 1
-
         # 根據sample_mode選擇`sample_function
         sample_function = get_sample_function(diffusion, mode=sample_mode)
 
@@ -271,7 +267,7 @@ def guided_diffusion_sample(
 
             with image_display:
                 # 更新、儲存圖片
-                for _, image_tensor in enumerate(sample["pred_xstart"]):
+                for image_tensor in sample["pred_xstart"]:
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
                     # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
@@ -306,7 +302,6 @@ def guided_diffusion_sample(
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
 
-        progess_bar.update_progress(num_batches)
         clear_gpu_cache()
 
     return gif_urls  # 回傳gif url
