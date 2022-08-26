@@ -53,7 +53,7 @@ class Config:
     aesthetic_scale = 0  # 調整aesthetic loss影響程度
 
     @classmethod
-    def change(
+    def update(
         cls,
         width=768,
         height=512,
@@ -66,7 +66,7 @@ class Config:
         aesthetic_scale=0,
     ):
         """
-        調整設定
+        更新設定
         """
 
         cls.width = (width // 64) * 64  # 調整成64的倍數

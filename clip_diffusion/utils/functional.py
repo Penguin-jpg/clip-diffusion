@@ -229,13 +229,10 @@ def display_image(image_path=None, url=None, unconfined=False):
     display.display(display.Image(filename=image_path, url=url, unconfined=unconfined))
 
 
-def clear_output(widget=None, wait=False):
+def clear_output(wait=False):
     """
     清除ipython顯示的內容
     """
-
-    if widget is not None:
-        widget.clear_output(wait=wait)
 
     display.clear_output(wait=wait)
 

@@ -37,7 +37,7 @@ def change_settings(width, height, clip_guidance_scale, LPIPS_scale, aesthetic_s
     修改Config設定
     """
 
-    Config.change(
+    Config.update(
         width=width,
         height=height,
         clip_guidance_scale=clip_guidance_scale,
