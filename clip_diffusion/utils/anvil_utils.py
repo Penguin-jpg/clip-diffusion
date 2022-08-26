@@ -32,12 +32,18 @@ def get_seed():
 
 
 @anvil.server.callable
-def change_settings(width, height, use_secondary_model):
+def change_settings(width, height, clip_guidance_scale, LPIPS_scale, aesthetic_scale):
     """
     修改Config設定
     """
 
-    Config.change(width=width, height=height, use_secondary_model=use_secondary_model)
+    Config.change(
+        width=width,
+        height=height,
+        clip_guidance_scale=clip_guidance_scale,
+        LPIPS_scale=LPIPS_scale,
+        aesthetic_scale=aesthetic_scale,
+    )
 
 
 @anvil.server.callable

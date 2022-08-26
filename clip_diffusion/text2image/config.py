@@ -60,7 +60,7 @@ class Config:
         num_cutout_batches=4,
         chosen_clip_models=("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101"),
         chosen_predictors=("ViT-B/32", "ViT-B/16", "ViT-L/14"),
-        clamp_max=0.05,
+        grad_threshold=0.05,
         clip_guidance_scale=8000,
         LPIPS_scale=1000,
         aesthetic_scale=0,
@@ -74,7 +74,7 @@ class Config:
         cls.num_cutout_batches = num_cutout_batches
         cls.chosen_clip_models = chosen_clip_models
         cls.chosen_predictors = chosen_predictors
-        cls.grad_threshold = clamp_max
+        cls.grad_threshold = grad_threshold
         cls.clip_guidance_scale = clip_guidance_scale
         cls.LPIPS_scale = LPIPS_scale
         cls.aesthetic_scale = aesthetic_scale

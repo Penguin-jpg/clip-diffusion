@@ -32,7 +32,7 @@ def test_adjust_settings():
         height=512,
         num_cutout_batches=1,
         chosen_clip_models=("ViT-B/32",),
-        clamp_max=0.007,
+        grad_threshold=0.007,
         tv_scale=50,
         range_scale=100,
         sat_scale=20,
