@@ -69,7 +69,6 @@ def guided_diffusion_sample(
     auto_parameters={},
     steps=200,
     skip_timesteps=0,
-    clip_guidance_scale=8000,
     eta=0.8,
     num_batches=1,
     display_rate=25,
@@ -86,7 +85,6 @@ def guided_diffusion_sample(
     auto_parameters: 需要自動調整的參數
     steps: 每個batch要跑的step數
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
-    clip_guidance_scale: clip引導的強度(生成圖片要多接近prompt)
     eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
     num_batches: 要生成的圖片數量
     display_rate: 生成過程的gif多少個step要更新一次
@@ -200,13 +198,14 @@ def guided_diffusion_sample(
                     if aesthetic_score is not None:
                         x_in_grad += (
                             torch.autograd.grad(
-                                distance_loss.sum() * clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
+                                distance_loss.sum() * Config.clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
                             )[0]
                             / Config.num_cutout_batches
                         )
                     else:
                         x_in_grad += (
-                            torch.autograd.grad(distance_loss.sum() * clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
+                            torch.autograd.grad(distance_loss.sum() * Config.clip_guidance_scale, x_in)[0]
+                            / Config.num_cutout_batches
                         )
 
             # 計算perceptual loss
