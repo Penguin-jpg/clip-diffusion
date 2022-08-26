@@ -54,7 +54,7 @@ aesthetic_predictors = load_aesthetic_predictors(Config.chosen_predictors, Confi
 latent_diffusion_model = None
 real_esrgan_upsampler = None
 
-# 參考並修改自：disco diffusion
+
 @anvil.server.background_task
 def guided_diffusion_sample(
     prompt="A cute golden retriever.",
@@ -89,7 +89,6 @@ def guided_diffusion_sample(
     display_rate: 生成過程的gif多少個step要更新一次
     gif_duration: gif的播放時間
     """
-
     global clip_models, LPIPS_model, aesthetic_predictors
 
     prompt = Prompt(prompt, use_auto_modifiers, num_modifiers)  # 建立Prompt物件
@@ -109,8 +108,6 @@ def guided_diffusion_sample(
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
     # 建立初始雜訊
     init_noise = create_init_noise(init_image, (Config.width, Config.height), Config.device)
-
-    losses = []
     current_timestep = None  # 目前的timestep
 
     def denoised_function(x_start):
@@ -137,10 +134,9 @@ def guided_diffusion_sample(
         t: diffusion timestep tensor
         y: class
         """
-
-        x = x.detach().requires_grad_()  # 將x從目前的計算圖中取出
+        # 將x從目前的計算圖中取出
+        x = x.detach().requires_grad_()
         batch_size = x.shape[0]
-
         # 目前timestep轉tensor
         current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
         p_mean_var = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
@@ -186,8 +182,6 @@ def guided_diffusion_sample(
 
                 # 對最後一個維度取平均
                 distance_loss = distances.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
-                losses.append(distance_loss.sum().item())
-
                 if aesthetic_score is not None:
                     grad_tensor += (
                         torch.autograd.grad(
@@ -218,7 +212,6 @@ def guided_diffusion_sample(
     image_display = Output()  # 在server端顯示圖片
     gif_urls = []  # 生成過程的gif url
     images = []  # 最後一個timestep的圖片
-
     for batch_index in range(num_batches):
         clear_output(wait=True)
         set_display_widget(image_display)
@@ -264,7 +257,6 @@ def guided_diffusion_sample(
         # current_timestep從總timestep數開始；step_index從0開始
         for step_index, sample in enumerate(samples):
             current_timestep -= 1  # 每次都將目前的timestep減1
-
             with image_display:
                 # 更新、儲存圖片
                 for image_tensor in sample["pred_xstart"]:
@@ -276,7 +268,6 @@ def guided_diffusion_sample(
                     image.save(image_path)
                     display_image(image_path=image_path)
                     clear_output(wait=(current_timestep != -1))
-
                     # 生成結束
                     if current_timestep == -1:
                         # 將最後一個timestep的url存到current_result
@@ -298,13 +289,10 @@ def guided_diffusion_sample(
                         store_task_state("current_result", upload_image(image_path, "png"))
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
-
         clear_gpu_cache()
-
     return gif_urls  # 回傳gif url
 
 
-# 參考並修改自： https://github.com/CompVis/latent-diffusion/blob/main/scripts/txt2img.py
 @anvil.server.background_task
 def latent_diffusion_sample(
     prompt="A cute golden retriever.",
@@ -335,7 +323,6 @@ def latent_diffusion_sample(
     sample_width:  sample圖片的寬(latent diffusion sample的圖片不能太大，後續再用sr提高解析度)
     sample_height: sample圖片的高
     """
-
     global latent_diffusion_model, real_esrgan_upsampler
 
     if latent_diffusion_model is None:
@@ -352,7 +339,6 @@ def latent_diffusion_sample(
     # 設定種子
     if not seed:
         seed = random_seed()
-
     set_seed(int(seed))
 
     # 當使用plms時，eta沒有作用
@@ -365,7 +351,6 @@ def latent_diffusion_sample(
     encoded_init = None
     # 遮罩tensor
     mask = None
-
     # 處理inpaint的參數
     if init_image is not None and mask_image is not None:
         # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
@@ -379,7 +364,6 @@ def latent_diffusion_sample(
         mask = repeat(mask, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
 
     exception_paths = []  # 不做sr的圖片路徑
-
     with torch.no_grad():
         with torch.cuda.amp.autocast():
             with latent_diffusion_model.ema_scope():
@@ -387,13 +371,11 @@ def latent_diffusion_sample(
                 if latent_diffusion_guidance_scale > 0:
                     # ""代表不考慮的prompt
                     uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [""])
-
                 samples = []  # 儲存所有sample
                 count = 0  # 圖片編號
                 for current_iteration in range(num_iterations):
                     clear_gpu_cache()
                     conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [prompt.text])
-
                     # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                     samples_ddim, _ = sampler.sample(
                         S=diffusion_steps,
@@ -407,7 +389,6 @@ def latent_diffusion_sample(
                         unconditional_conditioning=uncoditional_conditioning,
                         eta=eta,
                     )
-
                     x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
                     x_samples_ddim = unnormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
 
@@ -440,11 +421,9 @@ def latent_diffusion_sample(
                     grid_image = draw_index_on_grid_image(grid_image, num_iterations, num_batches, sample_height, sample_width)
                     grid_image.save(os.path.join(batch_folder, grid_filename))  # 儲存grid圖片
                     grid_image_url = upload_image(os.path.join(batch_folder, grid_filename), "png")  # 儲存url
-
                     clear_gpu_cache()
 
     # 提高解析度
     super_resolution(real_esrgan_upsampler, batch_folder, exception_paths)
     clear_output()
-
     return grid_image_url  # 格狀圖片的url

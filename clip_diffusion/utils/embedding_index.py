@@ -18,7 +18,6 @@ def build_embedding_index(
     current_memory_available: 目前可用的記憶體
     metric_type: query的similarity function(l2: L2 norm, ip: 內積)
     """
-
     import autofaiss
 
     autofaiss.build_index(
@@ -31,19 +30,12 @@ def build_embedding_index(
 
 
 def load_faiss_index(index_path):
-    """
-    載入faiss index
-    """
-
+    """載入faiss index"""
     return faiss.read_index(index_path)
 
 
 def get_topk_results(index, embedding, topk=5):
-    """
-    從index中找出相似度前k高的距離(相似度)和indices
-    """
-
+    """從index中找出相似度前k高的距離(相似度)和indices"""
     if isinstance(embedding, torch.Tensor):
         embedding = tensor_to_numpy(embedding)
-
     return index.search(embedding, topk)

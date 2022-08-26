@@ -39,10 +39,7 @@ _CLIP_DIMS = {
 
 # 參考並修改自：https://github.com/lucidrains/DALLE-pytorch/blob/d355100061911b13e1f1c22de8c2b5deb44e65f8/dalle_pytorch/vae.py
 def _download_model(url, model_name):
-    """
-    下載模型並儲存，回傳儲存位置
-    """
-
+    """下載模型並儲存，回傳儲存位置"""
     download_target = Path(os.path.join(MODEL_PATH, model_name))
     download_target_tmp = download_target.with_suffix(".tmp")
 
@@ -54,7 +51,6 @@ def _download_model(url, model_name):
 
     opener = request.build_opener()
     opener.addheaders = [("User-Agent", "Mozilla/5.0")]
-
     with opener.open(url) as source, open(download_target_tmp, "wb") as output:
         with tqdm(total=int(source.info().get("Content-Length")), ncols=80) as loop:
             while True:
@@ -69,39 +65,27 @@ def _download_model(url, model_name):
 
 
 def _to_eval_and_freeze_layers(model, half=False, device=None):
-    """
-    將model換成eval模式並凍結所有layer
-    """
-
+    """將model換成eval模式並凍結所有layer"""
     if half:
         model.half()
-
     model.eval().requires_grad_(False).to(device)
 
 
 def load_clip_models(chosen_models, device=None):
-    """
-    選擇並載入要使用的Clip模型
-    """
-
+    """選擇並載入要使用的Clip模型"""
     import clip
 
     models = {}
-
     for model_name in chosen_models:
         model, _ = clip.load(model_name, device=device)
         _to_eval_and_freeze_layers(model, False, device)
         models[model_name] = model
-
     clear_gpu_cache()
-
     return models
 
 
 def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoint=True, use_fp16=True, device=None):
-    """
-    載入guided diffusion model和diffusion
-    """
+    """載入guided diffusion model和diffusion"""
 
     from guided_diffusion.script_util import (
         model_and_diffusion_defaults,
@@ -109,7 +93,6 @@ def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoin
     )
 
     model_config = model_and_diffusion_defaults()
-
     if not custom_model_path:
         model_config.update(
             {
@@ -164,29 +147,21 @@ def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoin
         model.load_state_dict(torch.load(custom_model_path, map_location="cpu"))
 
     _to_eval_and_freeze_layers(model, False, device)
-
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:
             param.requires_grad_()
-
     if use_fp16:
         model.convert_to_fp16()
-
     clear_gpu_cache()
-
     return model, diffusion
 
 
 def load_latent_diffusion_model(device=None):
-    """
-    載入latent diffusion模型
-    """
-
+    """載入latent diffusion模型"""
     from ldm.util import instantiate_from_config
     from omegaconf import OmegaConf
 
     model_config = OmegaConf.load("./latent-diffusion/configs/latent-diffusion/txt2img-1p4B-eval.yaml")
-
     model = instantiate_from_config(model_config.model)
     model.load_state_dict(
         torch.load(
@@ -196,16 +171,12 @@ def load_latent_diffusion_model(device=None):
         strict=False,
     )
     _to_eval_and_freeze_layers(model, True, device)
-
     clear_gpu_cache()
-
     return model
 
 
 def load_real_esrgan_upsampler(scale=4, device=None):
-    """
-    載入real-esrgan模型
-    """
+    """載入real-esrgan模型"""
 
     assert scale in (2, 4), "scale can only be 2 or 4"
 
@@ -229,9 +200,7 @@ def load_real_esrgan_upsampler(scale=4, device=None):
 
 
 def load_sentence_transformer(model_name, device=None):
-    """
-    載入指定的sentence transformer
-    """
+    """載入指定的sentence transformer"""
 
     from sentence_transformers import SentenceTransformer
 
@@ -242,9 +211,7 @@ def load_sentence_transformer(model_name, device=None):
 
 
 class LinearAestheticPredictor(nn.Module):
-    """
-    在Clip之上加一層linear
-    """
+    """將Clip的image embedding輸入到一層linear"""
 
     def __init__(self, input_dim):
         super().__init__()
@@ -256,20 +223,18 @@ class LinearAestheticPredictor(nn.Module):
 
 # 修改自：https://github.com/christophschuhmann/improved-aesthetic-predictor
 class MLPAestheticPredictor(nn.Module):
+    """將Clip的image embedding輸入到MLP"""
+
     def __init__(self, input_dim):
         super().__init__()
         self.layers = nn.Sequential(
             nn.Linear(input_dim, 1024),
-            # nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(1024, 128),
-            # nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(128, 64),
-            # nn.ReLU(),
             nn.Dropout(0.1),
             nn.Linear(64, 16),
-            # nn.ReLU(),
             nn.Linear(16, 1),
         )
 
@@ -278,12 +243,9 @@ class MLPAestheticPredictor(nn.Module):
 
 
 def load_aesthetic_predictors(predictor_names, device=None):
-    """
-    載入指定的aesthetic predictor
-    """
+    """載入指定的aesthetic predictor"""
 
     predictors = {}
-
     for predictor_name in predictor_names:
         input_dim = _CLIP_DIMS[predictor_name]
         if input_dim == 768:
@@ -300,5 +262,4 @@ def load_aesthetic_predictors(predictor_names, device=None):
         _to_eval_and_freeze_layers(model, False, device)
         predictors[predictor_name] = model
         clear_gpu_cache()
-
     return predictors

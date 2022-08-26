@@ -6,21 +6,16 @@ def create_schedule(values, steps):
     建立schedule:
     (values[0],) * steps[0] + (values[1],) * steps[1]...
     """
-
     assert len(values) == len(steps), "length of values and steps must be the same"
 
     schedule = ()
-
     for value, num_steps in zip(values, steps):
         schedule += (value,) * num_steps
-
     return schedule
 
 
 class Config:
-    """
-    儲存全域設定
-    """
+    """儲存全域設定"""
 
     # device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -65,10 +60,7 @@ class Config:
         LPIPS_scale=1000,
         aesthetic_scale=0,
     ):
-        """
-        更新設定
-        """
-
+        """更新設定"""
         cls.width = (width // 64) * 64  # 調整成64的倍數
         cls.height = (height // 64) * 64
         cls.num_cutout_batches = num_cutout_batches

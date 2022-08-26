@@ -11,10 +11,7 @@ INDEX_PATH = os.path.join("clip-diffusion", "data", "indices")  # 儲存index的
 
 
 def _remove_old_dirs_and_files(dir_path):
-    """
-    移除指定路徑下的所有資料夾及檔案
-    """
-
+    """移除指定路徑下的所有資料夾及檔案"""
     if os.path.exists(dir_path):
         # 移除所有舊檔案
         for filename in os.listdir(dir_path):
@@ -29,34 +26,26 @@ def _remove_old_dirs_and_files(dir_path):
 
 
 def make_dir(dir_path, remove_old=False):
-    """
-    建立資料夾
-    """
-
+    """建立資料夾"""
     if dir_path:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         else:
-            print(f"{dir_path} already exists")
-
             if remove_old:
                 _remove_old_dirs_and_files(dir_path)
+            else:
+                print(f"{dir_path} already exists")
     else:
         print("path cannot be empty")
 
 
 def get_file_paths(dir_path, pattern, sort_paths=True):
-    """
-    找出dir_path下符合pattern的檔案路徑
-    """
-
+    """找出dir_path下符合pattern的檔案路徑"""
     # 搜尋的pattern
     targets = os.path.join(dir_path, pattern)
     # 找出符合pattern的圖片路徑
     file_paths = glob(targets)
-
     # 如果要排序
     if sort_paths:
         file_paths = sorted(file_paths)
-
     return file_paths

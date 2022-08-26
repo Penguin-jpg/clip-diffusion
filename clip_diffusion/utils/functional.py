@@ -26,29 +26,20 @@ _INT_MAX = 2**32
 
 
 def get_num_model_parameters(model, grad=True):
-    """
-    取得模型參數量
-    """
-
+    """取得模型參數量"""
     if grad:
         return sum(param.numel() for param in model.parameters() if param.requires_grad)
     return sum(param.numel() for param in model.parameters())
 
 
 def random_seed():
-    """
-    生成隨機種子
-    """
-
+    """生成隨機種子"""
     random.seed()
     return random.randint(0, _INT_MAX)
 
 
 def range_map(num, source_range, target_range):
-    """
-    將數字從來源範圍map到目標範圍內
-    """
-
+    """將數字從來源範圍map到目標範圍內"""
     assert (
         len(source_range) == 2 and len(target_range) == 2
     ), "source_range and target_range are lists of length 2 that represents [min, max]"
@@ -60,7 +51,6 @@ def range_map(num, source_range, target_range):
 
     if num < min_source:
         num = min_source
-
     if num > max_source:
         num = max_source
 
@@ -74,76 +64,44 @@ def range_map(num, source_range, target_range):
 
 
 def tensor_to_numpy(tensor):
-    """
-    將tensor轉為numpy ndarray
-    """
+    """將tensor轉為numpy ndarray"""
 
     return np.array(tensor.cpu().detach().numpy())
 
 
 def L2_norm(input, dim=-1):
-    """
-    對input的dim做L2 norm
-    """
-
+    """對input的dim做L2 norm"""
     return F.normalize(input, dim=dim)
 
 
 def tokenize(text, device=None):
-    """
-    將text tokenize成clip需要的格式
-    """
-
+    """將text tokenize成clip需要的格式"""
     if isinstance(text, str):
         text = [text]
-
     return clip.tokenize(text).to(device)
 
 
 def to_clip_image(image, device=None):
-    """
-    預設的Clip圖片處理方式
-    """
-
+    """預設的Clip圖片處理方式"""
     return CLIP_PREPROCESS(image).unsqueeze(0).to(device)
 
 
 def embed_text(clip_model, text, L2_normalize=False):
-    """
-    取得text embedding
-    """
-
+    """取得text embedding"""
     text_embedding = clip_model.encode_text(text).float()
-
-    # 不考慮維度，只保留特徵
-    if L2_normalize:
-        text_embedding = L2_norm(text_embedding, dim=-1)
-
-    return text_embedding
+    return text_embedding if not L2_normalize else L2_norm(text_embedding, dim=-1)
 
 
 def embed_image(clip_model, image, clip_normalize=True, L2_normalize=False):
-    """
-    取得image embedding
-    """
-
+    """取得image embedding"""
     if clip_normalize:
         image = CLIP_NORMALIZE(image)
-
     image_embedding = clip_model.encode_image(image).float()
-
-    # 不考慮維度，只保留特徵
-    if L2_normalize:
-        image_embedding = L2_norm(image_embedding, dim=-1)
-
-    return image_embedding
+    return image_embedding if not L2_normalize else L2_norm(image_embedding, dim=-1)
 
 
 def set_seed(seed):
-    """
-    設定種子
-    """
-
+    """設定種子"""
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
@@ -152,10 +110,7 @@ def set_seed(seed):
 
 
 def get_sample_function(diffusion, mode="ddim"):
-    """
-    根據mode回傳對應的sample function
-    """
-
+    """根據mode回傳對應的sample function (guided diffusion)"""
     assert mode in ("ddim", "plms"), "unsupported diffusion sample mode"
 
     if mode == "ddim":
@@ -165,10 +120,7 @@ def get_sample_function(diffusion, mode="ddim"):
 
 
 def get_sampler(latent_diffusion_model, mode="ddim"):
-    """
-    根據mode回傳對應的sampler
-    """
-
+    """根據mode回傳對應的sampler (latent diffusion)"""
     assert mode in ("ddim", "plms"), "unsupported sampler mode"
 
     from ldm.models.diffusion.ddim import DDIMSampler
@@ -181,10 +133,7 @@ def get_sampler(latent_diffusion_model, mode="ddim"):
 
 
 def clear_gpu_cache():
-    """
-    清除vram的cache
-    """
-
+    """清除vram的cache"""
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -196,65 +145,43 @@ class ProgressBar:
         self._progress_bar = self._get_progress_bar()
 
     def _get_progress_bar(self):
-        """
-        建立progress bar
-        """
+        """建立progress bar"""
         progress_bar = trange(self.length, desc=self.description)
         return progress_bar
 
     def update_progress(self, value):
-        """
-        更新progress bar進度
-        """
-
+        """更新progress bar進度"""
         self._progress_bar.n = value
         self._progress_bar.refresh()
 
 
 def set_display_widget(widget):
-    """
-    設定ipython顯示的widget
-    """
-
+    """設定ipython顯示的widget"""
     display.display(widget)
 
 
 def display_image(image_path=None, url=None, unconfined=False):
-    """
-    在ipython顯示圖片
-    """
-
+    """在ipython顯示圖片"""
     assert image_path is not None or url is not None, "need to specify image_path or url"
 
     display.display(display.Image(filename=image_path, url=url, unconfined=unconfined))
 
 
 def clear_output(wait=False):
-    """
-    清除ipython顯示的內容
-    """
-
+    """清除ipython顯示的內容"""
     display.clear_output(wait=wait)
 
 
 def store_task_state(key, value):
-    """
-    將key與value存到anvil的task_state中
-    """
-
+    """將key與value存到anvil的task_state中"""
     anvil.server.task_state[key] = value
 
 
 def draw_index_on_grid_image(image, num_rows, num_cols, row_offset, col_offset, font_size=35, text_color="#c80815"):
-    """
-    將index畫在格狀圖片上
-    """
-
+    """將index畫在格狀圖片上"""
     font = ImageFont.truetype(os.path.abspath(os.path.join(ASSET_PATH, "fonts", "BebasNeue-Regular.ttf")), font_size)
     index_draw = ImageDraw.Draw(image)
-
     for row in range(num_rows):
         for col in range(num_cols):
             index_draw.text((col_offset * col + 8, row_offset * row + 3), str((col) + row * num_cols), font=font, fill=text_color)
-
     return image

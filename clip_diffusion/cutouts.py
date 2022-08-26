@@ -102,10 +102,8 @@ class Cutouts(nn.Module):
 
         # 將所有cutout圖片相接
         cutout_images = torch.cat(cutout_images)  # shape=(num_cuts, num_channels, cut_size, cut_size)
-
         # 對cutout的圖片做augmentation
         cutout_images = self.augmentations(cutout_images)
-
         return cutout_images
 
 
@@ -117,10 +115,7 @@ def make_cutouts(
     inner_cut_size_power,
     cut_gray_portion,
 ):
-    """
-    對目前生成圖片做cutout
-    """
-
+    """對目前生成圖片做cutout"""
     cutouts = Cutouts(
         cut_size=cut_size,
         num_overview_cuts=num_overview_cuts,
