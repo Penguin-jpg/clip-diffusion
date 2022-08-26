@@ -45,7 +45,7 @@ class Config:
     chosen_predictors = ("ViT-B/32", "ViT-B/16", "ViT-L/14")  # 要選擇的aesthetic predictor
 
     # 梯度相關
-    clamp_max = 0.05  # 限制的最大梯度(越高顏色會越明亮、增加對比與細節，但同時會提高出現極端結果的可能)
+    grad_threshold = 0.05  # 限制的最大與最小的梯度(越高顏色會越明亮、增加對比與細節，但同時會提高出現極端結果的可能)
 
     # loss相關
     clip_guidance_scale = 8000  # clip引導的強度(生成圖片要多接近prompt)
@@ -74,7 +74,7 @@ class Config:
         cls.num_cutout_batches = num_cutout_batches
         cls.chosen_clip_models = chosen_clip_models
         cls.chosen_predictors = chosen_predictors
-        cls.clamp_max = clamp_max
+        cls.grad_threshold = clamp_max
         cls.clip_guidance_scale = clip_guidance_scale
         cls.LPIPS_scale = LPIPS_scale
         cls.aesthetic_scale = aesthetic_scale

@@ -109,7 +109,7 @@ def guided_diffusion_sample(
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
 
     # 建立初始雜訊
-    init = create_init_noise(init_image, (Config.width, Config.height), Config.device)
+    init_noise = create_init_noise(init_image, (Config.width, Config.height), Config.device)
 
     losses = []
     current_timestep = None  # 目前的timestep
@@ -146,7 +146,7 @@ def guided_diffusion_sample(
             out = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
             factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
             x_in = out["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
-            x_in_grad = torch.zeros_like(x_in)
+            grad_tensor = torch.zeros_like(x_in)  # 在計算最後梯度時和x_in做內積
 
             for clip_model_name, clip_model in clip_models.items():
                 for _ in range(Config.num_cutout_batches):
@@ -189,33 +189,32 @@ def guided_diffusion_sample(
                     losses.append(distance_loss.sum().item())
 
                     if aesthetic_score is not None:
-                        x_in_grad += (
+                        grad_tensor += (
                             torch.autograd.grad(
                                 distance_loss.sum() * Config.clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
                             )[0]
                             / Config.num_cutout_batches
                         )
                     else:
-                        x_in_grad += (
+                        grad_tensor += (
                             torch.autograd.grad(distance_loss.sum() * Config.clip_guidance_scale, x_in)[0]
                             / Config.num_cutout_batches
                         )
 
             # 計算perceptual loss
-            if init is not None:
+            if init_noise is not None:
                 perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image)
-                x_in_grad += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
+                grad_tensor += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
 
-            if not torch.isnan(x_in_grad).any():
-                grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
+            if not torch.isnan(grad_tensor).any():
+                grad = -torch.autograd.grad(x_in, x, grad_tensor)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
             else:
-                grad = torch.zeros_like(x)
-                return grad
+                return torch.zeros_like(x)
 
-        # 使用RMS當作調整用的強度
+        # 使用梯度的RMS當作調整用的強度
         magnitude = grad.square().mean().sqrt()
         # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
-        return grad * magnitude.clamp(min=-Config.clamp_max, max=Config.clamp_max) / magnitude
+        return grad * magnitude.clamp(min=-Config.grad_threshold, max=Config.grad_threshold) / magnitude
 
     image_display = Output()  # 在server端顯示圖片
     progess_bar = ProgressBar(length=num_batches, description="Batches")  # 進度條
@@ -248,7 +247,7 @@ def guided_diffusion_sample(
                 cond_fn=conditon_function,
                 progress=True,
                 skip_timesteps=skip_timesteps,
-                init_image=init,
+                init_image=init_noise,
                 randomize_class=True,
                 eta=eta,
             )
@@ -262,7 +261,7 @@ def guided_diffusion_sample(
                 cond_fn=conditon_function,
                 progress=True,
                 skip_timesteps=skip_timesteps,
-                init_image=init,
+                init_image=init_noise,
                 randomize_class=True,
                 order=2,
             )
