@@ -143,22 +143,22 @@ def guided_diffusion_sample(
         factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
         x_in = p_mean_var["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
         grad_tensor = torch.zeros_like(x_in)  # 在計算最後梯度時和x_in做內積
+        # 總共1000個diffusion steps，每次會減掉(1000/steps)
+        total_diffusion_steps_minus_passed_steps = int(t.item()) + 1
+        # 目前的diffusion timestep
+        current_diffusion_step = 1000 - total_diffusion_steps_minus_passed_steps
 
         for clip_model_name, clip_model in clip_models.items():
             for _ in range(Config.num_cutout_batches):
                 aesthetic_score = None  # aesthetic loss計算的值
-                # 總共1000個diffusion timesteps，每次進入condition_function時會減掉(1000/steps)
-                total_diffusion_timesteps_minus_passed_timesteps = int(t.item()) + 1
-                # 目前的diffusion timestep
-                current_diffusion_timestep = 1000 - total_diffusion_timesteps_minus_passed_timesteps
                 # 做cutouts
                 cutout_images = make_cutouts(
                     input=x_in,
                     cut_size=clip_model.visual.input_resolution,
-                    num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_timestep],
-                    num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_timestep],
-                    inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_timestep],
-                    cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_timestep],
+                    num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_step],
+                    num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_step],
+                    inner_cut_size_power=Config.inner_cut_size_power_schedule[current_diffusion_step],
+                    cut_gray_portion=Config.cut_gray_portion_schedule[current_diffusion_step],
                 )
                 image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
 
@@ -173,8 +173,8 @@ def guided_diffusion_sample(
                 # 將shape調整為(num_cuts, batch_size, 1) (-1是把剩下的維度都補進來)
                 distances = distances.view(
                     [
-                        Config.num_overview_cuts_schedule[current_diffusion_timestep]
-                        + Config.num_inner_cuts_schedule[current_diffusion_timestep],
+                        Config.num_overview_cuts_schedule[current_diffusion_step]
+                        + Config.num_inner_cuts_schedule[current_diffusion_step],
                         batch_size,
                         -1,
                     ]
@@ -196,8 +196,8 @@ def guided_diffusion_sample(
 
         # 計算perceptual loss
         if init_noise is not None:
-            perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image)
-            grad_tensor += torch.autograd.grad(perceptual_loss * Config.LPIPS_scale, x_in)[0]
+            perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_noise)
+            grad_tensor += torch.autograd.grad(perceptual_loss.sum() * Config.LPIPS_scale, x_in)[0]
 
         if not torch.isnan(grad_tensor).any():
             grad = -torch.autograd.grad(x_in, x, grad_tensor)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
