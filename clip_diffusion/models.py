@@ -127,20 +127,21 @@ def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoin
         # 由於自己訓練的模型是調整過參數的，所以要額外處理
         model_config.update(
             {
-                "attention_resolutions": "16",
+                "attention_resolutions": "32, 16, 8",
                 "class_cond": False,
                 "diffusion_steps": ((1000 // steps) * steps if steps < 1000 else steps),
                 "rescale_timesteps": True,
                 "timestep_respacing": f"ddim{steps}",
-                "image_size": 256,
+                "image_size": 512,
                 "learn_sigma": True,
                 "noise_schedule": "linear",
                 "num_channels": 128,
-                "num_heads": 1,
+                "num_heads": 4,
                 "num_res_blocks": 2,
+                "resblock_updown": True,
                 "use_checkpoint": use_checkpoint,
                 "use_fp16": use_fp16,
-                "use_scale_shift_norm": False,
+                "use_scale_shift_norm": True,
             }
         )
         model, diffusion = create_model_and_diffusion(**model_config)
