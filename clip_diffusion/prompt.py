@@ -17,9 +17,9 @@ _translator = pipeline(
 _converter = OpenCC("tw2sp.json")  # 繁體轉簡體
 _sentence_transformer = load_sentence_transformer("sentence-transformers/sentence-t5-base", Config.device)  # 用來找出文字的embedding
 # index對應的dataframe
-keywords_df = pd.read_csv(os.path.abspath(os.path.join(CSV_PATH, "prompt_keywords.csv")))
+modifier_df = pd.read_csv(os.path.abspath(os.path.join(CSV_PATH, "modifiers.csv")))
 # index
-keywords_index = load_faiss_index(os.path.abspath(os.path.join(INDEX_PATH, "embeddings.index")))
+modifier_index = load_faiss_index(os.path.abspath(os.path.join(INDEX_PATH, "modifier_embeddings.index")))
 
 
 class Prompt:
@@ -52,15 +52,15 @@ class Prompt:
 
     def _append_modifiers(self, prompt, num_modifiers=1):
         """為prompt加上修飾詞"""
-        global _sentence_transformer, keywords_index, keywords_df
+        global _sentence_transformer, modifier_index, modifier_df
 
         # 補上一維
         text_embedding = np.expand_dims(_sentence_transformer.encode(prompt), axis=0)
         # 算出相似度及index
-        similarties, indices = get_topk_results(keywords_index, text_embedding, num_modifiers)
+        similarties, indices = get_topk_results(modifier_index, text_embedding, num_modifiers)
         # 將修飾詞到prompt
         for index in indices[0]:
-            prompt += f", {keywords_df.iloc[index]['Keyword']}"
+            prompt += f", {modifier_df.iloc[index]['Keyword']}"
         # 補上trending on artstation
         prompt += ", trending on artstation."
         return similarties[0][:num_modifiers], prompt
