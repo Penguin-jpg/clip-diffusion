@@ -44,6 +44,7 @@ class Config:
 
     # loss相關
     clip_guidance_scale = 8000  # clip引導的強度(生成圖片要多接近prompt)
+    denoise_scale = 10000 # 調整total variational loss影響程度
     LPIPS_scale = 1000  # 調整perceptual loss影響程度
     aesthetic_scale = 0  # 調整aesthetic loss影響程度
 
@@ -57,6 +58,7 @@ class Config:
         chosen_predictors=("ViT-B/32", "ViT-B/16", "ViT-L/14"),
         grad_threshold=0.05,
         clip_guidance_scale=8000,
+        denoise_scale=10000,
         LPIPS_scale=1000,
         aesthetic_scale=0,
     ):
@@ -68,5 +70,6 @@ class Config:
         cls.chosen_predictors = chosen_predictors
         cls.grad_threshold = grad_threshold
         cls.clip_guidance_scale = clip_guidance_scale
+        cls.denoise_scale = denoise_scale
         cls.LPIPS_scale = LPIPS_scale
         cls.aesthetic_scale = aesthetic_scale

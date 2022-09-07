@@ -37,6 +37,7 @@ from clip_diffusion.utils.functional import (
 from clip_diffusion.cutouts import make_cutouts
 from clip_diffusion.losses import (
     square_spherical_distance_loss,
+    total_variational_loss,
     LPIPS_loss,
     aesthetic_loss,
 )
@@ -194,10 +195,14 @@ def guided_diffusion_sample(
                         torch.autograd.grad(distance_loss.sum() * Config.clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
                     )
 
+        # 計算total variational loss
+        denoise_loss = total_variational_loss(x_in)
+        loss_sum = denoise_loss.sum() * Config.denoise_scale
         # 計算perceptual loss
         if init_noise is not None:
             perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_noise)
-            grad_tensor += torch.autograd.grad(perceptual_loss.sum() * Config.LPIPS_scale, x_in)[0]
+            loss_sum += perceptual_loss.sum() * Config.LPIPS_scale
+        grad_tensor += torch.autograd.grad(loss_sum, x_in)[0]
 
         if not torch.isnan(grad_tensor).any():
             grad = -torch.autograd.grad(x_in, x, grad_tensor)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
