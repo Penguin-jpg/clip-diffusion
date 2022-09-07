@@ -11,7 +11,7 @@ def square_spherical_distance_loss(x, y):
     return (x - y).norm(dim=-1).div(2).arcsin().pow(2).mul(2)
 
 
-# 公式：https://blog.csdn.net/qq_34622844/article/details/88846411
+# 公式：https://blog.csdn.net/hanlin_tan/article/details/52448803
 def total_variational_loss(input):
     """計算L2 total variation loss，用來消除雜訊"""
     # 把寬、高往外pad一格
