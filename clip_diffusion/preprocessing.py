@@ -18,16 +18,16 @@ def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
     return text_embeddings_and_weights
 
 
-def create_init_noise(init_image=None, resize_shape=None, device=None):
-    """建立初始雜訊"""
-    init_noise = None  # 初始雜訊
+def create_init_image_tensor(init_image=None, resize_shape=None, device=None):
+    """建立初始圖片tensor"""
+    init_image_tensor = None
     # 如果初始圖片不為空
     if init_image is not None:
         image = get_image_from_bytes(init_image.get_bytes()).convert("RGB")  # 將anvil傳來的image bytes轉成Pillow Image
         image = image.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
         image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
-        init_noise = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
-    return init_noise
+        init_image_tensor = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
+    return init_image_tensor
 
 
 def create_mask_tensor(mask_image, resize_shape, device=None):

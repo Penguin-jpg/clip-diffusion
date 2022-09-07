@@ -11,7 +11,7 @@ from clip_diffusion.config import Config
 from clip_diffusion.prompt import Prompt
 from clip_diffusion.preprocessing import (
     get_text_embeddings_and_text_weights,
-    create_init_noise,
+    create_init_image_tensor,
     create_mask_tensor,
 )
 from clip_diffusion.models import (
@@ -108,8 +108,8 @@ def guided_diffusion_sample(
 
     # 取得prompt的embedding及weight
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
-    # 建立初始雜訊
-    init_noise = create_init_noise(init_image, (Config.width, Config.height), Config.device)
+    # 建立初始圖片tensor
+    init_image_tensor = create_init_image_tensor(init_image, (Config.width, Config.height), Config.device)
     current_timestep = None  # 目前的timestep
 
     def denoised_function(x_start):
@@ -198,11 +198,11 @@ def guided_diffusion_sample(
 
         # 計算total variational loss
         denoise_loss = total_variational_loss(x_in)
-        loss_sum = denoise_loss.sum() * Config.denoise_loss
+        loss_sum = denoise_loss.sum() * Config.denoise_scale
         # 計算perceptual loss
-        if init_noise is not None:
-            perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_noise)
-            ssim_loss = MS_SSIM_loss(x_in, init_noise)
+        if init_image_tensor is not None:
+            perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image_tensor)
+            ssim_loss = MS_SSIM_loss(x_in, init_image_tensor)
             loss_sum += perceptual_loss.sum() * Config.LPIPS_scale + ssim_loss.sum() * Config.MS_SSIM_scale
         grad_tensor += torch.autograd.grad(loss_sum, x_in)[0]
 
@@ -242,7 +242,7 @@ def guided_diffusion_sample(
                 cond_fn=conditon_function,
                 progress=True,
                 skip_timesteps=skip_timesteps,
-                init_image=init_noise,
+                init_image=init_image_tensor,
                 randomize_class=True,
                 eta=eta,
             )
@@ -256,7 +256,7 @@ def guided_diffusion_sample(
                 cond_fn=conditon_function,
                 progress=True,
                 skip_timesteps=skip_timesteps,
-                init_image=init_noise,
+                init_image=init_image_tensor,
                 randomize_class=True,
                 order=2,
             )
@@ -361,9 +361,11 @@ def latent_diffusion_sample(
     # 處理inpaint的參數
     if init_image is not None and mask_image is not None:
         # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
-        init = create_init_noise(init_image, (sample_width, sample_height), device=Config.device).half()
-        init = repeat(init, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
-        encoder_posterior = latent_diffusion_model.encode_first_stage(init)  # 使用encoder對init encode
+        init_image_tensor = create_init_image_tensor(init_image, (sample_width, sample_height), device=Config.device).half()
+        init_image_tensor = repeat(
+            init_image_tensor, "1 c h w -> b c h w", b=num_batches
+        )  # 將shape變成(batch_size, num_channels, height, width)
+        encoder_posterior = latent_diffusion_model.encode_first_stage(init_image_tensor)  # 使用encoder對init encode
         encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior).detach()  # 取出encode的結果
 
         # mask為黑白圖片的tensor(shape=(1, num_channels, height, width)，黑白圖片的num_channels=1)
