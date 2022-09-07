@@ -1,5 +1,7 @@
 from torch.nn import functional as F
+from pytorch_msssim import ms_ssim
 from clip_diffusion.utils.functional import L2_norm
+from clip_diffusion.utils.image_utils import unnormalize_image_zero_to_one
 
 
 def square_spherical_distance_loss(x, y):
@@ -38,3 +40,11 @@ def LPIPS_loss(LPIPS_model, input, image):
 def aesthetic_loss(predictor, input):
     """計算aesthetic score作為loss"""
     return predictor(L2_norm(input, dim=-1)).mean()
+
+
+def MS_SSIM_loss(input, image):
+    """計算input與image之間的ms ssim loss"""
+    # 先將input及imagedenormalize回到[0, 1]
+    input = unnormalize_image_zero_to_one(input)
+    image = unnormalize_image_zero_to_one(image)
+    return ms_ssim(input, image, data_range=1, size_average=True)

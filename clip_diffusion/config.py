@@ -44,9 +44,10 @@ class Config:
 
     # loss相關
     clip_guidance_scale = 8000  # clip引導的強度(生成圖片要多接近prompt)
-    denoise_scale = 10000 # 調整total variational loss影響程度
+    denoise_scale = 10000  # 調整total variational loss影響程度
     LPIPS_scale = 1000  # 調整perceptual loss影響程度
     aesthetic_scale = 0  # 調整aesthetic loss影響程度
+    MS_SSIM_scale = 0  # 調整MS SSIM loss影響程度
 
     @classmethod
     def update(
@@ -61,6 +62,7 @@ class Config:
         denoise_scale=10000,
         LPIPS_scale=1000,
         aesthetic_scale=0,
+        MS_SSIM_scale=0,
     ):
         """更新設定"""
         cls.width = (width // 64) * 64  # 調整成64的倍數
@@ -73,3 +75,4 @@ class Config:
         cls.denoise_scale = denoise_scale
         cls.LPIPS_scale = LPIPS_scale
         cls.aesthetic_scale = aesthetic_scale
+        cls.MS_SSIM_scale = MS_SSIM_scale
