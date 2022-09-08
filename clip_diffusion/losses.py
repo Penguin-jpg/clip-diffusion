@@ -45,8 +45,8 @@ def aesthetic_loss(predictor, input):
     return predictor(L2_norm(input, dim=-1)).mean()
 
 
-def MS_SSIM_loss(input, image):
-    """計算input與image之間的ms ssim loss"""
+def structural_dissimilarity_loss(input, image):
+    """計算input與image之間的structural_dissimilarity(透過MS SSIM)作為loss"""
     # 先將input及imagedenormalize回到[0, 1]
     input = unnormalize_image_zero_to_one(input)
     image = unnormalize_image_zero_to_one(image)

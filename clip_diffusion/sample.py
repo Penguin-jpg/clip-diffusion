@@ -40,7 +40,7 @@ from clip_diffusion.losses import (
     total_variational_loss,
     LPIPS_loss,
     aesthetic_loss,
-    MS_SSIM_loss,
+    structural_dissimilarity_loss,
 )
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
@@ -202,8 +202,8 @@ def guided_diffusion_sample(
         # 計算perceptual loss
         if init_image_tensor is not None:
             perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image_tensor)
-            ssim_loss = MS_SSIM_loss(x_in, init_image_tensor)
-            loss_sum += perceptual_loss.sum() * Config.LPIPS_scale + ssim_loss.sum() * Config.MS_SSIM_scale
+            dissimlarity_loss = structural_dissimilarity_loss(x_in, init_image_tensor)
+            loss_sum += perceptual_loss.sum() * Config.LPIPS_scale + dissimlarity_loss.sum() * Config.MS_SSIM_scale
         grad_tensor += torch.autograd.grad(loss_sum, x_in)[0]
 
         if not torch.isnan(grad_tensor).any():
