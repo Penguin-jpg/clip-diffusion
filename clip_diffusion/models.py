@@ -93,60 +93,32 @@ def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoin
     )
 
     model_config = model_and_diffusion_defaults()
-    if not custom_model_path:
-        model_config.update(
-            {
-                "attention_resolutions": "32, 16, 8",
-                "class_cond": False,
-                "diffusion_steps": (
-                    (1000 // steps) * steps if steps < 1000 else steps
-                ),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
-                "rescale_timesteps": True,
-                "timestep_respacing": f"ddim{steps}",  # 調整diffusion的timestep數量(使用DDIM sample)
-                "image_size": 512,
-                "learn_sigma": True,
-                "noise_schedule": "linear",
-                "num_channels": 256,
-                "num_head_channels": 64,
-                "num_res_blocks": 2,
-                "resblock_updown": True,
-                "use_checkpoint": use_checkpoint,  # 使用gradient checkpoint
-                "use_fp16": use_fp16,
-                "use_scale_shift_norm": True,
-            }
-        )
-        model, diffusion = create_model_and_diffusion(**model_config)
-        model.load_state_dict(
-            torch.load(
-                _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME),
-                map_location="cpu",
-            )
-        )
-    else:
-        assert custom_model_path is not None, "need to specify custom_model_path"
-        # 由於自己訓練的模型是調整過參數的，所以要額外處理
-        model_config.update(
-            {
-                "attention_resolutions": "32, 16, 8",
-                "class_cond": False,
-                "diffusion_steps": ((1000 // steps) * steps if steps < 1000 else steps),
-                "rescale_timesteps": True,
-                "timestep_respacing": f"ddim{steps}",
-                "image_size": 512,
-                "learn_sigma": True,
-                "noise_schedule": "linear",
-                "num_channels": 128,
-                "num_heads": 4,
-                "num_res_blocks": 2,
-                "resblock_updown": True,
-                "use_checkpoint": use_checkpoint,
-                "use_fp16": use_fp16,
-                "use_scale_shift_norm": True,
-            }
-        )
-        model, diffusion = create_model_and_diffusion(**model_config)
-        model.load_state_dict(torch.load(custom_model_path, map_location="cpu"))
-
+    model_config.update(
+        {
+            "attention_resolutions": "32, 16, 8",
+            "class_cond": False,
+            "diffusion_steps": (
+                (1000 // steps) * steps if steps < 1000 else steps
+            ),  # 如果steps小於1000，就將diffusion_steps補正到接近1000以配合cutout
+            "rescale_timesteps": True,
+            "timestep_respacing": f"ddim{steps}",  # 調整diffusion的timestep數量(使用DDIM sample)
+            "image_size": 512,
+            "learn_sigma": True,
+            "noise_schedule": "linear",
+            "num_channels": 256,
+            "num_head_channels": 64,
+            "num_res_blocks": 2,
+            "resblock_updown": True,
+            "use_checkpoint": use_checkpoint,  # 使用gradient checkpoint
+            "use_fp16": use_fp16,
+            "use_scale_shift_norm": True,
+        }
+    )
+    model, diffusion = create_model_and_diffusion(**model_config)
+    model_name = (
+        _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME) if not custom_model_path else custom_model_path
+    )
+    model.load_state_dict(torch.load(model_name, map_location="cpu"))
     _to_eval_and_freeze_layers(model, False, device)
     for name, param in model.named_parameters():
         if "qkv" in name or "norm" in name or "proj" in name:
