@@ -18,7 +18,7 @@ _prompt_types = {
 }
 styles_df = pd.read_csv(os.path.join(CSV_PATH, "styles.csv"))
 media_df = pd.read_csv(os.path.join(CSV_PATH, "media.csv"))
-keywords_index = load_faiss_index(os.path.abspath(os.path.join(INDEX_PATH, "embeddings.index")))
+keywords_index = load_faiss_index(os.path.abspath(os.path.join(INDEX_PATH, "modifier_embeddings.index")))
 styles_indices = {
     clip_model_name: load_faiss_index(os.path.join(INDEX_PATH, f"{clip_model_name.replace('/', '_')}_style_embeddings.index"))
     for clip_model_name in Config.chosen_clip_models
