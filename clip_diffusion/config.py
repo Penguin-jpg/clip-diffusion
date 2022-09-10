@@ -47,7 +47,7 @@ class Config:
     denoise_scale = 10000  # 調整total variational loss影響程度
     LPIPS_scale = 1000  # 調整perceptual loss影響程度
     aesthetic_scale = 0  # 調整aesthetic loss影響程度
-    MS_SSIM_scale = 0  # 調整MS SSIM loss影響程度
+    MS_SSIM_scale = 0  # 調整structural dissimilarity loss影響程度
 
     @classmethod
     def update(
