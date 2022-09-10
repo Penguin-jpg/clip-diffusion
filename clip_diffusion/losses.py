@@ -1,5 +1,10 @@
 from torch.nn import functional as F
+from pytorch_msssim import MS_SSIM
 from clip_diffusion.utils.functional import L2_norm
+from clip_diffusion.utils.image_utils import unnormalize_image_zero_to_one
+
+
+_ms_ssim_loss = MS_SSIM(win_size=11, win_sigma=1.5, data_range=1, size_average=True, channel=3)
 
 
 def square_spherical_distance_loss(x, y):
@@ -38,3 +43,12 @@ def LPIPS_loss(LPIPS_model, input, image):
 def aesthetic_loss(predictor, input):
     """計算aesthetic score作為loss"""
     return predictor(L2_norm(input, dim=-1)).mean()
+
+
+def structural_dissimilarity_loss(input, image):
+    """計算input與image之間的structural_dissimilarity(透過MS SSIM)作為loss"""
+    # 先將input及imagedenormalize回到[0, 1]
+    input = unnormalize_image_zero_to_one(input)
+    image = unnormalize_image_zero_to_one(image)
+    # 使用1-ssim_loss以計算結構相異性(越小越好)
+    return 1.0 - _ms_ssim_loss(input, image)
