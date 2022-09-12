@@ -18,25 +18,36 @@ def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
     return text_embeddings_and_weights
 
 
-def create_init_image_tensor(init_image=None, resize_shape=None, device=None):
+def create_init_image_tensor(init_image, resize_shape, to_rgb=True, device=None):
     """建立初始圖片tensor"""
     init_image_tensor = None
     # 如果初始圖片不為空
     if init_image is not None:
-        image = get_image_from_bytes(init_image.get_bytes()).convert("RGB")  # 將anvil傳來的image bytes轉成Pillow Image
+        # 將anvil傳來的image bytes轉成Pillow Image
+        image = (
+            get_image_from_bytes(init_image.get_bytes()).convert("RGB")
+            if to_rgb
+            else get_image_from_bytes(init_image.get_bytes()).convert("RGBA")
+        )
         image = image.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
         image_tensor = image_to_tensor(image, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
         init_image_tensor = normalize_image_neg_one_to_one(image_tensor)  # 將範圍normalize到[-1, 1]
     return init_image_tensor
 
 
-def create_mask_tensor(mask_image, resize_shape, device=None):
-    """建立latent diffusion的mask tensor"""
-    mask = get_image_from_bytes(mask_image.get_bytes())
-    # 建立一個白色的背景(因為anvil傳來的圖片會去背，如果直接二值化會導致全部變成黑色)
-    background = Image.new("RGB", mask.size, "WHITE")
-    background.paste(mask, box=(0, 0), mask=mask)  # 將mask貼到background上
-    mask = background.convert("1")  # 將background轉黑白圖片
-    mask = mask.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
-    mask_tensor = image_to_tensor(mask, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
+def create_mask_tensor(mask_image, resize_shape, to_rgb=False, device=None):
+    """建立mask tensor"""
+    mask_tensor = None
+    if mask_image is not None:
+        mask = (
+            get_image_from_bytes(mask_image.get_bytes()).convert("RGB")
+            if to_rgb
+            else get_image_from_bytes(mask_image.get_bytes()).convert("RGBA")
+        )
+        # 建立一個白色的背景(因為anvil傳來的圖片會去背，如果直接二值化會導致全部變成黑色)
+        background = Image.new("RGB", mask.size, "WHITE") if to_rgb else Image.new("RGBA", mask.size, "WHITE")
+        background.paste(mask, box=(0, 0), mask=mask)  # 將mask貼到background上
+        mask = background.convert("1")  # 將background轉黑白圖片
+        mask = mask.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
+        mask_tensor = image_to_tensor(mask, device).unsqueeze(0)  # 轉tensor並擴增一個batch_size維度
     return mask_tensor

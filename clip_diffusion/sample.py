@@ -109,7 +109,7 @@ def guided_diffusion_sample(
     # 取得prompt的embedding及weight
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
     # 建立初始圖片tensor
-    init_image_tensor = create_init_image_tensor(init_image, (Config.width, Config.height), Config.device)
+    init_image_tensor = create_init_image_tensor(init_image, (Config.width, Config.height), to_rgb=True, device=Config.device)
     current_timestep = None  # 目前的timestep
 
     def denoised_function(x_start):
@@ -354,23 +354,20 @@ def latent_diffusion_sample(
 
     # sample的shape
     shape = (4, sample_height // 8, sample_width // 8)
-    # encode過的init_image
-    encoded_init = None
+    # 初始圖片tensor
+    init_image_tensor = create_init_image_tensor(
+        init_image, (sample_width, sample_height), to_rgb=False, device=Config.device
+    ).half()
     # 遮罩tensor
-    mask = None
+    mask_tensor = create_mask_tensor(mask_image, (shape[2], shape[1]), to_rgb=False, device=Config.device)
     # 處理inpaint的參數
-    if init_image is not None and mask_image is not None:
-        # 將init_image當成初始雜訊(shape=(1, num_channels, height, width))
-        init_image_tensor = create_init_image_tensor(init_image, (sample_width, sample_height), device=Config.device).half()
-        init_image_tensor = repeat(
-            init_image_tensor, "1 c h w -> b c h w", b=num_batches
-        )  # 將shape變成(batch_size, num_channels, height, width)
+    if init_image_tensor is not None and mask_tensor is not None:
+        # 將shape變成(batch_size, num_channels, height, width)
+        init_image_tensor = repeat(init_image_tensor, "1 c h w -> b c h w", b=num_batches)
         encoder_posterior = latent_diffusion_model.encode_first_stage(init_image_tensor)  # 使用encoder對init encode
-        encoded_init = latent_diffusion_model.get_first_stage_encoding(encoder_posterior).detach()  # 取出encode的結果
-
-        # mask為黑白圖片的tensor(shape=(1, num_channels, height, width)，黑白圖片的num_channels=1)
-        mask = create_mask_tensor(mask_image, (shape[2], shape[1]), Config.device)
-        mask = repeat(mask, "1 c h w -> b c h w", b=num_batches)  # 將shape變成(batch_size, num_channels, height, width)
+        init_image_tensor = latent_diffusion_model.get_first_stage_encoding(encoder_posterior).detach()  # 取出encode的結果
+        # 將shape變成(batch_size, num_channels, height, width)
+        mask_tensor = repeat(mask_tensor, "1 c h w -> b c h w", b=num_batches)
 
     exception_paths = []  # 不做sr的圖片路徑
     with torch.no_grad():
@@ -390,8 +387,8 @@ def latent_diffusion_sample(
                         S=diffusion_steps,
                         batch_size=num_batches,
                         conditioning=conditioning,
-                        x0=encoded_init,
-                        mask=mask,
+                        x0=init_image_tensor,
+                        mask=mask_tensor,
                         shape=shape,
                         verbose=False,
                         unconditional_guidance_scale=latent_diffusion_guidance_scale,
