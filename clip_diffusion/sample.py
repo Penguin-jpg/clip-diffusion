@@ -359,7 +359,7 @@ def latent_diffusion_sample(
     if init_image_tensor is not None:
         init_image_tensor = init_image_tensor.half()
     # 遮罩tensor
-    mask_tensor = create_mask_tensor(mask_image, (shape[2], shape[1]), to_rgb=False, device=Config.device)
+    mask_tensor = create_mask_tensor(mask_image, (shape[2], shape[1]), device=Config.device)
     # 處理inpaint的參數
     if init_image_tensor is not None and mask_tensor is not None:
         # 將shape變成(batch_size, num_channels, height, width)

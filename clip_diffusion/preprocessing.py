@@ -31,17 +31,13 @@ def create_init_image_tensor(init_image, resize_shape, device=None):
     return init_image_tensor
 
 
-def create_mask_tensor(mask_image, resize_shape, to_rgb=False, device=None):
+def create_mask_tensor(mask_image, resize_shape, device=None):
     """建立mask tensor"""
     mask_tensor = None
     if mask_image is not None:
-        mask = (
-            get_image_from_bytes(mask_image.get_bytes()).convert("RGB")
-            if to_rgb
-            else get_image_from_bytes(mask_image.get_bytes()).convert("RGBA")
-        )
+        mask = get_image_from_bytes(mask_image.get_bytes())
         # 建立一個白色的背景(因為anvil傳來的圖片會去背，如果直接二值化會導致全部變成黑色)
-        background = Image.new("RGB", mask.size, "WHITE") if to_rgb else Image.new("RGBA", mask.size, "WHITE")
+        background = Image.new("RGB", mask.size, "WHITE")
         background.paste(mask, box=(0, 0), mask=mask)  # 將mask貼到background上
         mask = background.convert("1")  # 將background轉黑白圖片
         mask = mask.resize(resize_shape, Image.LANCZOS)  # 調整圖片大小
