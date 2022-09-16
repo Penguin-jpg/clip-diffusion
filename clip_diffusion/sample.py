@@ -355,9 +355,9 @@ def latent_diffusion_sample(
     # sample的shape
     shape = (4, sample_height // 8, sample_width // 8)
     # 初始圖片tensor
-    init_image_tensor = create_init_image_tensor(
-        init_image, (sample_width, sample_height), to_rgb=False, device=Config.device
-    ).half()
+    init_image_tensor = create_init_image_tensor(init_image, (sample_width, sample_height), to_rgb=False, device=Config.device)
+    if init_image_tensor is not None:
+        init_image_tensor = init_image_tensor.half()
     # 遮罩tensor
     mask_tensor = create_mask_tensor(mask_image, (shape[2], shape[1]), to_rgb=False, device=Config.device)
     # 處理inpaint的參數
