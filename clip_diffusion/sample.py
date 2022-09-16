@@ -109,7 +109,7 @@ def guided_diffusion_sample(
     # 取得prompt的embedding及weight
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
     # 建立初始圖片tensor
-    init_image_tensor = create_init_image_tensor(init_image, (Config.width, Config.height), to_rgb=True, device=Config.device)
+    init_image_tensor = create_init_image_tensor(init_image, (Config.width, Config.height), device=Config.device)
     current_timestep = None  # 目前的timestep
 
     def denoised_function(x_start):
@@ -355,7 +355,7 @@ def latent_diffusion_sample(
     # sample的shape
     shape = (4, sample_height // 8, sample_width // 8)
     # 初始圖片tensor
-    init_image_tensor = create_init_image_tensor(init_image, (sample_width, sample_height), to_rgb=False, device=Config.device)
+    init_image_tensor = create_init_image_tensor(init_image, (sample_width, sample_height), device=Config.device)
     if init_image_tensor is not None:
         init_image_tensor = init_image_tensor.half()
     # 遮罩tensor
