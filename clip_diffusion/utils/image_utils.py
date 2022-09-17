@@ -77,10 +77,6 @@ def _create_gif(
         duration=gif_duration,
         loop=0,
     )
-    # 如果使用firebase，在gif建立完成後自動把storage內部圖片清空以節省空間
-    if use_firebase:
-        for image_path in image_paths:
-            delete_file_from_storage(bucket, image_path)
     return image_path
 
 
