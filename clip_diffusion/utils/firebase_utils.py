@@ -20,6 +20,7 @@ def create_storage_bucket():
 def upload_file_to_storage(bucket, file_path):
     """上傳檔案至firebase storage，並回傳url"""
     blob = bucket.blob(file_path)
+    blob.upload_from_filename(file_path)
     blob.make_public()
     return blob.public_url
 

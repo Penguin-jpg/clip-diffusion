@@ -99,10 +99,10 @@ def upload_image(image_path=None, extension="png", **kwargs):
         )
 
     if use_firebase:
-        upload_file_to_storage(bucket, image_path)
+        return upload_file_to_storage(bucket, image_path)
     else:
         image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
-    return image.link  # 回傳url
+        return image.link  # 回傳url
 
 
 def get_image_from_bytes(image_bytes):
