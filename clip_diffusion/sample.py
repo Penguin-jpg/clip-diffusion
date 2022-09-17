@@ -273,12 +273,12 @@ def guided_diffusion_sample(
                     image_tensor = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
                     image = tensor_to_pillow_image(image_tensor)  # 轉換為Pillow Image
                     image.save(image_path)
+                    # 將目前圖片的url存到current_result
+                    store_task_state("current_result", upload_image(image_path, "png"))
                     display_image(image_path=image_path)
                     clear_output(wait=(current_timestep != -1))
                     # 生成結束
                     if current_timestep == -1:
-                        # 將最後一個timestep的url存到current_result
-                        store_task_state("current_result", upload_image(image_path, "png"))
                         # 儲存生成過程的gif url
                         gif_urls.append(
                             upload_image(
@@ -291,9 +291,6 @@ def guided_diffusion_sample(
                         )
                         # 儲存最後一個timestep的圖片
                         images.append(Image.open(image_path))
-                    elif step_index % 10 == 0:  # 每10個timestep更新上傳一次圖片
-                        # 將目前圖片的url存到current_result
-                        store_task_state("current_result", upload_image(image_path, "png"))
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
         clear_gpu_cache()
