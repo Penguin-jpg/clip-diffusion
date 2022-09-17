@@ -5,9 +5,10 @@ import requests
 from bs4 import BeautifulSoup
 from clip_diffusion.config import Config
 from clip_diffusion.utils.embedding_index import load_faiss_index, get_topk_results
-from clip_diffusion.utils.dir_utils import CSV_PATH, INDEX_PATH, OUTPUT_PATH
+from clip_diffusion.utils.dir_utils import get_file_paths, CSV_PATH, INDEX_PATH, OUTPUT_PATH
 from clip_diffusion.utils.functional import random_seed, to_clip_image, embed_image
-from clip_diffusion.utils.image_utils import image_to_blob_media, get_image_from_bytes
+from clip_diffusion.utils.image_utils import image_to_blob_media, get_image_from_bytes, use_firebase, bucket
+from clip_diffusion.utils.firebase_utils import delete_file_from_storage
 from clip_diffusion.sample import clip_models
 
 # 可用的隨機prompt類型
@@ -60,8 +61,13 @@ def get_random_prompt(prompt_type):
 @anvil.server.callable
 def get_chosen_image(choice):
     """回傳選中的latent diffusion生成圖片"""
-    image_path = os.path.join(OUTPUT_PATH, "latent", "sr", f"latent_{choice}.png")
-    return image_to_blob_media("image/png", image_path)
+    sr_image_path = os.path.join(OUTPUT_PATH, "latent", "sr", f"latent_{choice}.png")
+    # 清出firebase storage空間
+    if use_firebase:
+        image_paths = get_file_paths(os.path.join(OUTPUT_PATH, "latent"), "*.png")
+        for image_path in image_paths:
+            delete_file_from_storage(bucket, image_path)
+    return image_to_blob_media("image/png", sr_image_path)
 
 
 @anvil.server.callable

@@ -7,9 +7,22 @@ from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.utils.functional import clear_gpu_cache
+from clip_diffusion.utils.firebase_utils import (
+    delete_file_from_storage,
+    get_credential,
+    initialize_firebase_app,
+    create_storage_bucket,
+    upload_file_to_storage,
+)
 
 _IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "gif")
 imgur = pyimgur.Imgur(os.environ.get("IMGUR_CLIENT_ID"))
+use_firebase = False
+if os.environ.get("FIREBASE_CREDENTIAL_PATH") and os.environ.get("FIREBASE_STORAGE_URL"):
+    use_firebase = True
+    credential = get_credential(os.environ.get("FIREBASE_CREDENTIAL_PATH"))
+    initialize_firebase_app(credential, options={"storageBucket": os.environ.get("FIREBASE_STORAGE_URL")})
+    bucket = create_storage_bucket()
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -64,6 +77,10 @@ def _create_gif(
         duration=gif_duration,
         loop=0,
     )
+    # 如果使用firebase，在gif建立完成後自動把storage內部圖片清空以節省空間
+    if use_firebase:
+        for image_path in image_paths:
+            delete_file_from_storage(bucket, image_path)
     return image_path
 
 
@@ -81,7 +98,10 @@ def upload_image(image_path=None, extension="png", **kwargs):
             kwargs["append_last_timestep"],
         )
 
-    image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
+    if use_firebase:
+        upload_file_to_storage(bucket, image_path)
+    else:
+        image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
     return image.link  # 回傳url
 
 
