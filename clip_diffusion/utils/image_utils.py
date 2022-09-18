@@ -96,6 +96,7 @@ def upload_image(image_path=None, use_firebase=True, clear_blobs=False, extensio
     if clear_blobs:
         for image_blob in image_blobs:
             image_blob.delete()
+        image_blobs.clear()
 
     if use_firebase:
         blob = bucket.blob(image_path)
