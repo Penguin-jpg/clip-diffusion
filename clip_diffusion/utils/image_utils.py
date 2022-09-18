@@ -2,27 +2,25 @@ import os
 import io
 import pyimgur
 import cv2
+import firebase_admin
+from firebase_admin import storage
 from PIL import Image
 from torchvision.transforms import functional as TF
 from anvil import BlobMedia
 from clip_diffusion.utils.dir_utils import make_dir, get_file_paths
 from clip_diffusion.utils.functional import clear_gpu_cache
-from clip_diffusion.utils.firebase_utils import (
-    delete_file_from_storage,
-    get_credential,
-    initialize_firebase_app,
-    create_storage_bucket,
-    upload_file_to_storage,
-)
 
 _IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "gif")
+# imgur
 imgur = pyimgur.Imgur(os.environ.get("IMGUR_CLIENT_ID"))
-use_firebase = False
-if os.environ.get("FIREBASE_CREDENTIAL_PATH") and os.environ.get("FIREBASE_STORAGE_URL"):
-    use_firebase = True
-    credential = get_credential(os.environ.get("FIREBASE_CREDENTIAL_PATH"))
-    initialize_firebase_app(credential, options={"storageBucket": os.environ.get("FIREBASE_STORAGE_URL")})
-    bucket = create_storage_bucket()
+# firebase憑證
+credential = firebase_admin.credentials.Certificate(os.environ.get("FIREBASE_CREDENTIAL_PATH"))
+# 初始化firebase app
+firebase_admin.initialize_app(credential, {"storageBucket": os.environ.get("FIREBASE_STORAGE_URL")})
+# 建立storage bucket
+bucket = storage.bucket()
+# 儲存這輪的image blob，方便之後移除
+image_blobs = []
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -80,8 +78,8 @@ def _create_gif(
     return image_path
 
 
-def upload_image(image_path=None, extension="png", **kwargs):
-    """將靜態圖片上傳至imgur並回傳該圖片的url"""
+def upload_image(image_path=None, use_firebase=True, clear_blobs=False, extension="png", **kwargs):
+    """將靜態圖片上傳至網站並回傳該圖片的url"""
     assert image_path or kwargs, "need to provide image_path (for static image) or kwargs (for animated image)"
     assert extension.lower() in _IMAGE_EXTENSIONS, "not a valid image extension"
 
@@ -94,8 +92,17 @@ def upload_image(image_path=None, extension="png", **kwargs):
             kwargs["append_last_timestep"],
         )
 
+    # 把blob全部刪了
+    if clear_blobs:
+        for image_blob in image_blobs:
+            image_blob.delete()
+
     if use_firebase:
-        return upload_file_to_storage(bucket, image_path)
+        blob = bucket.blob(image_path)
+        blob.upload_from_filename(image_path)
+        blob.make_public()
+        image_blobs.append(blob)
+        return blob.public_url
     else:
         image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
         return image.link  # 回傳url

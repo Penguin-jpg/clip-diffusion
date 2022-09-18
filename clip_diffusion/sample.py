@@ -164,7 +164,7 @@ def guided_diffusion_sample(
                 )
                 image_embeddings = embed_image(clip_model, cutout_images, clip_normalize=True)
 
-                if clip_model_name in aesthetic_predictors.keys():
+                if Config.aesthetic_scale > 0 and clip_model_name in aesthetic_predictors.keys():
                     aesthetic_score = aesthetic_loss(aesthetic_predictors[clip_model_name], image_embeddings)
 
                 # 計算square spherical distance loss
@@ -273,12 +273,18 @@ def guided_diffusion_sample(
                     image_tensor = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
                     image = tensor_to_pillow_image(image_tensor)  # 轉換為Pillow Image
                     image.save(image_path)
-                    # 將目前圖片的url存到current_result
-                    store_task_state("current_result", upload_image(image_path, "png"))
-                    display_image(image_path=image_path)
-                    clear_output(wait=(current_timestep != -1))
+                    # 生成中
+                    if current_timestep != -1:
+                        # 將目前圖片的url存到current_result
+                        store_task_state(
+                            "current_result", upload_image(image_path, use_firebase=True, clear_blobs=False, extension="png")
+                        )
                     # 生成結束
-                    if current_timestep == -1:
+                    else:
+                        # 將最後一張圖片存到imgur，避免一起被刪除
+                        store_task_state(
+                            "current_result", upload_image(image_path, use_firebase=False, clear_blobs=True, extension="png")
+                        )
                         # 儲存生成過程的gif url
                         gif_urls.append(
                             upload_image(
@@ -291,6 +297,8 @@ def guided_diffusion_sample(
                         )
                         # 儲存最後一個timestep的圖片
                         images.append(Image.open(image_path))
+                    display_image(image_path)
+                    clear_output(wait=(current_timestep != -1))
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
         clear_gpu_cache()

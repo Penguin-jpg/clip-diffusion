@@ -8,7 +8,6 @@ from clip_diffusion.utils.embedding_index import load_faiss_index, get_topk_resu
 from clip_diffusion.utils.dir_utils import CSV_PATH, INDEX_PATH, OUTPUT_PATH
 from clip_diffusion.utils.functional import random_seed, to_clip_image, embed_image
 from clip_diffusion.utils.image_utils import image_to_blob_media, get_image_from_bytes
-from clip_diffusion.utils.firebase_utils import delete_file_from_storage
 from clip_diffusion.sample import clip_models
 
 # 可用的隨機prompt類型
