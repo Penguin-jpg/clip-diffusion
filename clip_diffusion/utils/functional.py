@@ -65,6 +65,12 @@ def range_map(num, source_range, target_range):
     return result
 
 
+def interpolate_embeddings(embedding1, embedding2, ratio=0.5):
+    """對兩個embedding進行內插"""
+    assert embedding1.shape == embedding2.shape, "two embeddings must have the same shape"
+    return embedding1 * ratio + embedding2 * (1 - ratio)
+
+
 def tensor_to_numpy(tensor):
     """將tensor轉為numpy ndarray"""
 
