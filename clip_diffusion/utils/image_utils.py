@@ -38,8 +38,8 @@ def normalize_image_neg_one_to_one(image_tensor):
     return image_tensor.mul(2).sub(1)
 
 
-def unnormalize_image_zero_to_one(image_tensor):
-    """將image_tensor的元素範圍從[-1, 1]轉回[0, 1]"""
+def denormalize_image_zero_to_one(image_tensor):
+    """將image_tensor的元素範圍從[-1, 1]denormalize回[0, 1]"""
     return image_tensor.add(1).div(2)
 
 
@@ -80,7 +80,9 @@ def _create_gif(
 
 def upload_image(image_path=None, use_firebase=True, clear_blobs=False, extension="png", **kwargs):
     """將靜態圖片上傳至網站並回傳該圖片的url"""
-    assert image_path or kwargs, "need to provide image_path (for static image) or kwargs (for animated image)"
+    assert (
+        image_path or kwargs
+    ), "need to provide image_path (for static image) or kwargs (for animated image)"
     assert extension.lower() in _IMAGE_EXTENSIONS, "not a valid image extension"
 
     if kwargs:
@@ -135,7 +137,9 @@ def images_to_grid_image(batch_folder, images, num_rows, num_cols):
     width, height = images[0].size  # 取出一張的寬高
     grid_image = Image.new("RGB", size=(num_cols * width, num_rows * height))  # 建立一個空的grid image
     for index, image in enumerate(images):
-        grid_image.paste(image, box=(index % num_cols * width, index // num_cols * height))  # 將圖片貼到grid image對應的位置
+        grid_image.paste(
+            image, box=(index % num_cols * width, index // num_cols * height)
+        )  # 將圖片貼到grid image對應的位置
     image_path = os.path.join(batch_folder, "grid_image.png")
     grid_image.save(image_path)
     return upload_image(image_path, "png")

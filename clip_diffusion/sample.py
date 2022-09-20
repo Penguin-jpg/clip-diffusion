@@ -44,7 +44,7 @@ from clip_diffusion.losses import (
 )
 from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
-    unnormalize_image_zero_to_one,
+    denormalize_image_zero_to_one,
     tensor_to_pillow_image,
     upload_image,
     super_resolution,
@@ -97,7 +97,9 @@ def guided_diffusion_sample(
     if use_auto_modifiers:
         store_task_state("new_prompt", prompt.text)
     # 載入diffusion model和diffusion
-    model, diffusion = load_guided_diffusion_model(custom_model_path=custom_model_path, steps=steps, device=Config.device)
+    model, diffusion = load_guided_diffusion_model(
+        custom_model_path=custom_model_path, steps=steps, device=Config.device
+    )
     batch_folder = os.path.join(OUTPUT_PATH, "guided")  # 儲存圖片的資料夾
     make_dir(batch_folder, remove_old=True)
 
@@ -109,7 +111,9 @@ def guided_diffusion_sample(
     # 取得prompt的embedding及weight
     text_embeddings_and_weights = get_text_embeddings_and_text_weights(prompt, clip_models, Config.device)
     # 建立初始圖片tensor
-    init_image_tensor = create_init_image_tensor(init_image, (Config.width, Config.height), device=Config.device)
+    init_image_tensor = create_init_image_tensor(
+        init_image, (Config.width, Config.height), device=Config.device
+    )
     current_timestep = None  # 目前的timestep
 
     def denoised_function(x_start):
@@ -124,7 +128,9 @@ def guided_diffusion_sample(
             dim=-1,
         )
         threshold = threshold.clamp(min=1.0)  # 最小值要為1
-        threshold = threshold.view(*threshold.shape, *((1,) * (x_start.ndim - threshold.ndim)))  # pad到和x_start一樣的維度
+        threshold = threshold.view(
+            *threshold.shape, *((1,) * (x_start.ndim - threshold.ndim))
+        )  # pad到和x_start一樣的維度
         x_start = x_start.clamp(min=-threshold, max=threshold) / threshold
         return x_start
 
@@ -140,11 +146,15 @@ def guided_diffusion_sample(
         x = x.detach().requires_grad_()
         batch_size = x.shape[0]
         # 目前timestep轉tensor
-        current_timestep_tensor = torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
-        p_mean_var = diffusion.p_mean_variance(model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y})
+        current_timestep_tensor = (
+            torch.ones([batch_size], device=Config.device, dtype=torch.long) * current_timestep
+        )
+        p_mean_var = diffusion.p_mean_variance(
+            model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y}
+        )
         factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-        x_in = p_mean_var["pred_xstart"] * factor + x * (1 - factor)  # 將x0與目前x以一定比例相加並當成輸入
-        grad_tensor = torch.zeros_like(x_in)  # 在計算最後梯度時和x_in做內積
+        denoised_prediction = p_mean_var["pred_xstart"] * factor + x * (1 - factor)  # 預測的去噪x(不確定為什麼是這樣算)
+        grad_tensor = torch.zeros_like(denoised_prediction)  # 在計算最後梯度時和denoised_prediction做內積
         # 總共1000個diffusion steps，每次會減掉(1000/steps)
         total_diffusion_steps_minus_passed_steps = int(t.item()) + 1
         # 目前的diffusion timestep
@@ -155,7 +165,7 @@ def guided_diffusion_sample(
                 aesthetic_score = None  # aesthetic loss計算的值
                 # 做cutouts
                 cutout_images = make_cutouts(
-                    input=x_in,
+                    input=denoised_prediction,
                     cut_size=clip_model.visual.input_resolution,
                     num_overview_cuts=Config.num_overview_cuts_schedule[current_diffusion_step],
                     num_inner_cuts=Config.num_inner_cuts_schedule[current_diffusion_step],
@@ -183,31 +193,44 @@ def guided_diffusion_sample(
                 )
 
                 # 對最後一個維度取平均
-                distance_loss = distances.mul(text_embeddings_and_weights[clip_model_name]["weights"]).sum(dim=2).mean(dim=0)
+                distance_loss = (
+                    distances.mul(text_embeddings_and_weights[clip_model_name]["weights"])
+                    .sum(dim=2)
+                    .mean(dim=0)
+                )
                 if aesthetic_score is not None:
                     grad_tensor += (
                         torch.autograd.grad(
-                            distance_loss.sum() * Config.clip_guidance_scale - aesthetic_score * Config.aesthetic_scale, x_in
+                            distance_loss.sum() * Config.clip_guidance_scale
+                            - aesthetic_score * Config.aesthetic_scale,
+                            denoised_prediction,
                         )[0]
                         / Config.num_cutout_batches
                     )
                 else:
                     grad_tensor += (
-                        torch.autograd.grad(distance_loss.sum() * Config.clip_guidance_scale, x_in)[0] / Config.num_cutout_batches
+                        torch.autograd.grad(
+                            distance_loss.sum() * Config.clip_guidance_scale, denoised_prediction
+                        )[0]
+                        / Config.num_cutout_batches
                     )
 
         # 計算total variational loss
-        denoise_loss = total_variational_loss(x_in)
+        denoise_loss = total_variational_loss(denoised_prediction)
         loss_sum = denoise_loss.sum() * Config.denoise_scale
         # 計算perceptual loss
         if init_image_tensor is not None:
-            perceptual_loss = LPIPS_loss(LPIPS_model, x_in, init_image_tensor)
-            dissimlarity_loss = structural_dissimilarity_loss(x_in, init_image_tensor)
-            loss_sum += perceptual_loss.sum() * Config.LPIPS_scale + dissimlarity_loss.sum() * Config.MS_SSIM_scale
-        grad_tensor += torch.autograd.grad(loss_sum, x_in)[0]
+            perceptual_loss = LPIPS_loss(LPIPS_model, denoised_prediction, init_image_tensor)
+            dissimlarity_loss = structural_dissimilarity_loss(denoised_prediction, init_image_tensor)
+            loss_sum += (
+                perceptual_loss.sum() * Config.LPIPS_scale + dissimlarity_loss.sum() * Config.MS_SSIM_scale
+            )
+        grad_tensor += torch.autograd.grad(loss_sum, denoised_prediction)[0]
 
         if not torch.isnan(grad_tensor).any():
-            grad = -torch.autograd.grad(x_in, x, grad_tensor)[0]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
+            grad = -torch.autograd.grad(denoised_prediction, x, grad_tensor)[
+                0
+            ]  # 取負是因為使用的每項loss均為值越低越好，所以改為最大化負數(最小化正數)
         else:
             return torch.zeros_like(x)
 
@@ -235,7 +258,12 @@ def guided_diffusion_sample(
         if sample_mode == "ddim":  # ddim
             samples = sample_function(
                 model=model,
-                shape=(1, 3, Config.height, Config.width),  # shape=(batch_size, num_channels, height, width)
+                shape=(
+                    1,
+                    3,
+                    Config.height,
+                    Config.width,
+                ),  # shape=(batch_size, num_channels, height, width)
                 clip_denoised=False,
                 denoised_fn=denoised_function,
                 model_kwargs={},
@@ -270,20 +298,22 @@ def guided_diffusion_sample(
                     filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
                     image_path = os.path.join(batch_folder, filename)  # 圖片路徑
                     # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
-                    image_tensor = unnormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
+                    image_tensor = denormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
                     image = tensor_to_pillow_image(image_tensor)  # 轉換為Pillow Image
                     image.save(image_path)
                     # 生成中
                     if current_timestep != -1:
                         # 將目前圖片的url存到current_result
                         store_task_state(
-                            "current_result", upload_image(image_path, use_firebase=True, clear_blobs=False, extension="png")
+                            "current_result",
+                            upload_image(image_path, use_firebase=True, clear_blobs=False, extension="png"),
                         )
                     # 生成結束
                     else:
                         # 將最後一張圖片存到imgur，避免一起被刪除
                         store_task_state(
-                            "current_result", upload_image(image_path, use_firebase=False, clear_blobs=True, extension="png")
+                            "current_result",
+                            upload_image(image_path, use_firebase=False, clear_blobs=True, extension="png"),
                         )
                         # 儲存生成過程的gif url
                         gif_urls.append(
@@ -360,7 +390,9 @@ def latent_diffusion_sample(
     # sample的shape
     shape = (4, sample_height // 8, sample_width // 8)
     # 初始圖片tensor
-    init_image_tensor = create_init_image_tensor(init_image, (sample_width, sample_height), device=Config.device)
+    init_image_tensor = create_init_image_tensor(
+        init_image, (sample_width, sample_height), device=Config.device
+    )
     if init_image_tensor is not None:
         init_image_tensor = init_image_tensor.half()
     # 遮罩tensor
@@ -369,8 +401,12 @@ def latent_diffusion_sample(
     if init_image_tensor is not None and mask_tensor is not None:
         # 將shape變成(batch_size, num_channels, height, width)
         init_image_tensor = repeat(init_image_tensor, "1 c h w -> b c h w", b=num_batches)
-        encoder_posterior = latent_diffusion_model.encode_first_stage(init_image_tensor)  # 使用encoder對init encode
-        init_image_tensor = latent_diffusion_model.get_first_stage_encoding(encoder_posterior).detach()  # 取出encode的結果
+        encoder_posterior = latent_diffusion_model.encode_first_stage(
+            init_image_tensor
+        )  # 使用encoder對init encode
+        init_image_tensor = latent_diffusion_model.get_first_stage_encoding(
+            encoder_posterior
+        ).detach()  # 取出encode的結果
         # 將shape變成(batch_size, num_channels, height, width)
         mask_tensor = repeat(mask_tensor, "1 c h w -> b c h w", b=num_batches)
 
@@ -381,12 +417,16 @@ def latent_diffusion_sample(
                 uncoditional_conditioning = None
                 if latent_diffusion_guidance_scale > 0:
                     # ""代表不考慮的prompt
-                    uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [""])
+                    uncoditional_conditioning = latent_diffusion_model.get_learned_conditioning(
+                        num_batches * [""]
+                    )
                 samples = []  # 儲存所有sample
                 count = 0  # 圖片編號
                 for current_iteration in range(num_iterations):
                     clear_gpu_cache()
-                    conditioning = latent_diffusion_model.get_learned_conditioning(num_batches * [prompt.text])
+                    conditioning = latent_diffusion_model.get_learned_conditioning(
+                        num_batches * [prompt.text]
+                    )
                     # sample，只取第一個變數(samples)，不取第二個變數(intermediates)
                     samples_ddim, _ = sampler.sample(
                         S=diffusion_steps,
@@ -401,7 +441,7 @@ def latent_diffusion_sample(
                         eta=eta,
                     )
                     x_samples_ddim = latent_diffusion_model.decode_first_stage(samples_ddim)
-                    x_samples_ddim = unnormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
+                    x_samples_ddim = denormalize_image_zero_to_one(x_samples_ddim).clamp(min=0.0, max=1.0)
 
                     for x_sample in x_samples_ddim:
                         x_sample = 255.0 * rearrange(x_sample.cpu().numpy(), "c h w -> h w c")
@@ -429,7 +469,9 @@ def latent_diffusion_sample(
 
                     # 畫上index
                     grid_image = Image.fromarray(grid.astype(np.uint8))
-                    grid_image = draw_index_on_grid_image(grid_image, num_iterations, num_batches, sample_height, sample_width)
+                    grid_image = draw_index_on_grid_image(
+                        grid_image, num_iterations, num_batches, sample_height, sample_width
+                    )
                     grid_image.save(os.path.join(batch_folder, grid_filename))  # 儲存grid圖片
                     grid_image_url = upload_image(os.path.join(batch_folder, grid_filename), "png")  # 儲存url
                     clear_gpu_cache()

@@ -4,7 +4,7 @@ from torch.nn import functional as F
 from torchvision import transforms as T
 from torchvision.transforms import functional as TF
 from resize_right import resize
-from clip_diffusion.utils.image_utils import unnormalize_image_zero_to_one
+from clip_diffusion.utils.image_utils import denormalize_image_zero_to_one
 
 # 作者： Dango233(https://github.com/Dango233)
 class Cutouts(nn.Module):
@@ -81,7 +81,9 @@ class Cutouts(nn.Module):
         # 做inner cut
         if self.num_inner_cuts > 0:
             for i in range(self.num_inner_cuts):
-                innert_cut_size = int(torch.rand([]) ** self.inner_cut_size_power * (shorter_side - min_size) + min_size)
+                innert_cut_size = int(
+                    torch.rand([]) ** self.inner_cut_size_power * (shorter_side - min_size) + min_size
+                )
                 width_offset = torch.randint(
                     0, width - innert_cut_size + 1, ()
                 )  # 從0~(width - inner_cut_size +1)中隨機選一個數字當cutout寬度的offset
@@ -91,13 +93,18 @@ class Cutouts(nn.Module):
 
                 # 取input高度介於[y_offset, y_offset + size)；寬度介於[x_offset, x_offset + size)的區域，用於inner cut
                 inner_cut_image = input[
-                    :, :, height_offset : height_offset + innert_cut_size, width_offset : width_offset + innert_cut_size
+                    :,
+                    :,
+                    height_offset : height_offset + innert_cut_size,
+                    width_offset : width_offset + innert_cut_size,
                 ]
 
                 if i <= int(self.cut_gray_portion * self.num_inner_cuts):
                     inner_cut_image = gray(inner_cut_image)
 
-                inner_cut_image = resize(inner_cut_image, out_shape=output_shape)  # 重新resize成(1, 3, cut_size, cut_size)
+                inner_cut_image = resize(
+                    inner_cut_image, out_shape=output_shape
+                )  # 重新resize成(1, 3, cut_size, cut_size)
                 cutout_images.append(inner_cut_image)
 
         # 將所有cutout圖片相接
@@ -123,5 +130,5 @@ def make_cutouts(
         inner_cut_size_power=inner_cut_size_power,
         cut_gray_portion=cut_gray_portion,
     )
-    cutout_images = cutouts(unnormalize_image_zero_to_one(input))
+    cutout_images = cutouts(denormalize_image_zero_to_one(input))
     return cutout_images

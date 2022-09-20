@@ -33,7 +33,9 @@ class Config:
     # 控制inner cutout大小的schedule(越高會讓inner cutout圖片大小越接近Clip的解析度)
     inner_cut_size_power_schedule = create_schedule(values=(5,), steps=(1000,))
     # 控制多少百分比的cut要取出做灰階化(建議剛開始高，隨著過程逐漸降低)
-    cut_gray_portion_schedule = create_schedule(values=(0.7, 0.6, 0.45, 0.3, 0), steps=(100, 100, 100, 100, 600))
+    cut_gray_portion_schedule = create_schedule(
+        values=(0.7, 0.6, 0.45, 0.3, 0), steps=(100, 100, 100, 100, 600)
+    )
 
     # model相關
     chosen_clip_models = ("ViT-B/32", "ViT-B/16", "ViT-L/14", "RN101")  # 要選擇的Clip模型

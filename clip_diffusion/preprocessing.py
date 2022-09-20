@@ -1,7 +1,11 @@
 import torch
 from PIL import Image
 from clip_diffusion.utils.functional import tokenize, embed_text
-from clip_diffusion.utils.image_utils import get_image_from_bytes, image_to_tensor, normalize_image_neg_one_to_one
+from clip_diffusion.utils.image_utils import (
+    get_image_from_bytes,
+    image_to_tensor,
+    normalize_image_neg_one_to_one,
+)
 
 
 def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
@@ -10,7 +14,9 @@ def get_text_embeddings_and_text_weights(prompt, clip_models, device=None):
     for clip_model_name, clip_model in clip_models.items():
         # text的embedding和權重
         text_embeddings_and_weights[clip_model_name] = {}
-        text_embeddings_and_weights[clip_model_name]["embeddings"] = embed_text(clip_model, tokenize([prompt.text], device))
+        text_embeddings_and_weights[clip_model_name]["embeddings"] = embed_text(
+            clip_model, tokenize([prompt.text], device)
+        )
         text_embeddings_and_weights[clip_model_name]["weights"] = torch.tensor(prompt.weight, device=device)
         # 權重和不可為0
         if text_embeddings_and_weights[clip_model_name]["weights"].item() < 1e-3:

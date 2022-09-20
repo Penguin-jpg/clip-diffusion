@@ -39,18 +39,24 @@ class ColabHelper:
     def _install_dependencies_from_repos(self, repo_folders):
         """透過pip從repo folder安裝dependency"""
         for repo_folder in repo_folders:
-            result = subprocess.run(["pip", "install", "-e", repo_folder], stdout=subprocess.PIPE).stdout.decode("utf-8")
+            result = subprocess.run(
+                ["pip", "install", "-e", repo_folder], stdout=subprocess.PIPE
+            ).stdout.decode("utf-8")
             print(result)
 
     def _install_dependencies_from_pypi(self, module_names):
         """透過pip從pypi安裝dependency"""
         for module_name in module_names:
-            result = subprocess.run(["pip", "install", module_name], stdout=subprocess.PIPE).stdout.decode("utf-8")
+            result = subprocess.run(["pip", "install", module_name], stdout=subprocess.PIPE).stdout.decode(
+                "utf-8"
+            )
             print(result)
 
     def _install_dependencies_from_requirements(self, requirements_file):
         """透過pip從requirements.txt安裝dependency"""
-        result = subprocess.run(["pip", "install", "-r", requirements_file], stdout=subprocess.PIPE).stdout.decode("utf-8")
+        result = subprocess.run(
+            ["pip", "install", "-r", requirements_file], stdout=subprocess.PIPE
+        ).stdout.decode("utf-8")
         print(result)
 
     def _append_paths(self, module_folders):

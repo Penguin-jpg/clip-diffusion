@@ -116,7 +116,9 @@ def load_guided_diffusion_model(custom_model_path=None, steps=200, use_checkpoin
     )
     model, diffusion = create_model_and_diffusion(**model_config)
     model_name = (
-        _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME) if not custom_model_path else custom_model_path
+        _download_model(_GUIDED_DIFFUSION_MODEL_URL, _GUIDED_DIFFUSION_MODEL_NAME)
+        if not custom_model_path
+        else custom_model_path
     )
     model.load_state_dict(torch.load(model_name, map_location="cpu"))
     _to_eval_and_freeze_layers(model, False, device)

@@ -15,7 +15,9 @@ _translator = pipeline(
     tokenizer="Helsinki-NLP/opus-mt-zh-en",
 )  # 用來中翻英
 _converter = OpenCC("tw2sp.json")  # 繁體轉簡體
-_sentence_transformer = load_sentence_transformer("sentence-transformers/sentence-t5-base", Config.device)  # 用來找出文字的embedding
+_sentence_transformer = load_sentence_transformer(
+    "sentence-transformers/sentence-t5-base", Config.device
+)  # 用來找出文字的embedding
 # index對應的dataframe
 modifier_df = pd.read_csv(os.path.abspath(os.path.join(CSV_PATH, "modifiers.csv")))
 # index

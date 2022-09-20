@@ -13,7 +13,9 @@ from PIL import ImageFont, ImageDraw
 from clip_diffusion.utils.dir_utils import ASSET_PATH
 
 # Clip用到的preprocess
-CLIP_NORMALIZE = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
+CLIP_NORMALIZE = T.Normalize(
+    mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711)
+)
 CLIP_PREPROCESS = T.Compose(
     [
         T.Resize(224, T.InterpolationMode.LANCZOS),
@@ -177,11 +179,20 @@ def store_task_state(key, value):
     anvil.server.task_state[key] = value
 
 
-def draw_index_on_grid_image(image, num_rows, num_cols, row_offset, col_offset, font_size=35, text_color="#c80815"):
+def draw_index_on_grid_image(
+    image, num_rows, num_cols, row_offset, col_offset, font_size=35, text_color="#c80815"
+):
     """將index畫在格狀圖片上"""
-    font = ImageFont.truetype(os.path.abspath(os.path.join(ASSET_PATH, "fonts", "BebasNeue-Regular.ttf")), font_size)
+    font = ImageFont.truetype(
+        os.path.abspath(os.path.join(ASSET_PATH, "fonts", "BebasNeue-Regular.ttf")), font_size
+    )
     index_draw = ImageDraw.Draw(image)
     for row in range(num_rows):
         for col in range(num_cols):
-            index_draw.text((col_offset * col + 8, row_offset * row + 3), str((col) + row * num_cols), font=font, fill=text_color)
+            index_draw.text(
+                (col_offset * col + 8, row_offset * row + 3),
+                str((col) + row * num_cols),
+                font=font,
+                fill=text_color,
+            )
     return image
