@@ -40,7 +40,7 @@ def get_seed():
 
 
 @anvil.server.callable
-def change_settings(width, height, clip_guidance_scale, LPIPS_scale, aesthetic_scale):
+def change_settings(width, height, clip_guidance_scale, LPIPS_scale, aesthetic_scale, MS_SSIM_scale):
     """修改Config設定"""
     Config.update(
         width=width,
@@ -48,6 +48,7 @@ def change_settings(width, height, clip_guidance_scale, LPIPS_scale, aesthetic_s
         clip_guidance_scale=clip_guidance_scale,
         LPIPS_scale=LPIPS_scale,
         aesthetic_scale=aesthetic_scale,
+        MS_SSIM_scale=MS_SSIM_scale,
     )
 
 
