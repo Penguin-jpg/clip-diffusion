@@ -3,6 +3,7 @@ import io
 import pyimgur
 import cv2
 import firebase_admin
+import datetime
 from firebase_admin import storage
 from PIL import Image
 from torchvision.transforms import functional as TF
@@ -19,8 +20,6 @@ credential = firebase_admin.credentials.Certificate(os.environ.get("FIREBASE_CRE
 firebase_admin.initialize_app(credential, {"storageBucket": os.environ.get("FIREBASE_STORAGE_URL")})
 # 建立storage bucket
 bucket = storage.bucket()
-# 儲存這輪的image blob，方便之後移除
-image_blobs = []
 
 
 def image_to_tensor(pillow_image_or_ndarray, device=None):
@@ -43,7 +42,7 @@ def denormalize_image_zero_to_one(image_tensor):
     return image_tensor.add(1).div(2)
 
 
-def _create_gif(
+def create_gif(
     batch_folder,
     batch_index,
     display_rate=30,
@@ -78,34 +77,24 @@ def _create_gif(
     return image_path
 
 
-def upload_image(image_path=None, use_firebase=True, clear_blobs=False, extension="png", **kwargs):
-    """將靜態圖片上傳至網站並回傳該圖片的url"""
-    assert (
-        image_path or kwargs
-    ), "need to provide image_path (for static image) or kwargs (for animated image)"
+def _upload_to_firebase(image_path, **kwargs):
+    """上傳至firebase，kwargs負責圖片token到期時間"""
+    blob = bucket.blob(image_path)
+    blob.upload_from_filename(image_path)
+    # 如果不為空
+    if kwargs:
+        return blob.generate_signed_url(datetime.timedelta(**kwargs))
+    else:
+        # 預設存在10分鐘
+        return blob.generate_signed_url(datetime.timedelta(minutes=10))
+
+
+def upload_image(image_path, use_firebase=True, extension="png", **kwargs):
+    """將靜態圖片上傳至網站並回傳該圖片的url，kwargs負責圖片token到期時間"""
     assert extension.lower() in _IMAGE_EXTENSIONS, "not a valid image extension"
 
-    if kwargs:
-        image_path = _create_gif(
-            kwargs["batch_folder"],
-            kwargs["batch_index"],
-            kwargs["display_rate"],
-            kwargs["gif_duration"],
-            kwargs["append_last_timestep"],
-        )
-
-    # 把blob全部刪了
-    if clear_blobs:
-        for image_blob in image_blobs:
-            image_blob.delete()
-        image_blobs.clear()
-
     if use_firebase:
-        blob = bucket.blob(image_path)
-        blob.upload_from_filename(image_path)
-        blob.make_public()
-        image_blobs.append(blob)
-        return blob.public_url
+        return _upload_to_firebase(image_path, **kwargs)
     else:
         image = imgur.upload_image(image_path, title=f"{os.path.basename(image_path)}")
         return image.link  # 回傳url

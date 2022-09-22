@@ -46,6 +46,7 @@ from clip_diffusion.utils.dir_utils import make_dir, OUTPUT_PATH
 from clip_diffusion.utils.image_utils import (
     denormalize_image_zero_to_one,
     tensor_to_pillow_image,
+    create_gif,
     upload_image,
     super_resolution,
 )
@@ -241,7 +242,6 @@ def guided_diffusion_sample(
 
     image_display = Output()  # 在server端顯示圖片
     gif_urls = []  # 生成過程的gif url
-    images = []  # 最後一個timestep的圖片
     for batch_index in range(num_batches):
         clear_output(wait=True)
         set_display_widget(image_display)
@@ -306,27 +306,22 @@ def guided_diffusion_sample(
                         # 將目前圖片的url存到current_result
                         store_task_state(
                             "current_result",
-                            upload_image(image_path, use_firebase=True, clear_blobs=False, extension="png"),
+                            upload_image(image_path, use_firebase=True, extension="png", minutes=10),
                         )
                     # 生成結束
                     else:
-                        # 將最後一張圖片存到imgur，避免一起被刪除
-                        store_task_state(
-                            "current_result",
-                            upload_image(image_path, use_firebase=False, clear_blobs=True, extension="png"),
+                        # 建立gif
+                        gif_path = create_gif(
+                            batch_folder,
+                            batch_index,
+                            display_rate,
+                            gif_duration,
+                            append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
                         )
                         # 儲存生成過程的gif url
                         gif_urls.append(
-                            upload_image(
-                                batch_folder=batch_folder,
-                                batch_index=batch_index,
-                                display_rate=display_rate,
-                                gif_duration=gif_duration,
-                                append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
-                            )
+                            upload_image(gif_path, use_firebase=True, extension="gif", minutes=10)
                         )
-                        # 儲存最後一個timestep的圖片
-                        images.append(Image.open(image_path))
                     display_image(image_path)
                     clear_output(wait=(current_timestep != -1))
 
