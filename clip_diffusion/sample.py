@@ -137,7 +137,7 @@ def guided_diffusion_sample(
     @torch.enable_grad()
     def conditon_function(x, t, y=None):
         """
-        透過clip引導guided diffusion(計算grad(log(p(y|x))))
+        透過clip引導guided diffusion(計算梯度並用來引導)
         x: 上一個timestep的圖片tensor
         t: diffusion timestep tensor
         y: class
