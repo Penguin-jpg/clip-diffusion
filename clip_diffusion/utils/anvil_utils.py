@@ -40,12 +40,15 @@ def get_seed():
 
 
 @anvil.server.callable
-def change_settings(width, height, clip_guidance_scale, LPIPS_scale, aesthetic_scale, MS_SSIM_scale):
+def change_settings(
+    width, height, clip_guidance_scale, denoise_sacle, LPIPS_scale, aesthetic_scale, MS_SSIM_scale
+):
     """修改Config設定"""
     Config.update(
         width=width,
         height=height,
         clip_guidance_scale=clip_guidance_scale,
+        denoise_scale=denoise_sacle,
         LPIPS_scale=LPIPS_scale,
         aesthetic_scale=aesthetic_scale,
         MS_SSIM_scale=MS_SSIM_scale,
@@ -59,7 +62,7 @@ def get_random_prompt(prompt_type):
     request = requests.get(url)
     soup = BeautifulSoup(request.content, "html.parser", from_encoding="iso-8859-1")  # 抓取網頁
     prompt = soup.find_all("div", {"class": "et_pb_text_inner"})
-    return prompt[1].text.strip().split("\n")[-1].lstrip("\t") + "."
+    return prompt[1].text.strip().split("\n")[-1].lstrip("\t")
 
 
 @anvil.server.callable
