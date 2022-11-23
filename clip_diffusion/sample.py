@@ -4,7 +4,6 @@ import lpips
 import anvil
 import numpy as np
 from PIL import Image
-from ipywidgets import Output
 from tqdm.notebook import tqdm
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
@@ -30,8 +29,6 @@ from clip_diffusion.utils.functional import (
     get_sample_function,
     embed_image,
     get_sampler,
-    set_display_widget,
-    display_image,
     store_task_state,
     draw_index_on_grid_image,
 )
@@ -153,7 +150,8 @@ def guided_diffusion_sample(
             model, x, current_timestep_tensor, clip_denoised=False, model_kwargs={"y": y}
         )
         factor = diffusion.sqrt_one_minus_alphas_cumprod[current_timestep]
-        denoised_prediction = p_mean_var["pred_xstart"] * factor + x * (1 - factor)  # 預測的去噪x(不確定為什麼是這樣算)
+        # 預測的去噪x(將部分預測的x0與部分的目前x混合，作者說可以降低一些雜訊)
+        denoised_prediction = p_mean_var["pred_xstart"] * factor + x * (1 - factor)
         grad_tensor = torch.zeros_like(denoised_prediction)  # 在計算最後梯度時和denoised_prediction做內積
         # 總共1000個diffusion steps，每次會減掉(1000/steps)
         total_diffusion_steps_minus_passed_steps = int(t.item()) + 1
@@ -239,55 +237,52 @@ def guided_diffusion_sample(
         # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
         return grad * magnitude.clamp(min=-Config.grad_threshold, max=Config.grad_threshold) / magnitude
 
-    # image_display = Output()  # 在server端顯示圖片
+    # 根據sample_mode選擇`sample_function
+    sample_function = get_sample_function(diffusion, mode=sample_mode)
+    # 根據不同function傳入參數
+    if sample_mode == "ddim":  # ddim
+        samples = sample_function(
+            model=model,
+            shape=(
+                1,
+                3,
+                Config.height,
+                Config.width,
+            ),  # shape=(batch_size, num_channels, height, width)
+            clip_denoised=False,
+            denoised_fn=denoised_function,
+            model_kwargs={},
+            cond_fn=conditon_function,
+            progress=True,
+            skip_timesteps=skip_timesteps,
+            init_image=init_image_tensor,
+            randomize_class=True,
+            eta=eta,
+        )
+    else:  # plms
+        samples = sample_function(
+            model=model,
+            shape=(1, 3, Config.height, Config.width),
+            clip_denoised=False,
+            denoised_fn=denoised_function,
+            model_kwargs={},
+            cond_fn=conditon_function,
+            progress=True,
+            skip_timesteps=skip_timesteps,
+            init_image=init_image_tensor,
+            randomize_class=True,
+            order=2,
+        )
+
     gif_urls = []  # 生成過程的gif url
-    for batch_index in range(num_batches):
+    for batch_index in range(tqdm(num_batches)):
         clear_output(wait=True)
-        # set_display_widget(image_display)
         store_task_state("current_batch", batch_index)  # 將目前的batch index存到current_batch
         store_task_state("current_result", None)  # 初始化
         clear_gpu_cache()
 
         # 將目前timestep的值初始化為總timestep數-1
         current_timestep = diffusion.num_timesteps - skip_timesteps - 1
-        # 根據sample_mode選擇`sample_function
-        sample_function = get_sample_function(diffusion, mode=sample_mode)
-
-        # 根據不同function傳入參數
-        if sample_mode == "ddim":  # ddim
-            samples = sample_function(
-                model=model,
-                shape=(
-                    1,
-                    3,
-                    Config.height,
-                    Config.width,
-                ),  # shape=(batch_size, num_channels, height, width)
-                clip_denoised=False,
-                denoised_fn=denoised_function,
-                model_kwargs={},
-                cond_fn=conditon_function,
-                progress=True,
-                skip_timesteps=skip_timesteps,
-                init_image=init_image_tensor,
-                randomize_class=True,
-                eta=eta,
-            )
-        else:  # plms
-            samples = sample_function(
-                model=model,
-                shape=(1, 3, Config.height, Config.width),
-                clip_denoised=False,
-                denoised_fn=denoised_function,
-                model_kwargs={},
-                cond_fn=conditon_function,
-                progress=True,
-                skip_timesteps=skip_timesteps,
-                init_image=init_image_tensor,
-                randomize_class=True,
-                order=2,
-            )
-
         # current_timestep從總timestep數開始；step_index從0開始
         for step_index, sample in enumerate(tqdm(samples)):
             current_timestep -= 1  # 每次都將目前的timestep減1
@@ -312,9 +307,6 @@ def guided_diffusion_sample(
                 gif_path = create_gif(batch_folder, batch_index, gif_duration)
                 # 儲存生成過程的gif url
                 gif_urls.append(upload_image(gif_path, use_firebase=True, extension="gif", minutes=10))
-            # 暫時取消後端顯示
-            # display_image(image_path)
-            # clear_output(wait=(not current_timestep == -1))
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
         clear_gpu_cache()
@@ -438,7 +430,6 @@ def latent_diffusion_sample(
                         )  # 將"/"替換為"-"避免誤認為路徑
                         image_vector = Image.fromarray(x_sample.astype(np.uint8))
                         image_vector.save(image_path)
-                        display_image(image_path)
                         count += 1
 
                         # 做完時才記錄current_iteration
