@@ -45,9 +45,7 @@ def denormalize_image_zero_to_one(image_tensor):
 def create_gif(
     batch_folder,
     batch_index,
-    display_rate=30,
     gif_duration=500,
-    append_last_timestep=False,
 ):
     """建立一張gif"""
     assert batch_folder is not None, "batch_folder cannot be None"
@@ -55,15 +53,13 @@ def create_gif(
     # 選出目前batch的所有圖片路徑
     image_paths = get_file_paths(batch_folder, f"guided_{batch_index}*.png")
     images = []  # 儲存要找的圖片
+    slice = len(image_paths) // 5  # 固定切成5份
     for index, image_path in enumerate(image_paths):
         # 按照更新速率找出需要的圖片
-        if index % display_rate == 0:
+        if index % slice == 0:
             images.append(Image.open(image_path))
-
-    # 如果diffusion_steps無法被display_rate整除，就要手動補上最後一個timestep的圖片
-    if append_last_timestep:
-        images.append(Image.open(image_paths[-1]))
-
+    # 手動補上最後一個timestep的圖片
+    images.append(Image.open(image_paths[-1]))
     image_path = os.path.join(batch_folder, f"diffusion_{batch_index}.gif")
     # 儲存成gif
     images[0].save(
@@ -72,7 +68,7 @@ def create_gif(
         save_all=True,
         append_images=images[1:],
         duration=gif_duration,
-        loop=0,
+        loop=False,
     )
     return image_path
 

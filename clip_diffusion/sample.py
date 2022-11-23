@@ -5,6 +5,7 @@ import anvil
 import numpy as np
 from PIL import Image
 from ipywidgets import Output
+from tqdm.notebook import tqdm
 from einops import rearrange, repeat
 from torchvision.utils import make_grid
 from clip_diffusion.config import Config
@@ -72,7 +73,6 @@ def guided_diffusion_sample(
     skip_timesteps=0,
     eta=0.8,
     num_batches=1,
-    display_rate=25,
     gif_duration=500,
 ):
     """
@@ -89,7 +89,6 @@ def guided_diffusion_sample(
     skip_timesteps: 控制要跳過的step數(從第幾個step開始)，當使用init_image時最好調整為diffusion_steps的0~50%
     eta: DDIM與DDPM的比例(0.0: 純DDIM; 1.0: 純DDPM)，越高每個timestep加入的雜訊越多
     num_batches: 要生成的圖片數量
-    display_rate: 生成過程的gif多少個step要更新一次
     gif_duration: gif的播放時間
     """
     global clip_models, LPIPS_model, aesthetic_predictors
@@ -240,11 +239,11 @@ def guided_diffusion_sample(
         # 限制cond_fn中的梯度大小(避免產生一些極端生成結果)
         return grad * magnitude.clamp(min=-Config.grad_threshold, max=Config.grad_threshold) / magnitude
 
-    image_display = Output()  # 在server端顯示圖片
+    # image_display = Output()  # 在server端顯示圖片
     gif_urls = []  # 生成過程的gif url
     for batch_index in range(num_batches):
         clear_output(wait=True)
-        set_display_widget(image_display)
+        # set_display_widget(image_display)
         store_task_state("current_batch", batch_index)  # 將目前的batch index存到current_batch
         store_task_state("current_result", None)  # 初始化
         clear_gpu_cache()
@@ -290,43 +289,36 @@ def guided_diffusion_sample(
             )
 
         # current_timestep從總timestep數開始；step_index從0開始
-        for step_index, sample in enumerate(samples):
+        for step_index, sample in enumerate(tqdm(samples)):
             current_timestep -= 1  # 每次都將目前的timestep減1
-            with image_display:
-                # 更新、儲存圖片
-                for image_tensor in sample["pred_xstart"]:
-                    filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
-                    image_path = os.path.join(batch_folder, filename)  # 圖片路徑
-                    # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
-                    image_tensor = denormalize_image_zero_to_one(image_tensor).clamp(min=0.0, max=1.0)
-                    image = tensor_to_pillow_image(image_tensor)  # 轉換為Pillow Image
-                    image.save(image_path)
-                    # 生成中
-                    if current_timestep != -1:
-                        # 將目前圖片的url存到current_result
-                        store_task_state(
-                            "current_result",
-                            upload_image(image_path, use_firebase=True, extension="png", minutes=10),
-                        )
-                    # 生成結束
-                    else:
-                        # 建立gif
-                        gif_path = create_gif(
-                            batch_folder,
-                            batch_index,
-                            display_rate,
-                            gif_duration,
-                            append_last_timestep=(steps - skip_timesteps - 1) % display_rate,
-                        )
-                        # 儲存生成過程的gif url
-                        gif_urls.append(
-                            upload_image(gif_path, use_firebase=True, extension="gif", minutes=10)
-                        )
-                    display_image(image_path)
-                    clear_output(wait=(current_timestep != -1))
+            # 更新、儲存圖片
+            filename = f"guided_{batch_index}_{step_index:04}.png"  # 圖片名稱
+            image_path = os.path.join(batch_folder, filename)  # 圖片路徑
+            # 將image_tensor範圍轉回[0, 1]，並用clamp確保範圍正確
+            image_tensor = denormalize_image_zero_to_one(sample["pred_xstart"][0]).clamp(min=0.0, max=1.0)
+            image = tensor_to_pillow_image(image_tensor)  # 轉換為Pillow Image
+            image.save(image_path)
+            # 是否生成結束
+            if current_timestep != -1:
+                # 每5個timestep將目前圖片的url存到current_result
+                if step_index % 5 == 0:
+                    store_task_state(
+                        "current_result",
+                        upload_image(image_path, use_firebase=True, extension="png", minutes=10),
+                    )
+            # 生成結束
+            else:
+                # 建立gif
+                gif_path = create_gif(batch_folder, batch_index, gif_duration)
+                # 儲存生成過程的gif url
+                gif_urls.append(upload_image(gif_path, use_firebase=True, extension="gif", minutes=10))
+            # 暫時取消後端顯示
+            # display_image(image_path)
+            # clear_output(wait=(not current_timestep == -1))
 
             store_task_state("current_step", step_index + 1)  # 紀錄目前的step
         clear_gpu_cache()
+        clear_output()
     return gif_urls  # 回傳gif url
 
 
