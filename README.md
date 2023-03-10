@@ -15,3 +15,6 @@
   2. [dalle-pytorch](https://github.com/lucidrains/DALLE-pytorch)
   3. [關鍵字資料來源](https://docs.google.com/spreadsheets/d/1j7zaDi_PkndizQ2pL8B_yMcwfKUdE6tSMhL31bYtJNs/edit#gid=0)
   4. [styles.csv及media.csv來源](https://github.com/pharmapsychotic/clip-interrogator)
+- model 下載網址
+  1. [building.pt](https://drive.google.com/file/d/1wpV1JrT0hPu4fXfoP8_bDApAXUFsuzTg/view?usp=share_link)
+  2. [stable_landscape.pt](https://drive.google.com/file/d/1l1_RBVGLMBHNUO6x-K816vCQtPSF8HzL/view?usp=share_link)
